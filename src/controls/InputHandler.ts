@@ -9,6 +9,13 @@ import { ViewState } from './ViewState';
 
 export type ViewStateChangeCallback = (viewState: ViewState) => void;
 
+/** Zoom sensitivity: 1 = full speed, 0.6 = 60% of current zoom deltas */
+const ZOOM_SENSITIVITY = 0.6;
+
+function scaleZoomFactor(factor: number): number {
+  return 1 + (factor - 1) * ZOOM_SENSITIVITY;
+}
+
 export class InputHandler {
   private canvas: HTMLCanvasElement;
   private viewState: ViewState;
@@ -107,7 +114,8 @@ export class InputHandler {
     e.preventDefault();
 
     const [x, y] = this.getScreenCoords(e.clientX, e.clientY);
-    const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1;
+    const raw = e.deltaY > 0 ? 0.9 : 1.1;
+    const zoomFactor = scaleZoomFactor(raw);
 
     const [width, height] = this.getCanvasSize();
     this.viewState.zoomAt(x, y, zoomFactor, width, height);
@@ -116,7 +124,8 @@ export class InputHandler {
 
   private handleDoubleClick(e: MouseEvent): void {
     const [x, y] = this.getScreenCoords(e.clientX, e.clientY);
-    this.viewState.zoomAt(x, y, 2.0, this.canvas.width, this.canvas.height);
+    const [width, height] = this.getCanvasSize();
+    this.viewState.zoomAt(x, y, scaleZoomFactor(2.0), width, height);
     this.notifyChange();
   }
 
@@ -174,8 +183,10 @@ export class InputHandler {
       const center = this.getTouchCenter(e.touches);
 
       if (this.lastTouchDistance > 0) {
-        const zoomFactor = distance / this.lastTouchDistance;
-        this.viewState.zoomAt(center[0], center[1], zoomFactor, this.canvas.width, this.canvas.height);
+        const raw = distance / this.lastTouchDistance;
+        const zoomFactor = scaleZoomFactor(raw);
+        const [width, height] = this.getCanvasSize();
+        this.viewState.zoomAt(center[0], center[1], zoomFactor, width, height);
         this.notifyChange();
       }
 

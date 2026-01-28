@@ -33,8 +33,8 @@ void main() {
   vec2 z = vec2(0.0);
   int iterations = 0;
   
-  // Iterate until escape or max iterations
-  for (int i = 0; i < 256; i++) {
+  // Iterate until escape or max iterations (loop bound must be constant)
+  for (int i = 0; i < 4096; i++) {
     if (i >= u_maxIterations) break;
     
     // Check if escaped (|z| > 2)

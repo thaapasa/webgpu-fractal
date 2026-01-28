@@ -14,12 +14,35 @@ import { InputHandler } from '../controls/InputHandler';
 import vertexShaderSource from '../renderer/shaders/mandelbrot.vert.glsl?raw';
 import fragmentShaderSource from '../renderer/shaders/mandelbrot.frag.glsl?raw';
 
+/** Base iterations at zoom 1; scaled up with log(zoom) for deeper zooms. */
+const MAX_ITERATIONS_BASE = 256;
+const MAX_ITERATIONS_CAP = 4096;
+/** Steep power curve: ~256@z1, ~1200@z18, ~3100@z350, cap@z~1e3. */
+const MAX_ITERATIONS_LOG_SCALE = 640;
+const MAX_ITERATIONS_LOG_POWER = 1.65;
+
+function maxIterationsForZoom(zoom: number): number {
+  const z = Math.max(1, zoom);
+  const L = Math.log10(z);
+  const n =
+    MAX_ITERATIONS_BASE +
+    MAX_ITERATIONS_LOG_SCALE * Math.pow(L, MAX_ITERATIONS_LOG_POWER);
+  return Math.round(
+    Math.max(MAX_ITERATIONS_BASE, Math.min(MAX_ITERATIONS_CAP, n))
+  );
+}
+
 export class FractalEngine {
   private renderer: WebGLRenderer;
   private shaderProgram: ShaderProgram;
   private viewState: ViewState;
   private inputHandler: InputHandler;
-  private maxIterations: number = 256;
+
+  /** When set, overrides zoom-based max iterations. */
+  private maxIterationsOverride: number | null = null;
+
+  /** Overlay showing zoom and iteration count (for debugging). */
+  private debugOverlay: HTMLElement | null = null;
 
   // Fullscreen quad geometry (two triangles)
   private quadBuffer: WebGLBuffer | null = null;
@@ -46,6 +69,14 @@ export class FractalEngine {
       // View state changed, trigger a render
       this.render();
     });
+
+    // Debug overlay: zoom + iterations
+    const parent = canvas.parentElement;
+    if (parent) {
+      this.debugOverlay = document.createElement('div');
+      this.debugOverlay.id = 'zoom-debug';
+      parent.appendChild(this.debugOverlay);
+    }
 
     // Handle window resize
     window.addEventListener('resize', () => {
@@ -102,8 +133,17 @@ export class FractalEngine {
     ]);
     this.shaderProgram.setUniform('u_center', [this.viewState.centerX, this.viewState.centerY]);
     this.shaderProgram.setUniform('u_zoom', this.viewState.zoom);
-    this.shaderProgram.setUniformInt('u_maxIterations', this.maxIterations);
-    
+    const maxIter =
+      this.maxIterationsOverride ??
+      maxIterationsForZoom(this.viewState.zoom);
+    this.shaderProgram.setUniformInt('u_maxIterations', maxIter);
+
+    if (this.debugOverlay) {
+      const z = this.viewState.zoom;
+      const zoomStr = z >= 1e6 ? z.toExponential(2) : z < 1 ? z.toPrecision(4) : String(Math.round(z));
+      this.debugOverlay.textContent = `zoom ${zoomStr}  ·  iterations ${maxIter}`;
+    }
+
     // Color scheme (blue to purple gradient)
     this.shaderProgram.setUniform('u_colorA', [0.0, 0.1, 0.3]);
     this.shaderProgram.setUniform('u_colorB', [0.5, 0.2, 0.8]);
@@ -135,10 +175,12 @@ export class FractalEngine {
   }
 
   /**
-   * Set maximum iterations (affects quality vs performance)
+   * Set maximum iterations (overrides zoom-based scaling).
    */
   setMaxIterations(iterations: number): void {
-    this.maxIterations = Math.max(1, Math.min(iterations, 1000));
+    this.maxIterationsOverride = Math.round(
+      Math.max(1, Math.min(iterations, MAX_ITERATIONS_CAP))
+    );
     this.render();
   }
 
@@ -155,10 +197,11 @@ export class FractalEngine {
    */
   destroy(): void {
     this.stop();
+    this.debugOverlay?.remove();
+    this.debugOverlay = null;
     this.inputHandler.destroy();
     this.shaderProgram.destroy();
     this.renderer.destroy();
-    
     if (this.quadBuffer) {
       this.renderer.gl.deleteBuffer(this.quadBuffer);
     }
