@@ -10,7 +10,8 @@ import type { UniformValue } from '../types';
 export class ShaderProgram {
   public readonly program: WebGLProgram;
   private gl: WebGL2RenderingContext;
-  private uniformLocations: Map<string, WebGLUniformLocation> = new Map();
+  private uniformLocations: Map<string, WebGLUniformLocation | null> = new Map();
+  private warnedUniforms: Set<string> = new Set();
 
   constructor(
     gl: WebGL2RenderingContext,
@@ -83,10 +84,18 @@ export class ShaderProgram {
     }
 
     const location = this.gl.getUniformLocation(this.program, name);
-    if (location !== null) {
-      this.uniformLocations.set(name, location);
-    }
+    this.uniformLocations.set(name, location);
     return location;
+  }
+
+  /**
+   * Warn once per missing uniform (avoids spamming the console every frame)
+   */
+  private warnMissingUniform(name: string): void {
+    if (!this.warnedUniforms.has(name)) {
+      this.warnedUniforms.add(name);
+      console.warn(`Uniform "${name}" not found in shader program (may be optimized out)`);
+    }
   }
 
   /**
@@ -102,7 +111,7 @@ export class ShaderProgram {
   setUniform(name: string, value: UniformValue): void {
     const location = this.getUniformLocation(name);
     if (location === null) {
-      console.warn(`Uniform "${name}" not found in shader program`);
+      this.warnMissingUniform(name);
       return;
     }
 
@@ -123,7 +132,7 @@ export class ShaderProgram {
   setUniformInt(name: string, value: number): void {
     const location = this.getUniformLocation(name);
     if (location === null) {
-      console.warn(`Uniform "${name}" not found in shader program`);
+      this.warnMissingUniform(name);
       return;
     }
     this.gl.uniform1i(location, value);
@@ -135,5 +144,6 @@ export class ShaderProgram {
   destroy(): void {
     this.gl.deleteProgram(this.program);
     this.uniformLocations.clear();
+    this.warnedUniforms.clear();
   }
 }

@@ -22,8 +22,11 @@ uniform vec3 u_colorB;          // Color scheme end
 
 void main() {
   // Convert UV coordinates (0-1) to fractal coordinates
-  // Center the view and apply zoom
-  vec2 c = u_center + (v_uv - 0.5) / u_zoom;
+  // Use aspect ratio so the fractal isn't stretched on non-square canvases
+  float aspect = u_resolution.x / u_resolution.y;
+  vec2 uv = v_uv - 0.5;
+  uv.x *= aspect;
+  vec2 c = u_center + uv / u_zoom;
   
   // Mandelbrot iteration: z = z² + c
   vec2 z = vec2(0.0);
