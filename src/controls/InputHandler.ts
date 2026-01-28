@@ -1,0 +1,199 @@
+/**
+ * Input Handler - Translates browser events into view state changes
+ *
+ * "Event handling. Because apparently you monkeys can't click things properly."
+ * - Skippy the Magnificent
+ */
+
+import { ViewState } from './ViewState';
+
+export type ViewStateChangeCallback = (viewState: ViewState) => void;
+
+export class InputHandler {
+  private canvas: HTMLCanvasElement;
+  private viewState: ViewState;
+  private onChange: ViewStateChangeCallback;
+
+  // Mouse/touch state
+  private isDragging = false;
+  private lastX = 0;
+  private lastY = 0;
+  private lastTouchDistance = 0;
+  private lastTouchCenter: [number, number] = [0, 0];
+
+  constructor(
+    canvas: HTMLCanvasElement,
+    viewState: ViewState,
+    onChange: ViewStateChangeCallback
+  ) {
+    this.canvas = canvas;
+    this.viewState = viewState;
+    this.onChange = onChange;
+
+    this.setupEventListeners();
+  }
+
+  private setupEventListeners(): void {
+    // Mouse events
+    this.canvas.addEventListener('mousedown', this.handleMouseDown.bind(this));
+    this.canvas.addEventListener('mousemove', this.handleMouseMove.bind(this));
+    this.canvas.addEventListener('mouseup', this.handleMouseUp.bind(this));
+    this.canvas.addEventListener('mouseleave', this.handleMouseUp.bind(this));
+    this.canvas.addEventListener('wheel', this.handleWheel.bind(this), { passive: false });
+    this.canvas.addEventListener('dblclick', this.handleDoubleClick.bind(this));
+
+    // Touch events
+    this.canvas.addEventListener('touchstart', this.handleTouchStart.bind(this), { passive: false });
+    this.canvas.addEventListener('touchmove', this.handleTouchMove.bind(this), { passive: false });
+    this.canvas.addEventListener('touchend', this.handleTouchEnd.bind(this));
+    this.canvas.addEventListener('touchcancel', this.handleTouchEnd.bind(this));
+
+    // Prevent context menu on right click
+    this.canvas.addEventListener('contextmenu', (e) => e.preventDefault());
+  }
+
+  private getCanvasRect(): DOMRect {
+    return this.canvas.getBoundingClientRect();
+  }
+
+  private getScreenCoords(clientX: number, clientY: number): [number, number] {
+    const rect = this.getCanvasRect();
+    return [clientX - rect.left, clientY - rect.top];
+  }
+
+  private getCanvasSize(): [number, number] {
+    // Use CSS dimensions, not pixel dimensions (which include devicePixelRatio)
+    const rect = this.getCanvasRect();
+    return [rect.width, rect.height];
+  }
+
+  private notifyChange(): void {
+    this.onChange(this.viewState);
+  }
+
+  // Mouse handlers
+  private handleMouseDown(e: MouseEvent): void {
+    if (e.button !== 0) return; // Only left button
+    this.isDragging = true;
+    const [x, y] = this.getScreenCoords(e.clientX, e.clientY);
+    this.lastX = x;
+    this.lastY = y;
+    this.canvas.style.cursor = 'grabbing';
+  }
+
+  private handleMouseMove(e: MouseEvent): void {
+    if (!this.isDragging) return;
+
+    const [x, y] = this.getScreenCoords(e.clientX, e.clientY);
+    const deltaX = x - this.lastX;
+    const deltaY = y - this.lastY;
+
+    const [width, height] = this.getCanvasSize();
+    this.viewState.pan(deltaX, deltaY, width, height);
+    this.notifyChange();
+
+    this.lastX = x;
+    this.lastY = y;
+  }
+
+  private handleMouseUp(): void {
+    if (this.isDragging) {
+      this.isDragging = false;
+      this.canvas.style.cursor = 'grab';
+    }
+  }
+
+  private handleWheel(e: WheelEvent): void {
+    e.preventDefault();
+
+    const [x, y] = this.getScreenCoords(e.clientX, e.clientY);
+    const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1;
+
+    const [width, height] = this.getCanvasSize();
+    this.viewState.zoomAt(x, y, zoomFactor, width, height);
+    this.notifyChange();
+  }
+
+  private handleDoubleClick(e: MouseEvent): void {
+    const [x, y] = this.getScreenCoords(e.clientX, e.clientY);
+    this.viewState.zoomAt(x, y, 2.0, this.canvas.width, this.canvas.height);
+    this.notifyChange();
+  }
+
+  // Touch handlers
+  private getTouchDistance(touches: TouchList): number {
+    if (touches.length < 2) return 0;
+    const dx = touches[0].clientX - touches[1].clientX;
+    const dy = touches[0].clientY - touches[1].clientY;
+    return Math.sqrt(dx * dx + dy * dy);
+  }
+
+  private getTouchCenter(touches: TouchList): [number, number] {
+    if (touches.length === 0) return [0, 0];
+    if (touches.length === 1) {
+      return this.getScreenCoords(touches[0].clientX, touches[0].clientY);
+    }
+    const x = (touches[0].clientX + touches[1].clientX) / 2;
+    const y = (touches[0].clientY + touches[1].clientY) / 2;
+    return this.getScreenCoords(x, y);
+  }
+
+  private handleTouchStart(e: TouchEvent): void {
+    if (e.touches.length === 1) {
+      // Single touch - start pan
+      this.isDragging = true;
+      const [x, y] = this.getScreenCoords(e.touches[0].clientX, e.touches[0].clientY);
+      this.lastX = x;
+      this.lastY = y;
+    } else if (e.touches.length === 2) {
+      // Two touches - prepare for pinch zoom
+      this.isDragging = false;
+      this.lastTouchDistance = this.getTouchDistance(e.touches);
+      this.lastTouchCenter = this.getTouchCenter(e.touches);
+    }
+  }
+
+  private handleTouchMove(e: TouchEvent): void {
+    e.preventDefault();
+
+    if (e.touches.length === 1 && this.isDragging) {
+      // Single touch pan
+      const [x, y] = this.getScreenCoords(e.touches[0].clientX, e.touches[0].clientY);
+      const deltaX = x - this.lastX;
+      const deltaY = y - this.lastY;
+
+      const [width, height] = this.getCanvasSize();
+    this.viewState.pan(deltaX, deltaY, width, height);
+      this.notifyChange();
+
+      this.lastX = x;
+      this.lastY = y;
+    } else if (e.touches.length === 2) {
+      // Pinch zoom
+      const distance = this.getTouchDistance(e.touches);
+      const center = this.getTouchCenter(e.touches);
+
+      if (this.lastTouchDistance > 0) {
+        const zoomFactor = distance / this.lastTouchDistance;
+        this.viewState.zoomAt(center[0], center[1], zoomFactor, this.canvas.width, this.canvas.height);
+        this.notifyChange();
+      }
+
+      this.lastTouchDistance = distance;
+      this.lastTouchCenter = center;
+    }
+  }
+
+  private handleTouchEnd(): void {
+    this.isDragging = false;
+    this.lastTouchDistance = 0;
+  }
+
+  /**
+   * Clean up event listeners
+   */
+  destroy(): void {
+    // Event listeners will be cleaned up when canvas is removed
+    // But we could explicitly remove them if needed
+  }
+}
