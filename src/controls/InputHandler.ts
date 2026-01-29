@@ -8,6 +8,8 @@
 import { ViewState } from './ViewState';
 
 export type ViewStateChangeCallback = (viewState: ViewState) => void;
+export type IterationAdjustCallback = (direction: 1 | -1) => void;
+export type IterationResetCallback = () => void;
 
 /** Zoom sensitivity: 1 = full speed, 0.6 = 60% of current zoom deltas */
 const ZOOM_SENSITIVITY = 0.6;
@@ -20,6 +22,8 @@ export class InputHandler {
   private canvas: HTMLCanvasElement;
   private viewState: ViewState;
   private onChange: ViewStateChangeCallback;
+  private onIterationAdjust: IterationAdjustCallback | null = null;
+  private onIterationReset: IterationResetCallback | null = null;
 
   // Mouse/touch state
   private isDragging = false;
@@ -39,6 +43,20 @@ export class InputHandler {
     this.setupEventListeners();
   }
 
+  /**
+   * Set callback for iteration adjustment (+/- keys)
+   */
+  setIterationAdjustCallback(callback: IterationAdjustCallback): void {
+    this.onIterationAdjust = callback;
+  }
+
+  /**
+   * Set callback for iteration reset (0 key)
+   */
+  setIterationResetCallback(callback: IterationResetCallback): void {
+    this.onIterationReset = callback;
+  }
+
   private setupEventListeners(): void {
     // Mouse events
     this.canvas.addEventListener('mousedown', this.handleMouseDown.bind(this));
@@ -56,6 +74,9 @@ export class InputHandler {
 
     // Prevent context menu on right click
     this.canvas.addEventListener('contextmenu', (e) => e.preventDefault());
+
+    // Keyboard events (on window for global capture)
+    window.addEventListener('keydown', this.handleKeyDown.bind(this));
   }
 
   private getCanvasRect(): DOMRect {
@@ -195,6 +216,31 @@ export class InputHandler {
   private handleTouchEnd(): void {
     this.isDragging = false;
     this.lastTouchDistance = 0;
+  }
+
+  // Keyboard handlers
+  private handleKeyDown(e: KeyboardEvent): void {
+    // Ignore if typing in an input field
+    if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+      return;
+    }
+
+    switch (e.key) {
+      case '+':
+      case '=': // Allow unshifted + key
+        e.preventDefault();
+        this.onIterationAdjust?.(1);
+        break;
+      case '-':
+      case '_': // Allow shifted - key
+        e.preventDefault();
+        this.onIterationAdjust?.(-1);
+        break;
+      case '0':
+        e.preventDefault();
+        this.onIterationReset?.();
+        break;
+    }
   }
 
   /**

@@ -17,10 +17,13 @@ import aaPostFragmentSource from '../renderer/shaders/aa-post.frag.glsl?raw';
 
 /** Base iterations at zoom 1; scaled up with log(zoom) for deeper zooms. */
 const MAX_ITERATIONS_BASE = 256;
-const MAX_ITERATIONS_CAP = 4096;
+/** Default cap for auto-scaling; can be bypassed with manual override. */
+const MAX_ITERATIONS_AUTO_CAP = 4096;
 /** Steep power curve: ~256@z1, ~1200@z18, ~3100@z350, cap@z~1e3. */
 const MAX_ITERATIONS_LOG_SCALE = 640;
 const MAX_ITERATIONS_LOG_POWER = 1.65;
+/** Ratio for manual iteration adjustments (+/- keys). */
+const ITERATION_ADJUST_RATIO = 1.5;
 
 function maxIterationsForZoom(zoom: number): number {
   const z = Math.max(1, zoom);
@@ -29,7 +32,7 @@ function maxIterationsForZoom(zoom: number): number {
     MAX_ITERATIONS_BASE +
     MAX_ITERATIONS_LOG_SCALE * Math.pow(L, MAX_ITERATIONS_LOG_POWER);
   return Math.round(
-    Math.max(MAX_ITERATIONS_BASE, Math.min(MAX_ITERATIONS_CAP, n))
+    Math.max(MAX_ITERATIONS_BASE, Math.min(MAX_ITERATIONS_AUTO_CAP, n))
   );
 }
 
@@ -79,6 +82,14 @@ export class FractalEngine {
     this.inputHandler = new InputHandler(canvas, this.viewState, () => {
       // View state changed, trigger a render
       this.render();
+    });
+
+    // Wire up keyboard iteration controls
+    this.inputHandler.setIterationAdjustCallback((direction) => {
+      this.adjustMaxIterations(direction);
+    });
+    this.inputHandler.setIterationResetCallback(() => {
+      this.clearMaxIterationsOverride();
     });
 
     // Debug overlay: zoom + iterations
@@ -174,7 +185,8 @@ export class FractalEngine {
     if (this.debugOverlay) {
       const z = this.viewState.zoom;
       const zoomStr = z >= 1e6 ? z.toExponential(2) : z < 1 ? z.toPrecision(4) : String(Math.round(z));
-      this.debugOverlay.textContent = `zoom ${zoomStr}  ·  iterations ${maxIter}`;
+      const iterSuffix = this.maxIterationsOverride !== null ? ' (manual)' : '';
+      this.debugOverlay.textContent = `zoom ${zoomStr}  ·  iterations ${maxIter}${iterSuffix}`;
     }
 
     // Pass 1: render Mandelbrot to texture
@@ -232,11 +244,32 @@ export class FractalEngine {
 
   /**
    * Set maximum iterations (overrides zoom-based scaling).
+   * No upper cap - go as high as your GPU can handle!
    */
   setMaxIterations(iterations: number): void {
-    this.maxIterationsOverride = Math.round(
-      Math.max(1, Math.min(iterations, MAX_ITERATIONS_CAP))
-    );
+    this.maxIterationsOverride = Math.round(Math.max(1, iterations));
+    this.render();
+  }
+
+  /**
+   * Adjust max iterations by a ratio. Positive direction = more iterations.
+   * @param direction 1 for increase, -1 for decrease
+   */
+  adjustMaxIterations(direction: 1 | -1): void {
+    const currentIter =
+      this.maxIterationsOverride ?? maxIterationsForZoom(this.viewState.zoom);
+    const newIter =
+      direction > 0
+        ? currentIter * ITERATION_ADJUST_RATIO
+        : currentIter / ITERATION_ADJUST_RATIO;
+    this.setMaxIterations(newIter);
+  }
+
+  /**
+   * Clear the manual override and return to zoom-based auto-scaling.
+   */
+  clearMaxIterationsOverride(): void {
+    this.maxIterationsOverride = null;
     this.render();
   }
 

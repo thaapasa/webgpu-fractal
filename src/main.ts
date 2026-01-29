@@ -35,6 +35,8 @@ function init(): void {
     console.log('  - Double-click to zoom in');
     console.log('  - Touch drag to pan (mobile)');
     console.log('  - Pinch to zoom (mobile)');
+    console.log('  - + / - to adjust max iterations');
+    console.log('  - 0 to reset iterations to auto-scaling');
   } catch (error) {
     console.error('Failed to initialize Fractal Explorer:', error);
     app.innerHTML = `

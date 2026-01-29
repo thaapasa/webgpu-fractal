@@ -29,7 +29,8 @@ void main() {
 
   vec2 z = vec2(0.0);
   int iterations = 0;
-  for (int i = 0; i < 4096; i++) {
+  // Loop limit must be a compile-time constant in GLSL; 65536 allows high manual overrides
+  for (int i = 0; i < 65536; i++) {
     if (i >= u_maxIterations) break;
     float zMagSq = dot(z, z);
     if (zMagSq > 4.0) break;
