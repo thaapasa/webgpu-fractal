@@ -13,6 +13,7 @@ export type IterationResetCallback = () => void;
 export type PaletteCycleCallback = (direction: 1 | -1) => void;
 export type ColorOffsetCallback = (delta: number) => void;
 export type ToggleCallback = () => void;
+export type FractalCycleCallback = (direction: 1 | -1) => void;
 
 /** Zoom sensitivity: 1 = full speed, 0.6 = 60% of current zoom deltas */
 const ZOOM_SENSITIVITY = 0.6;
@@ -30,6 +31,7 @@ export class InputHandler {
   private onPaletteCycle: PaletteCycleCallback | null = null;
   private onColorOffset: ColorOffsetCallback | null = null;
   private onToggleAA: ToggleCallback | null = null;
+  private onFractalCycle: FractalCycleCallback | null = null;
 
   // Mouse/touch state
   private isDragging = false;
@@ -82,6 +84,13 @@ export class InputHandler {
    */
   setToggleAACallback(callback: ToggleCallback): void {
     this.onToggleAA = callback;
+  }
+
+  /**
+   * Set callback for fractal type cycling (f/F keys)
+   */
+  setFractalCycleCallback(callback: FractalCycleCallback): void {
+    this.onFractalCycle = callback;
   }
 
   private setupEventListeners(): void {
@@ -299,6 +308,14 @@ export class InputHandler {
       case 'A':
         e.preventDefault();
         this.onToggleAA?.();
+        break;
+      case 'f':
+        e.preventDefault();
+        this.onFractalCycle?.(1);
+        break;
+      case 'F':
+        e.preventDefault();
+        this.onFractalCycle?.(-1);
         break;
     }
   }

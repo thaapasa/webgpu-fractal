@@ -5,6 +5,21 @@
  * - Skippy the Magnificent
  */
 
+/**
+ * Available fractal types.
+ * Mandelbrot: z = z² + c
+ * Burning Ship: z = (|Re(z)| + i|Im(z)|)² + c
+ */
+export enum FractalType {
+  Mandelbrot = 0,
+  BurningShip = 1,
+}
+
+export const FRACTAL_TYPE_NAMES: Record<FractalType, string> = {
+  [FractalType.Mandelbrot]: 'Mandelbrot',
+  [FractalType.BurningShip]: 'Burning Ship',
+};
+
 export type UniformValue =
   | number
   | [number, number]

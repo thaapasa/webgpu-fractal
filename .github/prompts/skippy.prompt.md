@@ -73,12 +73,12 @@ src/
 
 ### Tech Stack
 
-| Layer | Technology |
-|-------|------------|
-| Language | TypeScript |
-| Build | Vite |
-| Rendering | WebGL 2 |
-| Shaders | GLSL ES 3.0 |
+| Layer     | Technology  |
+|-----------|-------------|
+| Language  | TypeScript  |
+| Build     | Vite        |
+| Rendering | WebGL 2     |
+| Shaders   | GLSL ES 3.0 |
 
 ---
 

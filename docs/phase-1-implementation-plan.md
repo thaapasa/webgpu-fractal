@@ -54,14 +54,14 @@ through all subsequent phases. Trust the awesomeness.
 
 ### Technology Stack
 
-| Layer            | Technology      | Justification                                        |
-| ---------------- | --------------- | ---------------------------------------------------- |
-| Language         | TypeScript      | Type safety for complex math, superior to raw JS     |
-| Build Tool       | Vite            | Fast HMR, excellent TS support, minimal config       |
-| Rendering        | WebGL 2         | Wider browser support than WebGPU (for now)          |
-| Shaders          | GLSL ES 3.0     | Direct GPU computation of fractal iterations         |
-| Styling          | CSS             | Minimal UI means minimal styling needs               |
-| Package Manager  | pnpm            | Faster, more efficient than npm/yarn                 |
+| Layer           | Technology  | Justification                                    |
+|-----------------|-------------|--------------------------------------------------|
+| Language        | TypeScript  | Type safety for complex math, superior to raw JS |
+| Build Tool      | Vite        | Fast HMR, excellent TS support, minimal config   |
+| Rendering       | WebGL 2     | Wider browser support than WebGPU (for now)      |
+| Shaders         | GLSL ES 3.0 | Direct GPU computation of fractal iterations     |
+| Styling         | CSS         | Minimal UI means minimal styling needs           |
+| Package Manager | pnpm        | Faster, more efficient than npm/yarn             |
 
 ### Why WebGL 2 Instead of WebGPU?
 
@@ -261,13 +261,13 @@ Translates raw browser events into view state changes.
 
 **Supported Interactions:**
 
-| Input             | Action         | Details                                          |
-| ----------------- | -------------- | ------------------------------------------------ |
-| Mouse drag        | Pan            | Left button + movement                           |
-| Scroll wheel      | Zoom           | Zoom toward cursor position                      |
-| Touch drag        | Pan            | Single finger movement                           |
-| Pinch             | Zoom           | Two-finger gesture, zoom toward midpoint         |
-| Double-click/tap  | Zoom in        | Quick zoom at that location                      |
+| Input            | Action  | Details                                  |
+|------------------|---------|------------------------------------------|
+| Mouse drag       | Pan     | Left button + movement                   |
+| Scroll wheel     | Zoom    | Zoom toward cursor position              |
+| Touch drag       | Pan     | Single finger movement                   |
+| Pinch            | Zoom    | Two-finger gesture, zoom toward midpoint |
+| Double-click/tap | Zoom in | Quick zoom at that location              |
 
 **Implementation Notes:**
 

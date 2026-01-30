@@ -9,6 +9,7 @@ import { WebGLRenderer } from '../renderer/WebGLRenderer';
 import { ShaderProgram } from '../renderer/ShaderProgram';
 import { ViewState } from '../controls/ViewState';
 import { InputHandler } from '../controls/InputHandler';
+import { FractalType, FRACTAL_TYPE_NAMES } from '../types';
 
 // Import shader sources
 import vertexShaderSource from '../renderer/shaders/mandelbrot.vert.glsl?raw';
@@ -45,6 +46,11 @@ export class FractalEngine {
 
   /** When set, overrides zoom-based max iterations. */
   private maxIterationsOverride: number | null = null;
+
+  /** Current fractal type. */
+  private fractalType: FractalType = FractalType.Mandelbrot;
+  /** Number of available fractal types. */
+  private static readonly FRACTAL_TYPE_COUNT = Object.keys(FractalType).length / 2;
 
   /** Color palette index (0-11). */
   private paletteIndex = 0;
@@ -118,6 +124,11 @@ export class FractalEngine {
     // Wire up AA toggle
     this.inputHandler.setToggleAACallback(() => {
       this.toggleAA();
+    });
+
+    // Wire up fractal type toggle
+    this.inputHandler.setFractalCycleCallback((direction) => {
+      this.cycleFractalType(direction);
     });
 
     // Debug overlay: zoom + iterations
@@ -215,8 +226,9 @@ export class FractalEngine {
       const zoomStr = z >= 1e6 ? z.toExponential(2) : z < 1 ? z.toPrecision(4) : String(Math.round(z));
       const iterSuffix = this.maxIterationsOverride !== null ? ' (manual)' : '';
       const paletteName = FractalEngine.PALETTE_NAMES[this.paletteIndex];
+      const fractalName = FRACTAL_TYPE_NAMES[this.fractalType];
       const aaStatus = this.aaEnabled ? 'AA' : '';
-      this.debugOverlay.textContent = `zoom ${zoomStr}  ·  iterations ${maxIter}${iterSuffix}  ·  ${paletteName}${aaStatus ? '  ·  ' + aaStatus : ''}`;
+      this.debugOverlay.textContent = `${fractalName}  ·  zoom ${zoomStr}  ·  iterations ${maxIter}${iterSuffix}  ·  ${paletteName}${aaStatus ? '  ·  ' + aaStatus : ''}`;
     }
 
     // Pass 1: render Mandelbrot (to texture if AA enabled, directly to screen if not)
@@ -236,6 +248,7 @@ export class FractalEngine {
     this.shaderProgram.setUniform('u_time', performance.now() * 0.001);
     this.shaderProgram.setUniformInt('u_paletteIndex', this.paletteIndex);
     this.shaderProgram.setUniform('u_colorOffset', this.colorOffset);
+    this.shaderProgram.setUniformInt('u_fractalType', this.fractalType);
 
     gl.bindBuffer(gl.ARRAY_BUFFER, this.quadBuffer);
     const positionLocation = 0;
@@ -314,6 +327,15 @@ export class FractalEngine {
    */
   toggleAA(): void {
     this.aaEnabled = !this.aaEnabled;
+    this.render();
+  }
+
+  /**
+   * Cycle to the next fractal type.
+   * @param direction 1 for next, -1 for previous
+   */
+  cycleFractalType(direction: 1 | -1 = 1): void {
+    this.fractalType = (this.fractalType + direction + FractalEngine.FRACTAL_TYPE_COUNT) % FractalEngine.FRACTAL_TYPE_COUNT;
     this.render();
   }
 

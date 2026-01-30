@@ -20,6 +20,7 @@ uniform int u_maxIterations;    // Iteration limit (quality vs performance)
 uniform float u_time;           // Time in seconds (for animations)
 uniform int u_paletteIndex;     // Which color palette to use (0-7)
 uniform float u_colorOffset;    // Offset to shift the color cycle
+uniform int u_fractalType;      // 0 = Mandelbrot, 1 = Burning Ship
 
 // Attempt at magnificent color palettes using cosine gradients
 // Formula: color = a + b * cos(2π * (c * t + d))
@@ -166,6 +167,13 @@ void main() {
     if (i >= u_maxIterations) break;
     float zMagSq = dot(z, z);
     if (zMagSq > 4.0) break;
+
+    // Mandelbrot: z = z² + c
+    // Burning Ship: z = (|Re(z)| - i|Im(z)|)² + c (note: negative imaginary for canonical orientation)
+    if (u_fractalType == 1) {
+      // Burning Ship - take absolute values before squaring, negate imaginary for upright ship
+      z = vec2(abs(z.x), -abs(z.y));
+    }
     z = vec2(z.x * z.x - z.y * z.y + c.x, 2.0 * z.x * z.y + c.y);
     iterations++;
   }
