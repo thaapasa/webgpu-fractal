@@ -31,11 +31,13 @@ All Phase 1 features have been implemented and are working. See [architecture.md
 
 These features were not in the original Phase 1 spec but have been added:
 
+- **Multiple fractal types** — Mandelbrot, Burning Ship, Julia, Burning Ship Julia (cycle with `f`/`F`)
+- **Julia picker mode** — Click on Mandelbrot/Burning Ship to select Julia constant (`j` key)
 - **12 color palettes** (spec called for 1 basic scheme)
 - **Color offset shifting** (not in spec)
 - **Post-process antialiasing** (not in spec)
 - **Auto-scaling iterations** with manual override (not in spec)
-- **Debug overlay** showing zoom/iterations/palette (not in spec)
+- **Debug overlay** showing fractal type, zoom, iterations, palette, Julia constant (not in spec)
 
 ---
 
@@ -490,14 +492,14 @@ Renders a fullscreen quad. Two triangles covering clip space.
 
 ## Browser Support Matrix
 
-| Browser          | Minimum Version | Notes                                |
-| ---------------- | --------------- | ------------------------------------ |
-| Chrome           | 56+             | Full WebGL 2 support                 |
-| Firefox          | 51+             | Full WebGL 2 support                 |
-| Safari           | 15+             | WebGL 2 added in Safari 15           |
-| Edge             | 79+             | Chromium-based, same as Chrome       |
-| Mobile Chrome    | 58+             | Android WebGL 2                      |
-| Mobile Safari    | 15+             | iOS WebGL 2                          |
+| Browser       | Minimum Version | Notes                          |
+|---------------|-----------------|--------------------------------|
+| Chrome        | 56+             | Full WebGL 2 support           |
+| Firefox       | 51+             | Full WebGL 2 support           |
+| Safari        | 15+             | WebGL 2 added in Safari 15     |
+| Edge          | 79+             | Chromium-based, same as Chrome |
+| Mobile Chrome | 58+             | Android WebGL 2                |
+| Mobile Safari | 15+             | iOS WebGL 2                    |
 
 Older browsers get nothing. This isn't my fault - blame the monkeys who don't
 update their browsers.

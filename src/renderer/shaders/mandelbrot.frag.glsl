@@ -20,7 +20,8 @@ uniform int u_maxIterations;    // Iteration limit (quality vs performance)
 uniform float u_time;           // Time in seconds (for animations)
 uniform int u_paletteIndex;     // Which color palette to use (0-7)
 uniform float u_colorOffset;    // Offset to shift the color cycle
-uniform int u_fractalType;      // 0 = Mandelbrot, 1 = Burning Ship
+uniform int u_fractalType;      // 0 = Mandelbrot, 1 = Burning Ship, 2 = Julia, 3 = Burning Ship Julia
+uniform vec2 u_juliaC;          // Julia set constant (only used for Julia types)
 
 // Attempt at magnificent color palettes using cosine gradients
 // Formula: color = a + b * cos(2π * (c * t + d))
@@ -158,9 +159,23 @@ void main() {
   float aspect = u_resolution.x / u_resolution.y;
   vec2 uv = v_uv - 0.5;
   uv.x *= aspect;
-  vec2 c = u_center + uv / u_zoom;
+  vec2 pos = u_center + uv / u_zoom;
 
-  vec2 z = vec2(0.0);
+  // For Mandelbrot/Burning Ship: z starts at 0, c is pixel position
+  // For Julia variants: z starts at pixel position, c is fixed constant
+  vec2 z;
+  vec2 c;
+  bool isJulia = (u_fractalType == 2 || u_fractalType == 3);
+  bool isBurningShip = (u_fractalType == 1 || u_fractalType == 3);
+
+  if (isJulia) {
+    z = pos;
+    c = u_juliaC;
+  } else {
+    z = vec2(0.0);
+    c = pos;
+  }
+
   int iterations = 0;
   // Loop limit must be a compile-time constant in GLSL; 65536 allows high manual overrides
   for (int i = 0; i < 65536; i++) {
@@ -168,9 +183,8 @@ void main() {
     float zMagSq = dot(z, z);
     if (zMagSq > 4.0) break;
 
-    // Mandelbrot: z = z² + c
-    // Burning Ship: z = (|Re(z)| - i|Im(z)|)² + c (note: negative imaginary for canonical orientation)
-    if (u_fractalType == 1) {
+    // Burning Ship variants: take absolute values before squaring
+    if (isBurningShip) {
       // Burning Ship - take absolute values before squaring, negate imaginary for upright ship
       z = vec2(abs(z.x), -abs(z.y));
     }

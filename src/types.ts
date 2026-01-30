@@ -13,11 +13,15 @@
 export enum FractalType {
   Mandelbrot = 0,
   BurningShip = 1,
+  Julia = 2,
+  BurningShipJulia = 3,
 }
 
 export const FRACTAL_TYPE_NAMES: Record<FractalType, string> = {
   [FractalType.Mandelbrot]: 'Mandelbrot',
   [FractalType.BurningShip]: 'Burning Ship',
+  [FractalType.Julia]: 'Julia',
+  [FractalType.BurningShipJulia]: 'Burning Ship Julia',
 };
 
 export type UniformValue =

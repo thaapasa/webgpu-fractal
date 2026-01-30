@@ -119,6 +119,30 @@ Periodically verify:
 - [ ] No orphaned documents
 - [ ] Consistent formatting across docs
 
+### Markdown Table Formatting
+
+Tables must be properly aligned for IDE compatibility:
+
+- **Column alignment**: Pad cells with spaces so columns line up visually
+- **Separator row**: Use `|---|` format with NO spaces around hyphens
+- **Pipe escaping**: Use `\|` to include literal pipe characters in cell content
+
+**Correct example:**
+
+```markdown
+| Column A   | Column B | Description                    |
+|------------|----------|--------------------------------|
+| Value 1    | Type     | A description with \|pipes\|   |
+| Longer Val | Type     | Another description            |
+```
+
+**Incorrect example (spaces in separator row):**
+
+```markdown
+| Column A | Column B |
+| -------- | -------- |
+```
+
 ---
 
 ## Response Style

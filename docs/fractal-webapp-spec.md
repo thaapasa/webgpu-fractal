@@ -9,18 +9,18 @@ _- Colonel Joe Bishop_
 
 > Last reviewed January 2026
 
-| Feature                             | Status                      |
-|-------------------------------------|-----------------------------|
-| Immediate beautiful fractal on load | ✅ Done                      |
-| Zooming (mouse, touch, pinch)       | ✅ Done                      |
-| Panning (mouse, touch)              | ✅ Done                      |
-| Smooth 60 FPS rendering             | ✅ Done                      |
-| Color schemes                       | ✅ Done (12 palettes!)       |
-| Multiple fractal types              | ✅ Done (Mandelbrot, Burning Ship) |
-| URL bookmarking                     | 🔲 Not yet                  |
-| Tourist mode                        | 🔲 Not yet                  |
-| Julia sets                          | 🔲 Not yet                  |
-| Offline support                     | 🔲 Not yet                  |
+| Feature                             | Status                                                       |
+|-------------------------------------|--------------------------------------------------------------|
+| Immediate beautiful fractal on load | ✅ Done                                                       |
+| Zooming (mouse, touch, pinch)       | ✅ Done                                                       |
+| Panning (mouse, touch)              | ✅ Done                                                       |
+| Smooth 60 FPS rendering             | ✅ Done                                                       |
+| Color schemes                       | ✅ Done (12 palettes!)                                        |
+| Multiple fractal types              | ✅ Done (Mandelbrot, Burning Ship, Julia, Burning Ship Julia) |
+| Julia sets                          | ✅ Done (with interactive picker mode!)                       |
+| URL bookmarking                     | 🔲 Not yet                                                   |
+| Tourist mode                        | 🔲 Not yet                                                   |
+| Offline support                     | 🔲 Not yet                                                   |
 
 ---
 

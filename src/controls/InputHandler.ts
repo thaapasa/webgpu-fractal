@@ -14,6 +14,7 @@ export type PaletteCycleCallback = (direction: 1 | -1) => void;
 export type ColorOffsetCallback = (delta: number) => void;
 export type ToggleCallback = () => void;
 export type FractalCycleCallback = (direction: 1 | -1) => void;
+export type JuliaPickCallback = (fractalX: number, fractalY: number) => void;
 
 /** Zoom sensitivity: 1 = full speed, 0.6 = 60% of current zoom deltas */
 const ZOOM_SENSITIVITY = 0.6;
@@ -30,14 +31,20 @@ export class InputHandler {
   private onIterationReset: IterationResetCallback | null = null;
   private onPaletteCycle: PaletteCycleCallback | null = null;
   private onColorOffset: ColorOffsetCallback | null = null;
+  private onColorOffsetReset: ToggleCallback | null = null;
   private onToggleAA: ToggleCallback | null = null;
   private onFractalCycle: FractalCycleCallback | null = null;
+  private onToggleJuliaMode: ToggleCallback | null = null;
+  private onJuliaPick: JuliaPickCallback | null = null;
 
   // Mouse/touch state
   private isDragging = false;
   private lastX = 0;
   private lastY = 0;
   private lastTouchDistance = 0;
+
+  // Julia picker mode state
+  private juliaPickerMode = false;
 
   constructor(
     canvas: HTMLCanvasElement,
@@ -80,6 +87,13 @@ export class InputHandler {
   }
 
   /**
+   * Set callback for color offset reset (r key)
+   */
+  setColorOffsetResetCallback(callback: ToggleCallback): void {
+    this.onColorOffsetReset = callback;
+  }
+
+  /**
    * Set callback for AA toggle (a key)
    */
   setToggleAACallback(callback: ToggleCallback): void {
@@ -91,6 +105,35 @@ export class InputHandler {
    */
   setFractalCycleCallback(callback: FractalCycleCallback): void {
     this.onFractalCycle = callback;
+  }
+
+  /**
+   * Set callback for Julia mode toggle (j key)
+   */
+  setToggleJuliaModeCallback(callback: ToggleCallback): void {
+    this.onToggleJuliaMode = callback;
+  }
+
+  /**
+   * Set callback for Julia constant selection (click in picker mode)
+   */
+  setJuliaPickCallback(callback: JuliaPickCallback): void {
+    this.onJuliaPick = callback;
+  }
+
+  /**
+   * Enable or disable Julia picker mode
+   */
+  setJuliaPickerMode(enabled: boolean): void {
+    this.juliaPickerMode = enabled;
+    this.canvas.style.cursor = enabled ? 'crosshair' : 'grab';
+  }
+
+  /**
+   * Check if Julia picker mode is active
+   */
+  isJuliaPickerModeActive(): boolean {
+    return this.juliaPickerMode;
   }
 
   private setupEventListeners(): void {
@@ -137,8 +180,18 @@ export class InputHandler {
   // Mouse handlers
   private handleMouseDown(e: MouseEvent): void {
     if (e.button !== 0) return; // Only left button
-    this.isDragging = true;
+
     const [x, y] = this.getScreenCoords(e.clientX, e.clientY);
+
+    // Julia picker mode: pick a point instead of panning
+    if (this.juliaPickerMode && this.onJuliaPick) {
+      const [width, height] = this.getCanvasSize();
+      const [fractalX, fractalY] = this.viewState.toFractalCoords(x, y, width, height);
+      this.onJuliaPick(fractalX, fractalY);
+      return;
+    }
+
+    this.isDragging = true;
     this.lastX = x;
     this.lastY = y;
     this.canvas.style.cursor = 'grabbing';
@@ -304,6 +357,11 @@ export class InputHandler {
         e.preventDefault();
         this.onColorOffset?.(0.5);
         break;
+      case 'r':
+      case 'R':
+        e.preventDefault();
+        this.onColorOffsetReset?.();
+        break;
       case 'a':
       case 'A':
         e.preventDefault();
@@ -316,6 +374,11 @@ export class InputHandler {
       case 'F':
         e.preventDefault();
         this.onFractalCycle?.(-1);
+        break;
+      case 'j':
+      case 'J':
+        e.preventDefault();
+        this.onToggleJuliaMode?.();
         break;
     }
   }

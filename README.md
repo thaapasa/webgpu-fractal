@@ -6,7 +6,7 @@ _GPU-accelerated fractal rendering in the browser. Because apparently you monkey
 
 ## What Is This?
 
-**Fractal Explorer** is a webapp that renders the [Mandelbrot set](https://en.wikipedia.org/wiki/Mandelbrot_set) — you know, those infinitely zoomable mathematical patterns that look like they came from another dimension — **directly on your GPU**. Every pixel is computed in parallel. No CPU sweat. No waiting. Just smooth, beautiful math.
+**Fractal Explorer** is a webapp that renders fractals — the [Mandelbrot set](https://en.wikipedia.org/wiki/Mandelbrot_set), [Burning Ship](https://en.wikipedia.org/wiki/Burning_Ship_fractal), and [Julia sets](https://en.wikipedia.org/wiki/Julia_set) — those infinitely zoomable mathematical patterns that look like they came from another dimension — **directly on your GPU**. Every pixel is computed in parallel. No CPU sweat. No waiting. Just smooth, beautiful math.
 
 The goal: open the app, see a fractal, drag to pan, scroll to zoom, and fall into infinity. No loading screens. No configuration menus. Just *bam*.
 
@@ -52,32 +52,46 @@ A static build also lives in [examples/](./examples/); run `npm run build:exampl
 
 ## Controls (Pay Attention)
 
-| Input | Action |
-|-------|--------|
-| **Mouse drag** | Pan |
-| **Scroll wheel** | Zoom (centered on cursor) |
-| **Double‑click** | Zoom in at that spot |
-| **Touch drag** | Pan (mobile) |
-| **Pinch** | Zoom (mobile) |
-| **+** / **−** | Increase / decrease iterations |
-| **0** | Reset iterations to auto‑scaling |
-| **c** / **C** | Cycle color palette forward / backward |
-| **,** / **.** | Shift colors (fine) |
-| **<** / **>** | Shift colors (coarse) |
-| **a** | Toggle antialiasing |
+| Input            | Action                                 |
+|------------------|----------------------------------------|
+| **Mouse drag**   | Pan                                    |
+| **Scroll wheel** | Zoom (centered on cursor)              |
+| **Double‑click** | Zoom in at that spot                   |
+| **Touch drag**   | Pan (mobile)                           |
+| **Pinch**        | Zoom (mobile)                          |
+| **f** / **F**    | Cycle fractal type forward / backward  |
+| **j**            | Toggle Julia picker mode               |
+| **+** / **−**    | Increase / decrease iterations         |
+| **0**            | Reset iterations to auto‑scaling       |
+| **c** / **C**    | Cycle color palette forward / backward |
+| **,** / **.**    | Shift colors (fine)                    |
+| **<** / **>**    | Shift colors (coarse)                  |
+| **r**            | Reset color offset                     |
+| **a**            | Toggle antialiasing                    |
 
 Zoom centers on where you're pointing. Not the center of the screen. Because that would be stupid.
+
+### Fractal Types
+
+- **Mandelbrot** — The classic set: z = z² + c
+- **Burning Ship** — Mandelbrot's angry cousin with absolute values
+- **Julia** — Each point in Mandelbrot corresponds to a unique Julia set
+- **Burning Ship Julia** — Julia variant of Burning Ship
+
+### Julia Picker Mode
+
+Press **j** to enter Julia picker mode. Click anywhere on the Mandelbrot or Burning Ship to select a Julia constant. The corresponding Julia set (or Burning Ship Julia) will render. Press **j** again to return to your previous fractal and view.
 
 ---
 
 ## Tech Stack
 
-| Layer | Technology |
-|-------|------------|
-| Language | TypeScript |
-| Build | Vite |
-| Rendering | WebGL 2 |
-| Shaders | GLSL ES 3.0 |
+| Layer     | Technology  |
+|-----------|-------------|
+| Language  | TypeScript  |
+| Build     | Vite        |
+| Rendering | WebGL 2     |
+| Shaders   | GLSL ES 3.0 |
 
 WebGL 2, not WebGPU. Better browser support, plenty fast for this. I’ve already done the analysis. Don’t @ me.
 

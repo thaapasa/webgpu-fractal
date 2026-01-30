@@ -17,7 +17,7 @@ _— Jennifer Simms_
 
 ## System Overview
 
-Fractal Explorer is a GPU-accelerated Mandelbrot set renderer built with TypeScript and WebGL 2. The application runs entirely in the browser with no backend dependencies.
+Fractal Explorer is a GPU-accelerated fractal renderer built with TypeScript and WebGL 2. The application supports multiple fractal types (Mandelbrot, Burning Ship, Julia, and Burning Ship Julia) and runs entirely in the browser with no backend dependencies.
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -82,11 +82,13 @@ The central orchestrator that ties all components together.
 
 **Key Features:**
 
+- **Multiple fractal types**: Mandelbrot, Burning Ship, Julia, and Burning Ship Julia (cycle with `f`/`F` keys)
+- **Julia picker mode**: Select Julia constant by clicking on Mandelbrot/Burning Ship (`j` key)
 - **Auto-scaling iterations**: Automatically increases `maxIterations` as zoom deepens (configurable with `+`/`-` keys)
 - **12 color palettes**: Selectable via `c`/`C` keys
 - **Color offset**: Shift the color cycle with `,`/`.` keys
 - **Optional antialiasing**: Toggle with `a` key (two-pass render)
-- **Debug overlay**: Shows current zoom level, iteration count, and palette name
+- **Debug overlay**: Shows current fractal type, zoom level, iteration count, palette name, and Julia constant (when applicable)
 
 **Render Pipeline:**
 
@@ -174,11 +176,14 @@ Translates browser events into view state changes.
 | Double-click | Zoom in 2× at cursor                 |
 | Touch drag   | Pan (mobile)                         |
 | Pinch        | Zoom at midpoint (mobile)            |
+| `f` / `F`    | Cycle fractal type forward/backward  |
+| `j`          | Toggle Julia picker mode             |
 | `+` / `-`    | Increase/decrease iterations         |
 | `0`          | Reset to auto-scaling iterations     |
 | `c` / `C`    | Cycle color palette forward/backward |
 | `,` / `.`    | Shift color offset fine              |
 | `<` / `>`    | Shift color offset coarse            |
+| `r`          | Reset color offset                   |
 | `a`          | Toggle antialiasing                  |
 
 ---
@@ -199,24 +204,37 @@ The core fractal computation:
 
 **Uniforms:**
 
-| Uniform           | Type  | Description                      |
-|-------------------|-------|----------------------------------|
-| `u_resolution`    | vec2  | Canvas size in pixels            |
-| `u_center`        | vec2  | View center in fractal coords    |
-| `u_zoom`          | float | Current zoom level               |
-| `u_maxIterations` | int   | Iteration limit                  |
-| `u_time`          | float | Time in seconds (for animations) |
-| `u_paletteIndex`  | int   | Color palette (0–11)             |
-| `u_colorOffset`   | float | Color cycle offset               |
+| Uniform           | Type  | Description                          |
+|-------------------|-------|--------------------------------------|
+| `u_resolution`    | vec2  | Canvas size in pixels                |
+| `u_center`        | vec2  | View center in fractal coords        |
+| `u_zoom`          | float | Current zoom level                   |
+| `u_maxIterations` | int   | Iteration limit                      |
+| `u_time`          | float | Time in seconds (for animations)     |
+| `u_paletteIndex`  | int   | Color palette (0–11)                 |
+| `u_colorOffset`   | float | Color cycle offset                   |
+| `u_fractalType`   | int   | Fractal type (0–3)                   |
+| `u_juliaC`        | vec2  | Julia set constant (for Julia types) |
+
+**Fractal Types:**
+
+| Value | Name               | Formula                                     |
+|-------|--------------------|---------------------------------------------|
+| 0     | Mandelbrot         | z = z² + c                                  |
+| 1     | Burning Ship       | z = (\|Re(z)\| + i\|Im(z)\|)² + c           |
+| 2     | Julia              | z = z² + c (z starts at pixel, c fixed)     |
+| 3     | Burning Ship Julia | Burning Ship with fixed c                   |
 
 **Algorithm:**
 
-1. Map pixel UV to complex coordinate `c`
-2. Iterate `z = z² + c` until `|z| > 2` or max iterations reached
-3. If max iterations reached: pixel is black (in set)
-4. Otherwise: compute smooth iteration count for anti-banding
-5. Map iteration to color via selected palette
-6. Add subtle glow near boundary
+1. Map pixel UV to complex coordinate
+2. For Mandelbrot/Burning Ship: z starts at 0, c is pixel position
+3. For Julia variants: z starts at pixel position, c is fixed constant
+4. Iterate z = z² + c (with absolute value step for Burning Ship variants) until |z| > 2 or max iterations reached
+5. If max iterations reached: pixel is black (in set)
+6. Otherwise: compute smooth iteration count for anti-banding
+7. Map iteration to color via selected palette
+8. Add subtle glow near boundary
 
 **Color Palettes (12 total):**
 

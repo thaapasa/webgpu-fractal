@@ -49,11 +49,20 @@ export class FractalEngine {
 
   /** Current fractal type. */
   private fractalType: FractalType = FractalType.Mandelbrot;
-  /** Number of available fractal types. */
-  private static readonly FRACTAL_TYPE_COUNT = Object.keys(FractalType).length / 2;
+  /** Number of non-Julia fractal types (for cycling). Julia types are selected via picker. */
+  private static readonly BASE_FRACTAL_TYPE_COUNT = 2; // Mandelbrot, Burning Ship
+
+  /** Julia set constant (c in z = z² + c). */
+  private juliaC: [number, number] = [-0.7, 0.27015]; // Classic Julia constant
+  /** Whether Julia picker mode is active. */
+  private juliaPickerMode = false;
+  /** Saved view state before entering Julia mode. */
+  private savedViewState: { centerX: number; centerY: number; zoom: number } | null = null;
+  /** Saved fractal type before entering Julia mode. */
+  private savedFractalType: FractalType | null = null;
 
   /** Color palette index (0-11). */
-  private paletteIndex = 0;
+  private paletteIndex = 4; // Fire
   /** Color offset for shifting the color cycle. */
   private colorOffset = 0.0;
   /** Number of available palettes. */
@@ -120,6 +129,9 @@ export class FractalEngine {
     this.inputHandler.setColorOffsetCallback((delta) => {
       this.adjustColorOffset(delta);
     });
+    this.inputHandler.setColorOffsetResetCallback(() => {
+      this.resetColorOffset();
+    });
 
     // Wire up AA toggle
     this.inputHandler.setToggleAACallback(() => {
@@ -129,6 +141,14 @@ export class FractalEngine {
     // Wire up fractal type toggle
     this.inputHandler.setFractalCycleCallback((direction) => {
       this.cycleFractalType(direction);
+    });
+
+    // Wire up Julia picker mode
+    this.inputHandler.setToggleJuliaModeCallback(() => {
+      this.toggleJuliaPickerMode();
+    });
+    this.inputHandler.setJuliaPickCallback((x, y) => {
+      this.pickJuliaConstant(x, y);
     });
 
     // Debug overlay: zoom + iterations
@@ -228,7 +248,17 @@ export class FractalEngine {
       const paletteName = FractalEngine.PALETTE_NAMES[this.paletteIndex];
       const fractalName = FRACTAL_TYPE_NAMES[this.fractalType];
       const aaStatus = this.aaEnabled ? 'AA' : '';
-      this.debugOverlay.textContent = `${fractalName}  ·  zoom ${zoomStr}  ·  iterations ${maxIter}${iterSuffix}  ·  ${paletteName}${aaStatus ? '  ·  ' + aaStatus : ''}`;
+      const juliaStatus = this.juliaPickerMode ? '🎯 Pick Julia point' : '';
+      const juliaCoords = (this.fractalType === FractalType.Julia || this.fractalType === FractalType.BurningShipJulia)
+        ? `c=(${this.juliaC[0].toFixed(4)}, ${this.juliaC[1].toFixed(4)})`
+        : '';
+      const colorOffsetStr = Math.abs(this.colorOffset) > 0.001 ? `offset ${this.colorOffset.toFixed(1)}` : '';
+      const statusParts = [fractalName, `zoom ${zoomStr}`, `iterations ${maxIter}${iterSuffix}`, paletteName];
+      if (colorOffsetStr) statusParts.push(colorOffsetStr);
+      if (juliaCoords) statusParts.push(juliaCoords);
+      if (aaStatus) statusParts.push(aaStatus);
+      if (juliaStatus) statusParts.push(juliaStatus);
+      this.debugOverlay.textContent = statusParts.join('  ·  ');
     }
 
     // Pass 1: render Mandelbrot (to texture if AA enabled, directly to screen if not)
@@ -249,6 +279,7 @@ export class FractalEngine {
     this.shaderProgram.setUniformInt('u_paletteIndex', this.paletteIndex);
     this.shaderProgram.setUniform('u_colorOffset', this.colorOffset);
     this.shaderProgram.setUniformInt('u_fractalType', this.fractalType);
+    this.shaderProgram.setUniform('u_juliaC', this.juliaC);
 
     gl.bindBuffer(gl.ARRAY_BUFFER, this.quadBuffer);
     const positionLocation = 0;
@@ -331,11 +362,119 @@ export class FractalEngine {
   }
 
   /**
-   * Cycle to the next fractal type.
+   * Cycle to the next fractal type (Mandelbrot/Burning Ship only).
+   * Julia variants are accessed via the Julia picker mode.
    * @param direction 1 for next, -1 for previous
    */
   cycleFractalType(direction: 1 | -1 = 1): void {
-    this.fractalType = (this.fractalType + direction + FractalEngine.FRACTAL_TYPE_COUNT) % FractalEngine.FRACTAL_TYPE_COUNT;
+    // If we're in a Julia variant, exit to the corresponding base type first
+    if (this.fractalType === FractalType.Julia) {
+      this.fractalType = FractalType.Mandelbrot;
+    } else if (this.fractalType === FractalType.BurningShipJulia) {
+      this.fractalType = FractalType.BurningShip;
+    }
+
+    // Cycle through base types only
+    this.fractalType = (this.fractalType + direction + FractalEngine.BASE_FRACTAL_TYPE_COUNT) % FractalEngine.BASE_FRACTAL_TYPE_COUNT;
+
+    // Exit picker mode when changing fractal type
+    if (this.juliaPickerMode) {
+      this.juliaPickerMode = false;
+      this.inputHandler.setJuliaPickerMode(false);
+    }
+
+    this.render();
+  }
+
+  /**
+   * Toggle Julia picker mode on/off.
+   * When active, clicking on the fractal picks a Julia constant.
+   * If already viewing a Julia set, pressing J returns to the source set.
+   */
+  toggleJuliaPickerMode(): void {
+    // If currently viewing a Julia set, return to the saved state
+    if (this.fractalType === FractalType.Julia || this.fractalType === FractalType.BurningShipJulia) {
+      this.exitJuliaMode();
+      return;
+    }
+
+    // Toggle picker mode
+    this.juliaPickerMode = !this.juliaPickerMode;
+    this.inputHandler.setJuliaPickerMode(this.juliaPickerMode);
+    this.render();
+  }
+
+  /**
+   * Pick a Julia constant from the current fractal view.
+   * @param x Real component of the point clicked
+   * @param y Imaginary component of the point clicked
+   */
+  pickJuliaConstant(x: number, y: number): void {
+    // Save current state before switching to Julia
+    this.savedViewState = {
+      centerX: this.viewState.centerX,
+      centerY: this.viewState.centerY,
+      zoom: this.viewState.zoom,
+    };
+    this.savedFractalType = this.fractalType;
+
+    // Set the Julia constant
+    this.juliaC = [x, y];
+
+    // Switch to the appropriate Julia variant
+    if (this.fractalType === FractalType.BurningShip) {
+      this.fractalType = FractalType.BurningShipJulia;
+    } else {
+      this.fractalType = FractalType.Julia;
+    }
+
+    // Exit picker mode
+    this.juliaPickerMode = false;
+    this.inputHandler.setJuliaPickerMode(false);
+
+    // Reset view for the Julia set
+    this.viewState.centerX = 0;
+    this.viewState.centerY = 0;
+    this.viewState.zoom = 0.8;
+
+    this.render();
+  }
+
+  /**
+   * Exit Julia mode and return to the source fractal.
+   */
+  private exitJuliaMode(): void {
+    // Restore saved state if available
+    if (this.savedViewState) {
+      this.viewState.centerX = this.savedViewState.centerX;
+      this.viewState.centerY = this.savedViewState.centerY;
+      this.viewState.zoom = this.savedViewState.zoom;
+      this.savedViewState = null;
+    } else {
+      // Default reset
+      this.viewState.centerX = -0.5;
+      this.viewState.centerY = 0;
+      this.viewState.zoom = 1.0;
+    }
+
+    // Restore fractal type
+    if (this.savedFractalType !== null) {
+      this.fractalType = this.savedFractalType;
+      this.savedFractalType = null;
+    } else {
+      this.fractalType = FractalType.Mandelbrot;
+    }
+
+    this.render();
+  }
+
+  /**
+   * Set the Julia constant directly.
+   * @param real Real component
+   * @param imag Imaginary component
+   */
+  setJuliaConstant(real: number, imag: number): void {
+    this.juliaC = [real, imag];
     this.render();
   }
 
