@@ -101,9 +101,16 @@ export class FractalEngine {
   /** Whether post-process antialiasing is enabled. */
   private aaEnabled = false;
 
+  /** Whether HDR rendering is enabled (if supported). */
+  private hdrEnabled = false;
+  /** Peak luminance in nits for HDR mode. */
+  private hdrPeakNits = 1000.0;
+
   /** Render-to-texture: FBO and texture for Mandelbrot pass. */
   private fbo: WebGLFramebuffer | null = null;
   private renderTarget: WebGLTexture | null = null;
+  /** HDR render target (RGBA16F). */
+  private hdrRenderTarget: WebGLTexture | null = null;
   private rtWidth = 0;
   private rtHeight = 0;
 
@@ -158,6 +165,14 @@ export class FractalEngine {
     // Wire up AA toggle
     this.inputHandler.setToggleAACallback(() => {
       this.toggleAA();
+    });
+
+    // Wire up HDR toggle
+    this.inputHandler.setToggleHDRCallback(() => {
+      this.toggleHDR();
+    });
+    this.inputHandler.setAdjustHdrNitsCallback((direction) => {
+      this.adjustHdrPeakNits(direction);
     });
 
     // Wire up fractal type toggle
@@ -300,6 +315,12 @@ export class FractalEngine {
     const gl = this.renderer.gl;
     this.fbo = gl.createFramebuffer();
     this.renderTarget = gl.createTexture();
+
+    // Create HDR render target if float buffers are supported
+    if (this.renderer.floatBufferExt || this.renderer.halfFloatBufferExt) {
+      this.hdrRenderTarget = gl.createTexture();
+      console.log('HDR render target created (RGBA16F)');
+    }
   }
 
   private ensureRenderTargetSize(): void {
@@ -311,12 +332,24 @@ export class FractalEngine {
     this.rtWidth = w;
     this.rtHeight = h;
 
+    // SDR render target (RGBA8)
     gl.bindTexture(gl.TEXTURE_2D, this.renderTarget);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, w, h, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+
+    // HDR render target (RGBA16F) if supported
+    if (this.hdrRenderTarget) {
+      gl.bindTexture(gl.TEXTURE_2D, this.hdrRenderTarget);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA16F, w, h, 0, gl.RGBA, gl.HALF_FLOAT, null);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    }
+
     gl.bindTexture(gl.TEXTURE_2D, null);
 
     gl.bindFramebuffer(gl.FRAMEBUFFER, this.fbo);
@@ -346,6 +379,7 @@ export class FractalEngine {
       const paletteName = FractalEngine.PALETTE_NAMES[this.paletteIndex];
       const fractalName = FRACTAL_TYPE_NAMES[this.fractalType];
       const aaStatus = this.aaEnabled ? 'AA' : '';
+      const hdrStatus = this.hdrEnabled ? `HDR ${this.hdrPeakNits}` : '';
       const juliaStatus = this.juliaPickerMode ? '🎯 Pick Julia point' : '';
       const juliaCoords = (this.fractalType === FractalType.Julia || this.fractalType === FractalType.BurningShipJulia)
         ? `c=(${this.juliaC[0].toFixed(4)}, ${this.juliaC[1].toFixed(4)})`
@@ -355,15 +389,28 @@ export class FractalEngine {
       if (colorOffsetStr) statusParts.push(colorOffsetStr);
       if (juliaCoords) statusParts.push(juliaCoords);
       if (aaStatus) statusParts.push(aaStatus);
+      if (hdrStatus) statusParts.push(hdrStatus);
       if (juliaStatus) statusParts.push(juliaStatus);
       statusParts.push('H = help');
       this.debugOverlay.textContent = statusParts.join('  ·  ');
     }
 
-    // Pass 1: render Mandelbrot (to texture if AA enabled, directly to screen if not)
-    if (this.aaEnabled) {
+    // HDR requires direct rendering to canvas (no render target)
+    // AA is not compatible with HDR mode
+    const useRenderTarget = this.aaEnabled && !this.hdrEnabled;
+
+    if (useRenderTarget) {
+      // AA mode: render to texture for post-processing
       gl.bindFramebuffer(gl.FRAMEBUFFER, this.fbo);
+      gl.framebufferTexture2D(
+        gl.FRAMEBUFFER,
+        gl.COLOR_ATTACHMENT0,
+        gl.TEXTURE_2D,
+        this.renderTarget,
+        0
+      );
     } else {
+      // Direct to canvas - required for HDR to work
       gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     }
     gl.viewport(0, 0, w, h);
@@ -379,6 +426,8 @@ export class FractalEngine {
     this.shaderProgram.setUniform('u_colorOffset', this.colorOffset);
     this.shaderProgram.setUniformInt('u_fractalType', this.fractalType);
     this.shaderProgram.setUniform('u_juliaC', this.juliaC);
+    this.shaderProgram.setUniformInt('u_hdrEnabled', this.hdrEnabled ? 1 : 0);
+    this.shaderProgram.setUniform('u_hdrPeakNits', this.hdrPeakNits);
 
     gl.bindBuffer(gl.ARRAY_BUFFER, this.quadBuffer);
     const positionLocation = 0;
@@ -386,17 +435,19 @@ export class FractalEngine {
     gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0);
     gl.drawArrays(gl.TRIANGLES, 0, 6);
 
-    // Pass 2: AA post-process to screen (only if AA enabled)
-    if (this.aaEnabled) {
+    // Pass 2: AA post-process (only when AA enabled and HDR disabled)
+    if (useRenderTarget) {
       gl.bindFramebuffer(gl.FRAMEBUFFER, null);
       gl.viewport(0, 0, w, h);
-      this.renderer.clear(0.05, 0.05, 0.1, 1);
+      this.renderer.clear(0, 0, 0, 1);
 
       gl.activeTexture(gl.TEXTURE0);
       gl.bindTexture(gl.TEXTURE_2D, this.renderTarget);
       this.postProcessProgram.use();
       this.postProcessProgram.setUniformInt('u_tex', 0);
       this.postProcessProgram.setUniform('u_resolution', [w, h]);
+      this.postProcessProgram.setUniformInt('u_aaEnabled', 1);
+      this.postProcessProgram.setUniformInt('u_hdrEnabled', 0);
 
       gl.bindBuffer(gl.ARRAY_BUFFER, this.quadBuffer);
       gl.enableVertexAttribArray(positionLocation);
@@ -458,6 +509,43 @@ export class FractalEngine {
    */
   toggleAA(): void {
     this.aaEnabled = !this.aaEnabled;
+
+    // HDR and AA are mutually exclusive - disable HDR when AA is on
+    if (this.aaEnabled && this.hdrEnabled) {
+      this.hdrEnabled = false;
+      console.log('HDR disabled (not compatible with AA mode)');
+    }
+
+    this.render();
+  }
+
+  /**
+   * Toggle HDR rendering on/off.
+   * Only works if HDR is supported (EXT_color_buffer_float available).
+   */
+  toggleHDR(): void {
+    this.hdrEnabled = !this.hdrEnabled;
+
+    // HDR and AA are mutually exclusive - disable AA when HDR is on
+    if (this.hdrEnabled && this.aaEnabled) {
+      this.aaEnabled = false;
+      console.log('AA disabled (not compatible with HDR mode)');
+    }
+
+    console.log(`HDR ${this.hdrEnabled ? 'enabled' : 'disabled'}, peak nits: ${this.hdrPeakNits}`);
+    this.render();
+  }
+
+  /**
+   * Adjust HDR peak luminance (nits).
+   * @param direction 1 for brighter, -1 for dimmer
+   */
+  adjustHdrPeakNits(direction: 1 | -1): void {
+    if (!this.hdrEnabled) return;
+    // Adjust by ~25% each step, clamped to reasonable range
+    const factor = direction > 0 ? 1.25 : 0.8;
+    this.hdrPeakNits = Math.max(200, Math.min(4000, this.hdrPeakNits * factor));
+    this.hdrPeakNits = Math.round(this.hdrPeakNits / 50) * 50; // Round to nearest 50
     this.render();
   }
 
@@ -838,6 +926,8 @@ export class FractalEngine {
           <h3 style="margin: 0 0 8px 0; color: #a78bfa; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px;">Display</h3>
           <div style="display: grid; gap: 4px;">
             ${this.helpRow('A', 'Toggle antialiasing')}
+            ${this.helpRow('D', 'Toggle HDR mode')}
+            ${this.helpRow('E / Shift+D', 'HDR brightness +/-')}
             ${this.helpRow('H', 'Toggle this help')}
             ${this.helpRow('Space', 'Screenshot mode')}
           </div>
@@ -886,6 +976,7 @@ export class FractalEngine {
     const gl = this.renderer.gl;
     if (this.fbo) gl.deleteFramebuffer(this.fbo);
     if (this.renderTarget) gl.deleteTexture(this.renderTarget);
+    if (this.hdrRenderTarget) gl.deleteTexture(this.hdrRenderTarget);
     this.renderer.destroy();
     if (this.quadBuffer) gl.deleteBuffer(this.quadBuffer);
   }

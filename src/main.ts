@@ -6,12 +6,14 @@
  */
 
 import { FractalEngine } from './fractal/FractalEngine';
+import { WebGPUFractalEngine } from './fractal/WebGPUFractalEngine';
+import { WebGPURenderer } from './renderer/WebGPURenderer';
 
 console.log('Fractal Explorer - Initializing...');
 
-let engine: FractalEngine | null = null;
+let engine: FractalEngine | WebGPUFractalEngine | null = null;
 
-function init(): void {
+async function init(): Promise<void> {
   const app = document.getElementById('app');
   if (!app) {
     console.error('Could not find #app element');
@@ -24,8 +26,15 @@ function init(): void {
   app.appendChild(canvas);
 
   try {
-    // Initialize the fractal engine
-    engine = new FractalEngine(canvas);
+    // Try WebGPU first for HDR support
+    if (WebGPURenderer.isSupported()) {
+      console.log('WebGPU available - using WebGPU renderer with HDR support');
+      engine = await WebGPUFractalEngine.create(canvas);
+    } else {
+      console.log('WebGPU not available - falling back to WebGL');
+      engine = new FractalEngine(canvas);
+    }
+
     engine.start();
 
     console.log('Fractal Explorer initialized successfully');
@@ -40,7 +49,7 @@ function init(): void {
     console.log('  - c / C to cycle color palettes (forward/backward)');
     console.log('  - , / . to shift colors (fine)');
     console.log('  - < / > to shift colors (coarse)');
-    console.log('  - a to toggle antialiasing');
+    console.log('  - e / Shift+D to adjust HDR brightness');
     console.log('  - s to share/copy bookmark URL');
     console.log('  - 1-9 to visit famous locations');
     console.log('  - h to toggle help overlay');
@@ -59,7 +68,7 @@ function init(): void {
 
 // Initialize when DOM is ready
 if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', init);
+  document.addEventListener('DOMContentLoaded', () => init());
 } else {
   init();
 }

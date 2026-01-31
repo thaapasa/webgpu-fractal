@@ -37,6 +37,8 @@ export class InputHandler {
   private onColorOffset: ColorOffsetCallback | null = null;
   private onColorOffsetReset: ToggleCallback | null = null;
   private onToggleAA: ToggleCallback | null = null;
+  private onToggleHDR: ToggleCallback | null = null;
+  private onAdjustHdrNits: IterationAdjustCallback | null = null;
   private onFractalCycle: FractalCycleCallback | null = null;
   private onToggleJuliaMode: ToggleCallback | null = null;
   private onJuliaPick: JuliaPickCallback | null = null;
@@ -106,6 +108,20 @@ export class InputHandler {
    */
   setToggleAACallback(callback: ToggleCallback): void {
     this.onToggleAA = callback;
+  }
+
+  /**
+   * Set callback for HDR toggle (d key)
+   */
+  setToggleHDRCallback(callback: ToggleCallback): void {
+    this.onToggleHDR = callback;
+  }
+
+  /**
+   * Set callback for HDR peak nits adjustment (shift+[/] when HDR enabled)
+   */
+  setAdjustHdrNitsCallback(callback: IterationAdjustCallback): void {
+    this.onAdjustHdrNits = callback;
   }
 
   /**
@@ -402,6 +418,23 @@ export class InputHandler {
       case 'A':
         e.preventDefault();
         this.onToggleAA?.();
+        break;
+      case 'd':
+      case 'D':
+        e.preventDefault();
+        if (e.shiftKey) {
+          // Shift+D: decrease HDR peak nits
+          this.onAdjustHdrNits?.(-1);
+        } else {
+          // D: toggle HDR
+          this.onToggleHDR?.();
+        }
+        break;
+      case 'e':
+      case 'E':
+        // E: increase HDR peak nits (when HDR is on)
+        e.preventDefault();
+        this.onAdjustHdrNits?.(1);
         break;
       case 'f':
         e.preventDefault();

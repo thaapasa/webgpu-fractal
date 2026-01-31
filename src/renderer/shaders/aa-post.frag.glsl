@@ -1,9 +1,12 @@
 #version 300 es
 
 /**
- * Post-process: antialias by averaging colored pixels with non-black neighbors.
+ * Post-process shader: handles AA and/or HDR passthrough.
+ *
+ * AA: averages colored pixels with non-black neighbors when contrast is high.
  * Black (set) pixels stay black; no bleeding into the set.
- * Only applies when contrast among nearby non-black pixels is high; otherwise pass-through.
+ *
+ * When AA is disabled, simply passes through the texture (for HDR-only mode).
  */
 
 precision highp float;
@@ -13,9 +16,12 @@ out vec4 fragColor;
 
 uniform sampler2D u_tex;
 uniform vec2 u_resolution;
+uniform bool u_aaEnabled;
+uniform bool u_hdrEnabled;
 
 const float BLACK_THRESH = 0.02;
 const float CONTRAST_THRESH = 0.35;
+const float HDR_CONTRAST_THRESH = 0.5; // Higher threshold for HDR due to larger value range
 
 bool isBlack(vec3 rgb) {
   return max(max(rgb.r, rgb.g), rgb.b) < BLACK_THRESH;
@@ -26,15 +32,22 @@ float luminance(vec3 rgb) {
 }
 
 void main() {
-  vec2 texel = 1.0 / u_resolution;
   vec4 center = texture(u_tex, v_uv);
   vec3 c = center.rgb;
 
+  // If AA is disabled, just pass through the texture
+  if (!u_aaEnabled) {
+    fragColor = vec4(c, 1.0);
+    return;
+  }
+
+  // AA processing below
   if (isBlack(c)) {
     fragColor = vec4(0.0, 0.0, 0.0, 1.0);
     return;
   }
 
+  vec2 texel = 1.0 / u_resolution;
   vec3 sum = c;
   float n = 1.0;
   float lumMin = luminance(c);
@@ -56,7 +69,9 @@ void main() {
   }
 
   float contrast = lumMax - lumMin;
-  if (contrast < CONTRAST_THRESH) {
+  float threshold = u_hdrEnabled ? HDR_CONTRAST_THRESH : CONTRAST_THRESH;
+
+  if (contrast < threshold) {
     fragColor = vec4(c, 1.0);
   } else {
     fragColor = vec4(sum / n, 1.0);

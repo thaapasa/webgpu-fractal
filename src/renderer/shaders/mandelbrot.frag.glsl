@@ -22,6 +22,8 @@ uniform int u_paletteIndex;     // Which color palette to use (0-7)
 uniform float u_colorOffset;    // Offset to shift the color cycle
 uniform int u_fractalType;      // 0 = Mandelbrot, 1 = Burning Ship, 2 = Julia, 3 = Burning Ship Julia
 uniform vec2 u_juliaC;          // Julia set constant (only used for Julia types)
+uniform bool u_hdrEnabled;      // Whether HDR output is enabled
+uniform float u_hdrPeakNits;    // Peak luminance in nits (typically 1000)
 
 // Attempt at magnificent color palettes using cosine gradients
 // Formula: color = a + b * cos(2π * (c * t + d))
@@ -29,6 +31,46 @@ uniform vec2 u_juliaC;          // Julia set constant (only used for Julia types
 
 vec3 palette(float t, vec3 a, vec3 b, vec3 c, vec3 d) {
   return a + b * cos(6.28318 * (c * t + d));
+}
+
+/**
+ * HDR brightness curve: maps normalized iteration count to a brightness multiplier.
+ *
+ * The curve is designed per your spec:
+ * - Fast rise at low iterations (0-20%): 0 → SDR standard (1.0)
+ * - Plateau in middle (20-80%): around SDR standard (1.0)
+ * - Dramatic ramp at high iterations (80-100%): 1.0 → peak brightness
+ *
+ * For true HDR output, values > 1.0 will appear brighter on HDR displays.
+ * peakMultiplier of 10.0 = 1000 nits on a display calibrated to 100 nits SDR white.
+ */
+float hdrBrightnessCurve(float normalized, float peakMultiplier) {
+  const float LOW_END = 0.20;
+  const float HIGH_START = 0.80;
+
+  if (normalized < LOW_END) {
+    // Fast rise from dark (0.1) to standard (1.0) using sqrt curve
+    float t = normalized / LOW_END;
+    return mix(0.1, 1.0, sqrt(t));
+  } else if (normalized < HIGH_START) {
+    // Plateau around 1.0 (SDR white point)
+    return 1.0;
+  } else {
+    // Dramatic ramp from 1.0 to peak
+    float t = (normalized - HIGH_START) / (1.0 - HIGH_START);
+    // Use power curve for dramatic ramp-up at the boundary
+    float eased = pow(t, 1.5);
+    return mix(1.0, peakMultiplier, eased);
+  }
+}
+
+/**
+ * Apply HDR brightness to color.
+ * For true HDR displays, we simply multiply - values > 1.0 will be displayed
+ * as brighter than SDR white, up to the display's peak brightness.
+ */
+vec3 applyHdrBrightness(vec3 color, float brightnessMultiplier) {
+  return color * brightnessMultiplier;
 }
 
 vec3 getColor(float t, int paletteIdx, bool isCycling) {
@@ -225,6 +267,23 @@ void main() {
     float glow = pow(edgeFactor, 0.5) * 0.3;
     color = color * (1.0 + glow);
 
-    fragColor = vec4(min(color, vec3(1.0)), 1.0);
+    // Apply HDR brightness mapping if enabled
+    if (u_hdrEnabled) {
+      // Convert peak nits to a multiplier (1000 nits = 10x SDR reference of 100 nits)
+      float peakMultiplier = u_hdrPeakNits / 100.0;
+
+      // Get brightness multiplier from iteration depth
+      float brightnessMult = hdrBrightnessCurve(normalized, peakMultiplier);
+
+      // Apply brightness - values > 1.0 will be displayed brighter on HDR displays
+      color = applyHdrBrightness(color, brightnessMult);
+
+      // For true HDR output, we do NOT clamp!
+      // The browser's HDR pipeline will handle values > 1.0
+      fragColor = vec4(color, 1.0);
+    } else {
+      // SDR path: clamp to 1.0
+      fragColor = vec4(min(color, vec3(1.0)), 1.0);
+    }
   }
 }
