@@ -167,12 +167,9 @@ export class FractalEngine {
       this.toggleAA();
     });
 
-    // Wire up HDR toggle
+    // Wire up HDR toggle (limited support in WebGL)
     this.inputHandler.setToggleHDRCallback(() => {
       this.toggleHDR();
-    });
-    this.inputHandler.setAdjustHdrNitsCallback((direction) => {
-      this.adjustHdrPeakNits(direction);
     });
 
     // Wire up fractal type toggle

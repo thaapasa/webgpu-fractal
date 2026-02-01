@@ -11,7 +11,7 @@ struct Uniforms {
   fractalType: i32,
   juliaC: vec2f,
   hdrEnabled: i32,
-  hdrPeakNits: f32,
+  hdrBrightnessBias: f32, // -1 to +1: shifts which iteration ranges are bright
   // Palette parameters
   paletteType: i32,      // 0 = cosine, 1 = gradient
   isMonotonic: i32,      // 0 = cycling, 1 = monotonic
@@ -87,30 +87,42 @@ fn getColor(t_in: f32, isCycling: bool) -> vec3f {
 }
 
 // HDR brightness curve for MONOTONIC palettes
-fn hdrBrightnessCurveMonotonic(normalized: f32, peakMultiplier: f32) -> f32 {
+// bias: -1 to +1, shifts the bright region earlier (positive) or later (negative)
+fn hdrBrightnessCurveMonotonic(normalized: f32, bias: f32) -> f32 {
+  // Shift the normalized value by bias to move bright regions
+  // bias > 0: more of the image becomes bright (bright region starts earlier)
+  // bias < 0: less of the image is bright (bright region starts later)
+  let shifted = clamp(normalized + bias * 0.4, 0.0, 1.0);
+
   let LOW_END = 0.05;
   let MID_START = 0.30;
   let HIGH_START = 0.60;
+  let PEAK = 10.0; // Fixed peak multiplier for HDR
 
-  if (normalized < LOW_END) {
-    let t = normalized / LOW_END;
+  if (shifted < LOW_END) {
+    let t = shifted / LOW_END;
     return mix(0.0, 0.15, sqrt(t));
-  } else if (normalized < MID_START) {
-    let t = (normalized - LOW_END) / (MID_START - LOW_END);
+  } else if (shifted < MID_START) {
+    let t = (shifted - LOW_END) / (MID_START - LOW_END);
     return mix(0.15, 0.5, t);
-  } else if (normalized < HIGH_START) {
-    let t = (normalized - MID_START) / (HIGH_START - MID_START);
+  } else if (shifted < HIGH_START) {
+    let t = (shifted - MID_START) / (HIGH_START - MID_START);
     return mix(0.5, 1.0, t);
   } else {
-    let t = (normalized - HIGH_START) / (1.0 - HIGH_START);
+    let t = (shifted - HIGH_START) / (1.0 - HIGH_START);
     let eased = pow(t, 1.1);
-    return mix(1.0, peakMultiplier, eased);
+    return mix(1.0, PEAK, eased);
   }
 }
 
 // HDR brightness curve for CYCLING palettes
-fn hdrBrightnessCurveCycling(normalized: f32, peakMultiplier: f32) -> f32 {
-  let HIGH_START = 0.70;
+// bias: -1 to +1, shifts the HDR highlight region
+fn hdrBrightnessCurveCycling(normalized: f32, bias: f32) -> f32 {
+  // Shift where the HDR boost kicks in
+  // bias > 0: HDR highlights appear earlier (more of image gets boost)
+  // bias < 0: HDR highlights appear later (only near-boundary gets boost)
+  let HIGH_START = clamp(0.70 - bias * 0.25, 0.3, 0.95);
+  let PEAK = 10.0; // Fixed peak multiplier for HDR
 
   if (normalized < HIGH_START) {
     let t = normalized / HIGH_START;
@@ -118,7 +130,7 @@ fn hdrBrightnessCurveCycling(normalized: f32, peakMultiplier: f32) -> f32 {
   } else {
     let t = (normalized - HIGH_START) / (1.0 - HIGH_START);
     let eased = pow(t, 1.2);
-    return mix(1.0, peakMultiplier, eased);
+    return mix(1.0, PEAK, eased);
   }
 }
 
@@ -178,13 +190,12 @@ fn fragmentMain(input: VertexOutput) -> @location(0) vec4f {
   var color = getColor(t, isCycling);
 
   if (u.hdrEnabled != 0) {
-    let peakMultiplier = u.hdrPeakNits / 100.0;
     var brightnessMult: f32;
 
     if (isMonotonic) {
-      brightnessMult = hdrBrightnessCurveMonotonic(normalized, peakMultiplier);
+      brightnessMult = hdrBrightnessCurveMonotonic(normalized, u.hdrBrightnessBias);
     } else {
-      brightnessMult = hdrBrightnessCurveCycling(normalized, peakMultiplier);
+      brightnessMult = hdrBrightnessCurveCycling(normalized, u.hdrBrightnessBias);
     }
 
     color = color * brightnessMult;

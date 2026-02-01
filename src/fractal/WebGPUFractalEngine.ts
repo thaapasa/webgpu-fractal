@@ -61,7 +61,8 @@ export class WebGPUFractalEngine {
   private paletteIndex = 4; // Fire
   private colorOffset = 0.0;
 
-  private hdrPeakNits = 1000.0;
+  /** HDR brightness bias: -1 to +1, shifts which regions appear bright */
+  private hdrBrightnessBias = 0.0;
 
   private debugOverlay: HTMLElement | null = null;
   private shareNotification: HTMLElement | null = null;
@@ -85,6 +86,12 @@ export class WebGPUFractalEngine {
     const renderer = await WebGPURenderer.create(canvas);
     const engine = new WebGPUFractalEngine(renderer, canvas);
     await engine.initializePipeline();
+
+    // Listen for HDR display changes
+    renderer.setOnHdrChange(() => {
+      console.log('HDR status changed, re-rendering...');
+      engine.render();
+    });
 
     window.addEventListener('resize', engine.handleResize);
     window.addEventListener('hashchange', engine.handleHashChange);
@@ -183,8 +190,11 @@ export class WebGPUFractalEngine {
     this.inputHandler.setToggleHDRCallback(() => {
       this.toggleHDR();
     });
-    this.inputHandler.setAdjustHdrNitsCallback((direction) => {
-      this.adjustHdrPeakNits(direction);
+    this.inputHandler.setAdjustHdrBrightnessCallback((direction) => {
+      this.adjustHdrBrightness(direction);
+    });
+    this.inputHandler.setResetHdrBrightnessCallback(() => {
+      this.resetHdrBrightness();
     });
     this.inputHandler.setFractalCycleCallback((direction) => {
       this.cycleFractalType(direction);
@@ -266,7 +276,11 @@ export class WebGPUFractalEngine {
       const iterSuffix = this.maxIterationsOverride !== null ? ' (manual)' : '';
       const paletteName = getPaletteName(this.paletteIndex);
       const fractalName = FRACTAL_TYPE_NAMES[this.fractalType];
-      const hdrStatus = this.renderer.hdrEnabled ? `HDR ${this.hdrPeakNits}` : 'SDR';
+      const hdrStatus = this.renderer.hdrEnabled
+        ? (Math.abs(this.hdrBrightnessBias) > 0.01
+            ? `HDR (${this.hdrBrightnessBias > 0 ? '+' : ''}${this.hdrBrightnessBias.toFixed(2)})`
+            : 'HDR')
+        : (this.renderer.displaySupportsHDR ? 'HDR available' : 'SDR');
       const juliaStatus = this.juliaPickerMode ? '🎯 Pick Julia point' : '';
       const juliaCoords = isJulia ? `c=(${this.juliaC[0].toFixed(4)}, ${this.juliaC[1].toFixed(4)})` : '';
       const colorOffsetStr = Math.abs(this.colorOffset) > 0.001 ? `offset ${this.colorOffset.toFixed(1)}` : '';
@@ -303,7 +317,7 @@ export class WebGPUFractalEngine {
     floatView[10] = this.juliaC[0];                 // juliaC.x
     floatView[11] = this.juliaC[1];                 // juliaC.y
     intView[12] = this.renderer.hdrEnabled ? 1 : 0; // hdrEnabled
-    floatView[13] = this.hdrPeakNits;               // hdrPeakNits
+    floatView[13] = this.hdrBrightnessBias;         // hdrBrightnessBias
     intView[14] = paletteParams.type === 'cosine' ? 0 : 1; // paletteType
     intView[15] = palette.isMonotonic ? 1 : 0;       // isMonotonic
 
@@ -413,17 +427,28 @@ export class WebGPUFractalEngine {
   // --- HDR controls ---
 
   private toggleHDR(): void {
-    // HDR is controlled by the renderer, we just adjust peak nits
+    // HDR is controlled by the renderer, we just adjust brightness bias
     console.log(`HDR is ${this.renderer.hdrEnabled ? 'enabled' : 'not available'}`);
     this.render();
   }
 
-  private adjustHdrPeakNits(direction: 1 | -1): void {
+  /**
+   * Adjust HDR brightness bias.
+   * @param direction 1 for brighter (more of image is bright), -1 for dimmer
+   */
+  private adjustHdrBrightness(direction: 1 | -1): void {
     if (!this.renderer.hdrEnabled) return;
-    const factor = direction > 0 ? 1.25 : 0.8;
-    this.hdrPeakNits = Math.max(200, Math.min(4000, this.hdrPeakNits * factor));
-    this.hdrPeakNits = Math.round(this.hdrPeakNits / 50) * 50;
-    console.log(`HDR peak nits: ${this.hdrPeakNits}`);
+    // Adjust by 0.1 each step, clamped to -1 to +1
+    // Positive direction = increase bias = brighter
+    this.hdrBrightnessBias = Math.max(-1, Math.min(1, this.hdrBrightnessBias + direction * 0.1));
+    this.render();
+  }
+
+  /**
+   * Reset HDR brightness bias to default (0)
+   */
+  private resetHdrBrightness(): void {
+    this.hdrBrightnessBias = 0;
     this.render();
   }
 
@@ -676,9 +701,16 @@ export class WebGPUFractalEngine {
           </div>
         </div>
         <div style="margin-bottom: 12px;">
-          <h3 style="margin: 0 0 8px 0; color: #a78bfa; font-size: 13px; text-transform: uppercase;">HDR Display</h3>
+          <h3 style="margin: 0 0 8px 0; color: #a78bfa; font-size: 13px; text-transform: uppercase;">HDR Brightness</h3>
           <div style="display: grid; gap: 4px;">
-            ${this.helpRow('E / Shift+D', 'HDR brightness +/-')}
+            ${this.helpRow('B', 'More bright (extend)')}
+            ${this.helpRow('Shift+B', 'Less bright (contract)')}
+            ${this.helpRow('D', 'Reset brightness')}
+          </div>
+        </div>
+        <div style="margin-bottom: 12px;">
+          <h3 style="margin: 0 0 8px 0; color: #a78bfa; font-size: 13px; text-transform: uppercase;">UI</h3>
+          <div style="display: grid; gap: 4px;">
             ${this.helpRow('H', 'Toggle this help')}
             ${this.helpRow('Space', 'Screenshot mode')}
           </div>

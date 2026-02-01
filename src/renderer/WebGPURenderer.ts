@@ -14,14 +14,26 @@ export class WebGPURenderer {
   private animationFrameId: number | null = null;
   private renderCallback: (() => void) | null = null;
 
-  /** Whether HDR rendering is enabled. */
+  /** Whether HDR rendering is currently enabled and active. */
   public hdrEnabled: boolean = false;
-  /** Whether the display supports HDR. */
-  public readonly displaySupportsHDR: boolean;
+  /** Whether the display currently reports HDR support. */
+  private _displaySupportsHDR: boolean = false;
+  /** Media query for dynamic range detection */
+  private hdrMediaQuery: MediaQueryList | null = null;
+  /** Callback for HDR status changes */
+  private onHdrChangeCallback: (() => void) | null = null;
 
   private constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas;
-    this.displaySupportsHDR = this.detectHDRDisplay();
+    this._displaySupportsHDR = this.detectHDRDisplay();
+    this.setupHdrMediaQueryListener();
+  }
+
+  /**
+   * Whether the display currently supports HDR
+   */
+  get displaySupportsHDR(): boolean {
+    return this._displaySupportsHDR;
   }
 
   /**
@@ -176,10 +188,44 @@ export class WebGPURenderer {
     if (window.matchMedia?.('(dynamic-range: high)').matches) {
       return true;
     }
-    if (window.matchMedia?.('(color-gamut: p3)').matches) {
-      return true;
-    }
+    // Note: color-gamut: p3 alone doesn't mean HDR, just wide gamut
+    // But we'll use it as a fallback hint
     return false;
+  }
+
+  /**
+   * Set up listener for HDR display changes (e.g., user toggles HDR in display settings)
+   */
+  private setupHdrMediaQueryListener(): void {
+    if (!window.matchMedia) return;
+
+    this.hdrMediaQuery = window.matchMedia('(dynamic-range: high)');
+
+    const handleChange = () => {
+      const newHdrSupport = this.detectHDRDisplay();
+      if (newHdrSupport !== this._displaySupportsHDR) {
+        console.log(`HDR display support changed: ${this._displaySupportsHDR} -> ${newHdrSupport}`);
+        this._displaySupportsHDR = newHdrSupport;
+
+        // Reconfigure context if we have one
+        if (this.context && this.device) {
+          this.configureContext();
+        }
+
+        // Notify listener
+        this.onHdrChangeCallback?.();
+      }
+    };
+
+    // Use addEventListener for modern browsers
+    this.hdrMediaQuery.addEventListener?.('change', handleChange);
+  }
+
+  /**
+   * Set callback for when HDR status changes
+   */
+  setOnHdrChange(callback: () => void): void {
+    this.onHdrChangeCallback = callback;
   }
 
   /**
@@ -187,6 +233,7 @@ export class WebGPURenderer {
    */
   destroy(): void {
     this.stop();
+    this.onHdrChangeCallback = null;
     this.device?.destroy();
   }
 }

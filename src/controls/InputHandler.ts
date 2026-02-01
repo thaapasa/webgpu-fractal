@@ -37,8 +37,8 @@ export class InputHandler {
   private onColorOffset: ColorOffsetCallback | null = null;
   private onColorOffsetReset: ToggleCallback | null = null;
   private onToggleAA: ToggleCallback | null = null;
-  private onToggleHDR: ToggleCallback | null = null;
-  private onAdjustHdrNits: IterationAdjustCallback | null = null;
+  private onAdjustHdrBrightness: IterationAdjustCallback | null = null;
+  private onResetHdrBrightness: ToggleCallback | null = null;
   private onFractalCycle: FractalCycleCallback | null = null;
   private onToggleJuliaMode: ToggleCallback | null = null;
   private onJuliaPick: JuliaPickCallback | null = null;
@@ -111,17 +111,25 @@ export class InputHandler {
   }
 
   /**
-   * Set callback for HDR toggle (d key)
+   * Set callback for HDR toggle (no-op, HDR is auto-detected)
    */
-  setToggleHDRCallback(callback: ToggleCallback): void {
-    this.onToggleHDR = callback;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  setToggleHDRCallback(_callback: ToggleCallback): void {
+    // HDR is now auto-detected based on display capabilities
   }
 
   /**
-   * Set callback for HDR peak nits adjustment (shift+[/] when HDR enabled)
+   * Set callback for HDR brightness adjustment (b/B keys)
    */
-  setAdjustHdrNitsCallback(callback: IterationAdjustCallback): void {
-    this.onAdjustHdrNits = callback;
+  setAdjustHdrBrightnessCallback(callback: IterationAdjustCallback): void {
+    this.onAdjustHdrBrightness = callback;
+  }
+
+  /**
+   * Set callback for HDR brightness reset (Shift+R key)
+   */
+  setResetHdrBrightnessCallback(callback: ToggleCallback): void {
+    this.onResetHdrBrightness = callback;
   }
 
   /**
@@ -419,22 +427,20 @@ export class InputHandler {
         e.preventDefault();
         this.onToggleAA?.();
         break;
-      case 'd':
-      case 'D':
+      case 'b':
+        // b: extend bright region (make more of image bright)
         e.preventDefault();
-        if (e.shiftKey) {
-          // Shift+D: decrease HDR peak nits
-          this.onAdjustHdrNits?.(-1);
-        } else {
-          // D: toggle HDR
-          this.onToggleHDR?.();
-        }
+        this.onAdjustHdrBrightness?.(1);
         break;
-      case 'e':
-      case 'E':
-        // E: increase HDR peak nits (when HDR is on)
+      case 'B':
+        // Shift+B: contract bright region (make less of image bright)
         e.preventDefault();
-        this.onAdjustHdrNits?.(1);
+        this.onAdjustHdrBrightness?.(-1);
+        break;
+      case 'd':
+        // d: reset HDR brightness bias
+        e.preventDefault();
+        this.onResetHdrBrightness?.();
         break;
       case 'f':
         e.preventDefault();
