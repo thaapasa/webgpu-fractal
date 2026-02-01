@@ -16,8 +16,9 @@ import {
   copyShareableUrl,
 } from '../bookmark/BookmarkManager';
 import { getLocationByKey } from '../bookmark/famousLocations';
+import { getPalette, getPaletteParams, getPaletteName, PALETTE_COUNT } from '../renderer/Palettes';
 
-import shaderSource from '../renderer/shaders/mandelbrot.wgsl?raw';
+import shaderSource from '../renderer/shaders/mandelbrot-v2.wgsl?raw';
 
 /** Base iterations at zoom 1 */
 const MAX_ITERATIONS_BASE = 256;
@@ -36,7 +37,10 @@ function maxIterationsForZoom(zoom: number, isJulia: boolean = false): number {
 }
 
 // Uniform buffer structure (must match WGSL)
-const UNIFORM_BUFFER_SIZE = 64; // Padded to 16-byte alignment
+// Base uniforms: 64 bytes
+// Palette params: ~160 bytes (vec3s with padding)
+// Total: 256 bytes (nice round number)
+const UNIFORM_BUFFER_SIZE = 256;
 
 export class WebGPUFractalEngine {
   private renderer: WebGPURenderer;
@@ -56,11 +60,6 @@ export class WebGPUFractalEngine {
 
   private paletteIndex = 4; // Fire
   private colorOffset = 0.0;
-  private static readonly PALETTE_COUNT = 12;
-  private static readonly PALETTE_NAMES = [
-    'Rainbow', 'Blue', 'Gold', 'Grayscale', 'Fire', 'Ice',
-    'Sepia', 'Ocean', 'Purple', 'Forest', 'Sunset', 'Electric'
-  ];
 
   private hdrPeakNits = 1000.0;
 
@@ -265,7 +264,7 @@ export class WebGPUFractalEngine {
       const z = this.viewState.zoom;
       const zoomStr = z >= 1e6 ? z.toExponential(2) : z < 1 ? z.toPrecision(4) : String(Math.round(z));
       const iterSuffix = this.maxIterationsOverride !== null ? ' (manual)' : '';
-      const paletteName = WebGPUFractalEngine.PALETTE_NAMES[this.paletteIndex];
+      const paletteName = getPaletteName(this.paletteIndex);
       const fractalName = FRACTAL_TYPE_NAMES[this.fractalType];
       const hdrStatus = this.renderer.hdrEnabled ? `HDR ${this.hdrPeakNits}` : 'SDR';
       const juliaStatus = this.juliaPickerMode ? '🎯 Pick Julia point' : '';
@@ -286,7 +285,11 @@ export class WebGPUFractalEngine {
     const floatView = new Float32Array(uniformData);
     const intView = new Int32Array(uniformData);
 
-    // Pack uniforms (must match WGSL struct layout with padding)
+    // Get current palette info and params
+    const palette = getPalette(this.paletteIndex);
+    const paletteParams = getPaletteParams(this.paletteIndex, this.renderer.hdrEnabled);
+
+    // Pack base uniforms (must match WGSL struct layout with padding)
     floatView[0] = canvas.width;                    // resolution.x
     floatView[1] = canvas.height;                   // resolution.y
     floatView[2] = this.viewState.centerX;          // center.x
@@ -294,13 +297,68 @@ export class WebGPUFractalEngine {
     floatView[4] = this.viewState.zoom;             // zoom
     intView[5] = maxIter;                           // maxIterations
     floatView[6] = performance.now() * 0.001;       // time
-    intView[7] = this.paletteIndex;                 // paletteIndex
-    floatView[8] = this.colorOffset;                // colorOffset
-    intView[9] = this.fractalType;                  // fractalType
+    floatView[7] = this.colorOffset;                // colorOffset
+    intView[8] = this.fractalType;                  // fractalType
+    // padding at 9
     floatView[10] = this.juliaC[0];                 // juliaC.x
     floatView[11] = this.juliaC[1];                 // juliaC.y
     intView[12] = this.renderer.hdrEnabled ? 1 : 0; // hdrEnabled
     floatView[13] = this.hdrPeakNits;               // hdrPeakNits
+    intView[14] = paletteParams.type === 'cosine' ? 0 : 1; // paletteType
+    intView[15] = palette.isMonotonic ? 1 : 0;       // isMonotonic
+
+    // Pack palette parameters (offset 16 = 64 bytes)
+    if (paletteParams.type === 'cosine') {
+      // paletteA (vec3 + padding)
+      floatView[16] = paletteParams.a[0];
+      floatView[17] = paletteParams.a[1];
+      floatView[18] = paletteParams.a[2];
+      // padding at 19
+      // paletteB
+      floatView[20] = paletteParams.b[0];
+      floatView[21] = paletteParams.b[1];
+      floatView[22] = paletteParams.b[2];
+      // padding at 23
+      // paletteC
+      floatView[24] = paletteParams.c[0];
+      floatView[25] = paletteParams.c[1];
+      floatView[26] = paletteParams.c[2];
+      // padding at 27
+      // paletteD
+      floatView[28] = paletteParams.d[0];
+      floatView[29] = paletteParams.d[1];
+      floatView[30] = paletteParams.d[2];
+      // padding at 31
+    }
+
+    // Gradient colors start at offset 32 (128 bytes)
+    if (paletteParams.type === 'gradient') {
+      // gradientC1
+      floatView[32] = paletteParams.c1[0];
+      floatView[33] = paletteParams.c1[1];
+      floatView[34] = paletteParams.c1[2];
+      // padding at 35
+      // gradientC2
+      floatView[36] = paletteParams.c2[0];
+      floatView[37] = paletteParams.c2[1];
+      floatView[38] = paletteParams.c2[2];
+      // padding at 39
+      // gradientC3
+      floatView[40] = paletteParams.c3[0];
+      floatView[41] = paletteParams.c3[1];
+      floatView[42] = paletteParams.c3[2];
+      // padding at 43
+      // gradientC4
+      floatView[44] = paletteParams.c4[0];
+      floatView[45] = paletteParams.c4[1];
+      floatView[46] = paletteParams.c4[2];
+      // padding at 47
+      // gradientC5
+      floatView[48] = paletteParams.c5[0];
+      floatView[49] = paletteParams.c5[1];
+      floatView[50] = paletteParams.c5[2];
+      // padding at 51
+    }
 
     device.queue.writeBuffer(this.uniformBuffer, 0, uniformData);
 
@@ -372,8 +430,7 @@ export class WebGPUFractalEngine {
   // --- Palette controls ---
 
   private cyclePalette(direction: 1 | -1): void {
-    this.paletteIndex = (this.paletteIndex + direction + WebGPUFractalEngine.PALETTE_COUNT) %
-                        WebGPUFractalEngine.PALETTE_COUNT;
+    this.paletteIndex = (this.paletteIndex + direction + PALETTE_COUNT) % PALETTE_COUNT;
     this.render();
   }
 
@@ -485,7 +542,7 @@ export class WebGPUFractalEngine {
       this.maxIterationsOverride = bookmark.maxIterationsOverride;
     }
     if (bookmark.paletteIndex !== undefined) {
-      this.paletteIndex = bookmark.paletteIndex % WebGPUFractalEngine.PALETTE_COUNT;
+      this.paletteIndex = bookmark.paletteIndex % PALETTE_COUNT;
     }
     if (bookmark.colorOffset !== undefined) {
       this.colorOffset = bookmark.colorOffset;
