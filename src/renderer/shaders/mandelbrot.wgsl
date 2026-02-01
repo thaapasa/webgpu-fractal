@@ -143,12 +143,23 @@ fn fragmentMain(input: VertexOutput) -> @location(0) vec4f {
 
   var z: vec2f;
   var c: vec2f;
-  let isJulia = (u.fractalType == 2 || u.fractalType == 3);
-  let isBurningShip = (u.fractalType == 1 || u.fractalType == 3);
+  var zPrev: vec2f = vec2f(0.0); // For Phoenix fractal
+
+  // Determine if this is a Julia variant (odd types have bit 0 set)
+  let fType = u.fractalType;
+  let isJulia = (fType & 1) == 1;
+  let baseType = fType >> 1; // 0=Mandelbrot, 1=BurningShip, 2=Tricorn, etc.
+
+  // Phoenix is naturally Julia-style - always start z at pixel position
+  let isPhoenix = baseType == 5;
 
   if (isJulia) {
     z = pos;
     c = u.juliaC;
+  } else if (isPhoenix) {
+    // Phoenix: z starts at pixel (Julia-style), use classic parameters
+    z = pos;
+    c = vec2f(0.5667, -0.5); // Classic Phoenix (p, q)
   } else {
     z = vec2f(0.0);
     c = pos;
@@ -160,12 +171,80 @@ fn fragmentMain(input: VertexOutput) -> @location(0) vec4f {
   for (var i = 0; i < 65536; i++) {
     if (i >= maxIter) { break; }
     let zMagSq = dot(z, z);
-    if (zMagSq > 4.0) { break; }
+    if (zMagSq > 256.0) { break; } // Larger escape for higher powers
 
-    if (isBurningShip) {
-      z = vec2f(abs(z.x), -abs(z.y));
+    let zTemp = z;
+
+    // Fractal type dispatch using base type (fType >> 1 clears Julia bit)
+    // 0: Mandelbrot/Julia, 1: Burning Ship, 2: Tricorn, 3: Celtic,
+    // 4: Buffalo, 5: Phoenix, 6: Multibrot3, 7: Multibrot4, 8: Perpendicular
+
+    if (baseType == 0) {
+      // Mandelbrot / Julia: z² + c
+      z = vec2f(z.x * z.x - z.y * z.y + c.x, 2.0 * z.x * z.y + c.y);
     }
-    z = vec2f(z.x * z.x - z.y * z.y + c.x, 2.0 * z.x * z.y + c.y);
+    else if (baseType == 1) {
+      // Burning Ship: |z|² + c (take abs before squaring)
+      z = vec2f(abs(z.x), -abs(z.y));
+      z = vec2f(z.x * z.x - z.y * z.y + c.x, 2.0 * z.x * z.y + c.y);
+    }
+    else if (baseType == 2) {
+      // Tricorn: conj(z)² + c
+      z = vec2f(z.x * z.x - z.y * z.y + c.x, -2.0 * z.x * z.y + c.y);
+    }
+    else if (baseType == 3) {
+      // Celtic: |Re(z²)| + Im(z²)i + c
+      let zSqReal = z.x * z.x - z.y * z.y;
+      let zSqImag = 2.0 * z.x * z.y;
+      z = vec2f(abs(zSqReal) + c.x, zSqImag + c.y);
+    }
+    else if (baseType == 4) {
+      // Buffalo: |Re(z²)| - |Im(z²)|i + c
+      let zSqReal = z.x * z.x - z.y * z.y;
+      let zSqImag = 2.0 * z.x * z.y;
+      z = vec2f(abs(zSqReal) + c.x, -abs(zSqImag) + c.y);
+    }
+    else if (baseType == 5) {
+      // Phoenix: z_{n+1} = z_n² + p + q * z_{n-1}
+      // Base Phoenix: c = pixel position = (p, q) for parameter exploration
+      // Julia Phoenix: c = juliaC = (p, q) for fixed parameters
+      // In both cases, c.x = p, c.y = q
+      let p = c.x;
+      let q = c.y;
+      let zSq = vec2f(z.x * z.x - z.y * z.y, 2.0 * z.x * z.y);
+      let newZ = vec2f(
+        zSq.x + p + q * zPrev.x,
+        zSq.y + q * zPrev.y
+      );
+      zPrev = z;
+      z = newZ;
+    }
+    else if (baseType == 6) {
+      // Multibrot3: z³ + c
+      let zSq = vec2f(z.x * z.x - z.y * z.y, 2.0 * z.x * z.y);
+      z = vec2f(z.x * zSq.x - z.y * zSq.y + c.x, z.x * zSq.y + z.y * zSq.x + c.y);
+    }
+    else if (baseType == 7) {
+      // Multibrot4: z⁴ + c
+      let zSq = vec2f(z.x * z.x - z.y * z.y, 2.0 * z.x * z.y);
+      z = vec2f(zSq.x * zSq.x - zSq.y * zSq.y + c.x, 2.0 * zSq.x * zSq.y + c.y);
+    }
+    else if (baseType == 8) {
+      // Funky Mandelbrot (happy accident!): Re(z) + |Im(z)|i then square
+      z = vec2f(z.x, abs(z.y));
+      z = vec2f(z.x * z.x - z.y * z.y + c.x, 2.0 * z.x * z.y + c.y);
+    }
+    else if (baseType == 9) {
+      // Perpendicular Mandelbrot: (|Re(z)| - i·Im(z))² + c
+      // w = |x| - iy, w² = |x|² - y² - 2|x|yi
+      let ax = abs(z.x);
+      z = vec2f(ax * ax - z.y * z.y + c.x, -2.0 * ax * z.y + c.y);
+    }
+    else {
+      // Fallback to standard Mandelbrot
+      z = vec2f(z.x * z.x - z.y * z.y + c.x, 2.0 * z.x * z.y + c.y);
+    }
+
     iterations++;
   }
 
@@ -173,7 +252,12 @@ fn fragmentMain(input: VertexOutput) -> @location(0) vec4f {
     return vec4f(0.0, 0.0, 0.0, 1.0);
   }
 
-  let smoothIter = f32(iterations) + 1.0 - log2(log2(max(dot(z, z), 4.0)));
+  // Smooth iteration count - adjust log base for higher power fractals
+  var logBase = 2.0;
+  if (baseType == 6) { logBase = 3.0; }      // Multibrot3
+  else if (baseType == 7) { logBase = 4.0; } // Multibrot4
+
+  let smoothIter = f32(iterations) + 1.0 - log2(log2(max(dot(z, z), 4.0))) / log2(logBase);
   let normalized = smoothIter / f32(maxIter);
 
   let isMonotonic = u.isMonotonic != 0;

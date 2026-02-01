@@ -110,7 +110,7 @@ export const FAMOUS_LOCATIONS: FamousLocation[] = [
     description: 'The famous rabbit-eared Julia set',
     key: '6',
     state: {
-      fractalType: FractalType.Julia,
+      fractalType: FractalType.MandelbrotJulia,
       centerX: 0,
       centerY: 0,
       zoom: 0.6,
@@ -126,7 +126,7 @@ export const FAMOUS_LOCATIONS: FamousLocation[] = [
     description: 'Fierce dragon-like Julia set',
     key: '7',
     state: {
-      fractalType: FractalType.Julia,
+      fractalType: FractalType.MandelbrotJulia,
       centerX: 0,
       centerY: 0,
       zoom: 0.45,
@@ -142,7 +142,7 @@ export const FAMOUS_LOCATIONS: FamousLocation[] = [
     description: 'Electric, lightning-like patterns',
     key: '8',
     state: {
-      fractalType: FractalType.Julia,
+      fractalType: FractalType.MandelbrotJulia,
       centerX: 0,
       centerY: 0,
       zoom: 0.45,
@@ -154,19 +154,19 @@ export const FAMOUS_LOCATIONS: FamousLocation[] = [
     },
   },
 
-  // === BURNING SHIP JULIA ===
+  // === PHOENIX JULIA ===
   {
-    name: 'Burning Ship Julia',
-    description: 'The Burning Ship transformed into Julia form',
+    name: 'Phoenix Julia',
+    description: 'The classic Phoenix fractal with feathery tendrils',
     key: '9',
     state: {
-      fractalType: FractalType.BurningShipJulia,
-      centerX: 0.0531593112628493,
-      centerY: -0.00735797965780141,
-      zoom: 4,
-      paletteIndex: 4,
-      colorOffset: 0.1,
-      juliaC: [-1.59537659751621, 0.00014862028243811],
+      fractalType: FractalType.PhoenixJulia,
+      centerX: 0,
+      centerY: 0,
+      zoom: 0.5,
+      paletteIndex: 4, // Fire - fitting for a phoenix!
+      colorOffset: 0.2,
+      juliaC: [0.5667, -0.5], // Classic Phoenix parameters (p, q)
       maxIterationsOverride: null,
       aaEnabled: false,
     },

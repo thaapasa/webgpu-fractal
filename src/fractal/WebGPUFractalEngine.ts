@@ -8,7 +8,7 @@
 import { WebGPURenderer } from '../renderer/WebGPURenderer';
 import { ViewState } from '../controls/ViewState';
 import { InputHandler } from '../controls/InputHandler';
-import { FractalType, FRACTAL_TYPE_NAMES } from '../types';
+import { FractalType, FRACTAL_TYPE_NAMES, BASE_FRACTAL_COUNT, isJuliaType, getBaseFractalType, getJuliaVariant } from '../types';
 import {
   BookmarkState,
   readUrlBookmark,
@@ -264,8 +264,7 @@ export class WebGPUFractalEngine {
     const device = this.renderer.device;
     const canvas = this.renderer.canvas;
 
-    const isJulia = this.fractalType === FractalType.Julia ||
-                    this.fractalType === FractalType.BurningShipJulia;
+    const isJulia = isJuliaType(this.fractalType);
     const maxIter = this.maxIterationsOverride ??
                     maxIterationsForZoom(this.viewState.zoom, isJulia);
 
@@ -408,8 +407,7 @@ export class WebGPUFractalEngine {
   // --- Iteration controls ---
 
   private adjustMaxIterations(direction: 1 | -1): void {
-    const isJulia = this.fractalType === FractalType.Julia ||
-                    this.fractalType === FractalType.BurningShipJulia;
+    const isJulia = isJuliaType(this.fractalType);
     const currentIter = this.maxIterationsOverride ??
                         maxIterationsForZoom(this.viewState.zoom, isJulia);
     const newIter = direction > 0
@@ -472,12 +470,15 @@ export class WebGPUFractalEngine {
   // --- Fractal type controls ---
 
   private cycleFractalType(direction: 1 | -1 = 1): void {
-    if (this.fractalType === FractalType.Julia) {
-      this.fractalType = FractalType.Mandelbrot;
-    } else if (this.fractalType === FractalType.BurningShipJulia) {
-      this.fractalType = FractalType.BurningShip;
-    }
-    this.fractalType = (this.fractalType + direction + 2) % 2;
+    // Get the base fractal type (non-Julia) using bitwise: base = type & ~1
+    const baseType = getBaseFractalType(this.fractalType);
+    // Base types are even: 0, 2, 4, 6, 8, 10, 12, 14, 16
+    // Divide by 2 to get the index: 0, 1, 2, 3, 4, 5, 6, 7, 8
+    const currentIndex = baseType >> 1;
+    const nextIndex = (currentIndex + direction + BASE_FRACTAL_COUNT) % BASE_FRACTAL_COUNT;
+    // Multiply by 2 to get the new base type
+    this.fractalType = (nextIndex << 1) as FractalType;
+
     if (this.juliaPickerMode) {
       this.juliaPickerMode = false;
       this.inputHandler.setJuliaPickerMode(false);
@@ -486,8 +487,7 @@ export class WebGPUFractalEngine {
   }
 
   private toggleJuliaPickerMode(): void {
-    if (this.fractalType === FractalType.Julia ||
-        this.fractalType === FractalType.BurningShipJulia) {
+    if (isJuliaType(this.fractalType)) {
       this.exitJuliaMode();
       return;
     }
@@ -507,9 +507,7 @@ export class WebGPUFractalEngine {
     this.savedFractalType = this.fractalType;
 
     this.juliaC = [fractalX, fractalY];
-    this.fractalType = this.fractalType === FractalType.BurningShip
-      ? FractalType.BurningShipJulia
-      : FractalType.Julia;
+    this.fractalType = getJuliaVariant(this.fractalType);
 
     this.viewState.centerX = 0;
     this.viewState.centerY = 0;
@@ -531,9 +529,8 @@ export class WebGPUFractalEngine {
       this.fractalType = this.savedFractalType;
       this.savedFractalType = null;
     } else {
-      this.fractalType = this.fractalType === FractalType.BurningShipJulia
-        ? FractalType.BurningShip
-        : FractalType.Mandelbrot;
+      // Fall back to base fractal type
+      this.fractalType = getBaseFractalType(this.fractalType);
     }
     this.juliaPickerMode = false;
     this.inputHandler.setJuliaPickerMode(false);

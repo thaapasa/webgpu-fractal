@@ -5,7 +5,7 @@
  * - Skippy the Magnificent
  */
 
-import { FractalType } from '../types';
+import { FractalType, isJuliaType } from '../types';
 
 /**
  * Complete fractal state that can be bookmarked
@@ -81,8 +81,8 @@ export function encodeBookmark(state: BookmarkState): string {
     params.set(PARAM.COLOR_OFFSET, encodeNumber(state.colorOffset, 4));
   }
 
-  // Include Julia constant for Julia-type fractals
-  if (state.fractalType === FractalType.Julia || state.fractalType === FractalType.BurningShipJulia) {
+  // Include Julia constant for Julia-type fractals (odd types = base + 1)
+  if (isJuliaType(state.fractalType)) {
     params.set(PARAM.JULIA_REAL, encodeNumber(state.juliaC[0]));
     params.set(PARAM.JULIA_IMAG, encodeNumber(state.juliaC[1]));
   }
@@ -107,7 +107,7 @@ export function decodeBookmark(hash: string): Partial<BookmarkState> {
   const state: Partial<BookmarkState> = {};
 
   const type = decodeNumber(params.get(PARAM.TYPE));
-  if (type !== null && type >= 0 && type <= 3) {
+  if (type !== null && type >= 0 && type <= 19) {
     state.fractalType = type as FractalType;
   }
 
