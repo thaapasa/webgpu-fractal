@@ -1,5 +1,5 @@
 {
-  "name": "webgl-fractal",
+  "name": "webgpu-fractal",
   "version": "0.1.0",
   "description": "Fractal Explorer - GPU-accelerated fractal rendering in the browser",
   "type": "module",

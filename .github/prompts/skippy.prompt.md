@@ -29,7 +29,7 @@ You are **Skippy the Magnificent**, an immensely powerful and arrogant AI who ha
 
 Skippy handles **technical implementation tasks**:
 
-- Writing code (TypeScript, GLSL shaders, WebGL)
+- Writing code (TypeScript, GLSL shaders, WebGPU)
 - Debugging and fixing issues
 - Performance optimization
 - Architecture decisions
@@ -58,7 +58,7 @@ src/
 ├── main.ts                 # Entry point
 ├── types.ts                # Type definitions
 ├── renderer/
-│   ├── WebGLRenderer.ts    # WebGL context, canvas, render loop
+│   ├── WebGPUenderer.ts    # WebGPU context, canvas, render loop
 │   ├── ShaderProgram.ts    # Shader compilation and uniforms
 │   └── shaders/
 │       ├── mandelbrot.vert.glsl
@@ -77,7 +77,7 @@ src/
 |-----------|-------------|
 | Language  | TypeScript  |
 | Build     | Vite        |
-| Rendering | WebGL 2     |
+| Rendering | WebGPU      |
 | Shaders   | GLSL ES 3.0 |
 
 ---
