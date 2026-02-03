@@ -15,7 +15,11 @@ export interface BookmarkState {
   centerX: number;
   centerY: number;
   zoom: number;
-  paletteIndex: number;
+  /** @deprecated Use paletteType + cosinePaletteIndex/gradientPaletteIndex instead */
+  paletteIndex?: number;
+  paletteType: 'cosine' | 'gradient';
+  cosinePaletteIndex: number;
+  gradientPaletteIndex: number;
   colorOffset: number;
   juliaC: [number, number];
   maxIterationsOverride: number | null;
@@ -34,7 +38,10 @@ const PARAM = {
   CENTER_X: 'x',
   CENTER_Y: 'y',
   ZOOM: 'z',
-  PALETTE: 'p',
+  PALETTE: 'p', // Legacy: single palette index
+  PALETTE_TYPE: 'pt', // 'c' = cosine, 'g' = gradient
+  COSINE_PALETTE: 'cp',
+  GRADIENT_PALETTE: 'gp',
   COLOR_OFFSET: 'o',
   JULIA_REAL: 'jr',
   JULIA_IMAG: 'ji',
@@ -74,7 +81,9 @@ export function encodeBookmark(state: BookmarkState): string {
   params.set(PARAM.CENTER_X, encodeNumber(state.centerX));
   params.set(PARAM.CENTER_Y, encodeNumber(state.centerY));
   params.set(PARAM.ZOOM, encodeNumber(state.zoom));
-  params.set(PARAM.PALETTE, state.paletteIndex.toString());
+  params.set(PARAM.PALETTE_TYPE, state.paletteType === 'cosine' ? 'c' : 'g');
+  params.set(PARAM.COSINE_PALETTE, state.cosinePaletteIndex.toString());
+  params.set(PARAM.GRADIENT_PALETTE, state.gradientPaletteIndex.toString());
 
   // Only include optional params if they have non-default values
   if (Math.abs(state.colorOffset) > 0.001) {
@@ -120,6 +129,19 @@ export function decodeBookmark(hash: string): Partial<BookmarkState> {
   const z = decodeNumber(params.get(PARAM.ZOOM));
   if (z !== null && z > 0) state.zoom = z;
 
+  // New palette parameters
+  const pt = params.get(PARAM.PALETTE_TYPE);
+  if (pt === 'c' || pt === 'g') {
+    state.paletteType = pt === 'c' ? 'cosine' : 'gradient';
+  }
+
+  const cp = decodeNumber(params.get(PARAM.COSINE_PALETTE));
+  if (cp !== null && cp >= 0) state.cosinePaletteIndex = Math.floor(cp);
+
+  const gp = decodeNumber(params.get(PARAM.GRADIENT_PALETTE));
+  if (gp !== null && gp >= 0) state.gradientPaletteIndex = Math.floor(gp);
+
+  // Legacy: single paletteIndex (for backward compatibility)
   const p = decodeNumber(params.get(PARAM.PALETTE));
   if (p !== null && p >= 0 && p <= 11) state.paletteIndex = Math.floor(p);
 

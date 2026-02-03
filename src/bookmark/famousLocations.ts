@@ -30,7 +30,9 @@ export const FAMOUS_LOCATIONS: FamousLocation[] = [
       centerX: -0.747,
       centerY: 0.1,
       zoom: 70,
-      paletteIndex: 4, // Fire
+      paletteType: 'cosine',
+      cosinePaletteIndex: 1, // Fire
+      gradientPaletteIndex: 0,
       colorOffset: 0.1,
       juliaC: [-0.7, 0.27015],
       maxIterationsOverride: null,
@@ -46,7 +48,9 @@ export const FAMOUS_LOCATIONS: FamousLocation[] = [
       centerX: 0.273897508880652,
       centerY: 0.00596002252770864,
       zoom: 180,
-      paletteIndex: 10, // Sunset
+      paletteType: 'cosine',
+      cosinePaletteIndex: 3, // Sunset
+      gradientPaletteIndex: 0,
       colorOffset: -0.1,
       juliaC: [0.273897508880652, 0.00596002252770864],
       maxIterationsOverride: null,
@@ -62,7 +66,9 @@ export const FAMOUS_LOCATIONS: FamousLocation[] = [
       centerX: -0.743733589978665,
       centerY: 0.130905227502858,
       zoom: 350,
-      paletteIndex: 11,
+      paletteType: 'cosine',
+      cosinePaletteIndex: 4, // Electric
+      gradientPaletteIndex: 0,
       colorOffset: 0.2,
       juliaC: [-0.7, 0.27015],
       maxIterationsOverride: null,
@@ -78,7 +84,9 @@ export const FAMOUS_LOCATIONS: FamousLocation[] = [
       centerX: -0.761542947469557,
       centerY: -0.0848063048239542,
       zoom: 1300,
-      paletteIndex: 5,
+      paletteType: 'cosine',
+      cosinePaletteIndex: 2, // Ice
+      gradientPaletteIndex: 0,
       colorOffset: -0.6,
       juliaC: [-0.7, 0.27015],
       maxIterationsOverride: null,
@@ -96,7 +104,9 @@ export const FAMOUS_LOCATIONS: FamousLocation[] = [
       centerX: -1.80173025652805,
       centerY: 0.0153452534367207,
       zoom: 9,
-      paletteIndex: 11, // Electric
+      paletteType: 'cosine',
+      cosinePaletteIndex: 4, // Electric
+      gradientPaletteIndex: 0,
       colorOffset: 0.2,
       juliaC: [-0.7, 0.27015],
       maxIterationsOverride: null,
@@ -114,7 +124,9 @@ export const FAMOUS_LOCATIONS: FamousLocation[] = [
       centerX: 0,
       centerY: 0,
       zoom: 0.6,
-      paletteIndex: 11,
+      paletteType: 'cosine',
+      cosinePaletteIndex: 4, // Electric
+      gradientPaletteIndex: 0,
       colorOffset: 0.2,
       juliaC: [-0.123, 0.745],
       maxIterationsOverride: null,
@@ -130,7 +142,9 @@ export const FAMOUS_LOCATIONS: FamousLocation[] = [
       centerX: 0,
       centerY: 0,
       zoom: 0.45,
-      paletteIndex: 10,
+      paletteType: 'cosine',
+      cosinePaletteIndex: 3, // Sunset
+      gradientPaletteIndex: 0,
       colorOffset: 0.5,
       juliaC: [-0.8, 0.156],
       maxIterationsOverride: null,
@@ -146,7 +160,9 @@ export const FAMOUS_LOCATIONS: FamousLocation[] = [
       centerX: 0,
       centerY: 0,
       zoom: 0.45,
-      paletteIndex: 11, // Electric
+      paletteType: 'cosine',
+      cosinePaletteIndex: 4, // Electric
+      gradientPaletteIndex: 0,
       colorOffset: 0.2,
       juliaC: [-0.7269, 0.1889],
       maxIterationsOverride: 1000, // Needs more iterations to resolve fine filaments
@@ -164,7 +180,9 @@ export const FAMOUS_LOCATIONS: FamousLocation[] = [
       centerX: 0,
       centerY: 0,
       zoom: 0.5,
-      paletteIndex: 4, // Fire - fitting for a phoenix!
+      paletteType: 'cosine',
+      cosinePaletteIndex: 1, // Fire - fitting for a phoenix!
+      gradientPaletteIndex: 0,
       colorOffset: 0.2,
       juliaC: [0.5667, -0.5], // Classic Phoenix parameters (p, q)
       maxIterationsOverride: null,

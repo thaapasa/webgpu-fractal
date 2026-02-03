@@ -52,11 +52,12 @@ async function init(): Promise<void> {
     console.log('  - Pinch to zoom (mobile)');
     console.log('  - + / - to adjust max iterations');
     console.log('  - 0 to reset iterations to auto-scaling');
-    console.log('  - c / C to cycle color palettes (forward/backward)');
+    console.log('  - c / C to cycle cosine palettes (forward/backward)');
+    console.log('  - g / G to cycle gradient palettes (forward/backward)');
     console.log('  - , / . to shift colors (fine)');
     console.log('  - < / > to shift colors (coarse)');
-    console.log('  - b / B to adjust HDR brightness');
-    console.log('  - d to reset HDR brightness');
+    console.log('  - b / B to adjust brightness (HDR bias or SDR gradient)');
+    console.log('  - d to reset brightness');
     console.log('  - s to share/copy bookmark URL');
     console.log('  - 1-9 to visit famous locations');
     console.log('  - h to toggle help overlay');

@@ -37,12 +37,16 @@ export interface Palette {
 }
 
 // ============================================
-// All Palettes
-// Cosine palettes work the same for SDR/HDR
-// Gradient palettes can have HDR overrides for brighter base colors
+// Cosine Palettes
+// color = a + b * cos(2π * (c * t + d))
+// These work the same for SDR/HDR
 // ============================================
 
-const PALETTES: Palette[] = [
+interface CosinePalette extends Palette {
+  params: CosinePaletteParams;
+}
+
+const COSINE_PALETTES: CosinePalette[] = [
   {
     name: 'Rainbow',
     isMonotonic: false,
@@ -54,6 +58,64 @@ const PALETTES: Palette[] = [
       d: [0.0, 0.33, 0.67],
     },
   },
+  {
+    name: 'Fire',
+    isMonotonic: false,
+    params: {
+      type: 'cosine',
+      a: [0.5, 0.5, 0.5],
+      b: [0.5, 0.5, 0.5],
+      c: [1.0, 1.0, 0.5],
+      d: [0.0, 0.1, 0.2],
+    },
+  },
+  {
+    name: 'Ice',
+    isMonotonic: false,
+    params: {
+      type: 'cosine',
+      a: [0.5, 0.5, 0.5],
+      b: [0.5, 0.5, 0.5],
+      c: [1.0, 0.7, 0.4],
+      d: [0.0, 0.15, 0.20],
+    },
+  },
+  {
+    name: 'Sunset',
+    isMonotonic: false,
+    params: {
+      type: 'cosine',
+      a: [0.5, 0.3, 0.2],
+      b: [0.5, 0.4, 0.3],
+      c: [1.0, 1.0, 0.5],
+      d: [0.0, 0.1, 0.2],
+    },
+  },
+  {
+    name: 'Electric',
+    isMonotonic: false,
+    params: {
+      type: 'cosine',
+      a: [0.5, 0.5, 0.5],
+      b: [0.6, 0.6, 0.6],
+      c: [1.0, 1.0, 1.0],
+      d: [0.3, 0.2, 0.2],
+    },
+  },
+];
+
+// ============================================
+// Gradient Palettes
+// 5 color stops with linear interpolation
+// Can have HDR overrides for brighter base colors
+// ============================================
+
+interface GradientPalette extends Palette {
+  params: GradientPaletteParams;
+  hdrParams?: GradientPaletteParams;
+}
+
+const GRADIENT_PALETTES: GradientPalette[] = [
   {
     name: 'Blue',
     isMonotonic: true,
@@ -112,28 +174,6 @@ const PALETTES: Palette[] = [
       c3: [1.0, 1.0, 1.0],
       c4: [1.0, 1.0, 1.0],
       c5: [1.0, 1.0, 1.0],
-    },
-  },
-  {
-    name: 'Fire',
-    isMonotonic: false,
-    params: {
-      type: 'cosine',
-      a: [0.5, 0.5, 0.5],
-      b: [0.5, 0.5, 0.5],
-      c: [1.0, 1.0, 0.5],
-      d: [0.0, 0.1, 0.2],
-    },
-  },
-  {
-    name: 'Ice',
-    isMonotonic: false,
-    params: {
-      type: 'cosine',
-      a: [0.5, 0.5, 0.5],
-      b: [0.5, 0.5, 0.5],
-      c: [1.0, 0.7, 0.4],
-      d: [0.0, 0.15, 0.20],
     },
   },
   {
@@ -216,40 +256,26 @@ const PALETTES: Palette[] = [
       c5: [0.95, 1.0, 0.9],
     },
   },
-  {
-    name: 'Sunset',
-    isMonotonic: false,
-    params: {
-      type: 'cosine',
-      a: [0.5, 0.3, 0.2],
-      b: [0.5, 0.4, 0.3],
-      c: [1.0, 1.0, 0.5],
-      d: [0.0, 0.1, 0.2],
-    },
-  },
-  {
-    name: 'Electric',
-    isMonotonic: false,
-    params: {
-      type: 'cosine',
-      a: [0.5, 0.5, 0.5],
-      b: [0.6, 0.6, 0.6],
-      c: [1.0, 1.0, 1.0],
-      d: [0.3, 0.2, 0.2],
-    },
-  },
 ];
 
-export const PALETTE_COUNT = PALETTES.length;
+export const COSINE_PALETTE_COUNT = COSINE_PALETTES.length;
+export const GRADIENT_PALETTE_COUNT = GRADIENT_PALETTES.length;
+
+export type PaletteType = 'cosine' | 'gradient';
 
 /**
- * Get palette parameters for rendering
- * @param index Palette index
+ * Get cosine palette parameters for rendering
+ */
+export function getCosinePaletteParams(index: number): CosinePaletteParams {
+  return COSINE_PALETTES[index % COSINE_PALETTE_COUNT].params;
+}
+
+/**
+ * Get gradient palette parameters for rendering
  * @param hdr Whether to use HDR-specific params (if available)
  */
-export function getPaletteParams(index: number, hdr: boolean): PaletteParams {
-  const palette = PALETTES[index % PALETTES.length];
-  // Use HDR params if available and HDR is enabled
+export function getGradientPaletteParams(index: number, hdr: boolean): GradientPaletteParams {
+  const palette = GRADIENT_PALETTES[index % GRADIENT_PALETTE_COUNT];
   if (hdr && palette.hdrParams) {
     return palette.hdrParams;
   }
@@ -257,13 +283,24 @@ export function getPaletteParams(index: number, hdr: boolean): PaletteParams {
 }
 
 /**
- * Get full palette info
+ * Get full cosine palette info
  */
-export function getPalette(index: number): Palette {
-  return PALETTES[index % PALETTES.length];
+export function getCosinePalette(index: number): CosinePalette {
+  return COSINE_PALETTES[index % COSINE_PALETTE_COUNT];
 }
 
-export function getPaletteName(index: number): string {
-  return PALETTES[index % PALETTES.length].name;
+/**
+ * Get full gradient palette info
+ */
+export function getGradientPalette(index: number): GradientPalette {
+  return GRADIENT_PALETTES[index % GRADIENT_PALETTE_COUNT];
+}
+
+export function getCosinePaletteName(index: number): string {
+  return COSINE_PALETTES[index % COSINE_PALETTE_COUNT].name;
+}
+
+export function getGradientPaletteName(index: number): string {
+  return GRADIENT_PALETTES[index % GRADIENT_PALETTE_COUNT].name;
 }
 

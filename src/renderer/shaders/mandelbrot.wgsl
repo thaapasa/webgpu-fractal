@@ -2,39 +2,44 @@
 // Version 2: Palette parameters passed from TypeScript (no branching)
 
 struct Uniforms {
-  resolution: vec2f,
-  center: vec2f,
-  zoom: f32,
-  maxIterations: i32,
-  time: f32,
-  colorOffset: f32,
-  fractalType: i32,
-  juliaC: vec2f,
-  hdrEnabled: i32,
-  hdrBrightnessBias: f32, // -1 to +1: shifts which iteration ranges are bright
-  // Palette parameters
-  paletteType: i32,      // 0 = cosine, 1 = gradient
-  isMonotonic: i32,      // 0 = cycling, 1 = monotonic
+  resolution: vec2f,         // offset 0, size 8
+  center: vec2f,             // offset 8, size 8
+  zoom: f32,                 // offset 16, size 4
+  maxIterations: i32,        // offset 20, size 4
+  time: f32,                 // offset 24, size 4
+  colorOffset: f32,          // offset 28, size 4
+  fractalType: i32,          // offset 32, size 4
+  _pad_jc: f32,              // offset 36, size 4 (padding for juliaC alignment)
+  juliaC: vec2f,             // offset 40, size 8
+  hdrEnabled: i32,           // offset 48, size 4
+  hdrBrightnessBias: f32,    // offset 52, size 4
+  paletteType: i32,          // offset 56, size 4
+  isMonotonic: i32,          // offset 60, size 4
+  sdrGradientBrightness: f32, // offset 64, size 4
+  _pad0: f32,                // offset 68, size 4
+  _pad1: f32,                // offset 72, size 4
+  _pad2: f32,                // offset 76, size 4
+  // Now at offset 80 = 16-byte aligned for vec3f
   // Cosine palette: color = a + b * cos(2π * (c * t + d))
-  paletteA: vec3f,
-  _pad1: f32,
-  paletteB: vec3f,
-  _pad2: f32,
-  paletteC: vec3f,
-  _pad3: f32,
-  paletteD: vec3f,
-  _pad4: f32,
-  // Gradient palette: 5 color stops
-  gradientC1: vec3f,
-  _pad5: f32,
-  gradientC2: vec3f,
-  _pad6: f32,
-  gradientC3: vec3f,
-  _pad7: f32,
-  gradientC4: vec3f,
-  _pad8: f32,
-  gradientC5: vec3f,
-  _pad9: f32,
+  paletteA: vec3f,           // offset 80, size 12
+  _padA: f32,                // offset 92, size 4
+  paletteB: vec3f,           // offset 96, size 12
+  _padB: f32,                // offset 108, size 4
+  paletteC: vec3f,           // offset 112, size 12
+  _padC: f32,                // offset 124, size 4
+  paletteD: vec3f,           // offset 128, size 12
+  _padD: f32,                // offset 140, size 4
+  // Gradient palette: 5 color stops (offset 144)
+  gradientC1: vec3f,         // offset 144, size 12
+  _padG1: f32,               // offset 156, size 4
+  gradientC2: vec3f,         // offset 160, size 12
+  _padG2: f32,               // offset 172, size 4
+  gradientC3: vec3f,         // offset 176, size 12
+  _padG3: f32,               // offset 188, size 4
+  gradientC4: vec3f,         // offset 192, size 12
+  _padG4: f32,               // offset 204, size 4
+  gradientC5: vec3f,         // offset 208, size 12
+  _padG5: f32,               // offset 220, size 4
 }
 
 @group(0) @binding(0) var<uniform> u: Uniforms;
@@ -82,7 +87,12 @@ fn getColor(t_in: f32, isCycling: bool) -> vec3f {
   if (u.paletteType == 0) {
     return cosineColor(t, u.paletteA, u.paletteB, u.paletteC, u.paletteD);
   } else {
-    return gradientColor(t, u.gradientC1, u.gradientC2, u.gradientC3, u.gradientC4, u.gradientC5);
+    var color = gradientColor(t, u.gradientC1, u.gradientC2, u.gradientC3, u.gradientC4, u.gradientC5);
+    // Apply SDR gradient brightness adjustment (only affects SDR mode)
+    if (u.hdrEnabled == 0) {
+      color = color * u.sdrGradientBrightness;
+    }
+    return color;
   }
 }
 

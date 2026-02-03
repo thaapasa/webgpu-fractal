@@ -10,7 +10,8 @@ import { ViewState } from './ViewState';
 export type ViewStateChangeCallback = (viewState: ViewState) => void;
 export type IterationAdjustCallback = (direction: 1 | -1) => void;
 export type IterationResetCallback = () => void;
-export type PaletteCycleCallback = (direction: 1 | -1) => void;
+export type CosinePaletteCycleCallback = (direction: 1 | -1) => void;
+export type GradientPaletteCycleCallback = (direction: 1 | -1) => void;
 export type ColorOffsetCallback = (delta: number) => void;
 export type ToggleCallback = () => void;
 export type FractalCycleCallback = (direction: 1 | -1) => void;
@@ -33,7 +34,8 @@ export class InputHandler {
   private onChange: ViewStateChangeCallback;
   private onIterationAdjust: IterationAdjustCallback | null = null;
   private onIterationReset: IterationResetCallback | null = null;
-  private onPaletteCycle: PaletteCycleCallback | null = null;
+  private onCosinePaletteCycle: CosinePaletteCycleCallback | null = null;
+  private onGradientPaletteCycle: GradientPaletteCycleCallback | null = null;
   private onColorOffset: ColorOffsetCallback | null = null;
   private onColorOffsetReset: ToggleCallback | null = null;
   private onToggleAA: ToggleCallback | null = null;
@@ -83,10 +85,17 @@ export class InputHandler {
   }
 
   /**
-   * Set callback for palette cycling (c/C keys)
+   * Set callback for cosine palette cycling (c/C keys)
    */
-  setPaletteCycleCallback(callback: PaletteCycleCallback): void {
-    this.onPaletteCycle = callback;
+  setCosinePaletteCycleCallback(callback: CosinePaletteCycleCallback): void {
+    this.onCosinePaletteCycle = callback;
+  }
+
+  /**
+   * Set callback for gradient palette cycling (g/G keys)
+   */
+  setGradientPaletteCycleCallback(callback: GradientPaletteCycleCallback): void {
+    this.onGradientPaletteCycle = callback;
   }
 
   /**
@@ -391,31 +400,39 @@ export class InputHandler {
         break;
       case 'c':
         e.preventDefault();
-        this.onPaletteCycle?.(1);
+        this.onCosinePaletteCycle?.(1);
         break;
       case 'C':
         e.preventDefault();
-        this.onPaletteCycle?.(-1);
+        this.onCosinePaletteCycle?.(-1);
+        break;
+      case 'g':
+        e.preventDefault();
+        this.onGradientPaletteCycle?.(1);
+        break;
+      case 'G':
+        e.preventDefault();
+        this.onGradientPaletteCycle?.(-1);
         break;
       case '[':
       case ',':
         e.preventDefault();
-        this.onColorOffset?.(-0.1);
+        this.onColorOffset?.(-0.05);
         break;
       case ']':
       case '.':
         e.preventDefault();
-        this.onColorOffset?.(0.1);
+        this.onColorOffset?.(0.05);
         break;
       case '{':
       case '<':
         e.preventDefault();
-        this.onColorOffset?.(-0.5);
+        this.onColorOffset?.(-0.15);
         break;
       case '}':
       case '>':
         e.preventDefault();
-        this.onColorOffset?.(0.5);
+        this.onColorOffset?.(0.15);
         break;
       case 'r':
       case 'R':

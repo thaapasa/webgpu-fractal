@@ -16,7 +16,17 @@ import {
   copyShareableUrl,
 } from '../bookmark/BookmarkManager';
 import { getLocationByKey } from '../bookmark/famousLocations';
-import { getPalette, getPaletteParams, getPaletteName, PALETTE_COUNT } from '../renderer/Palettes';
+import {
+  getCosinePalette,
+  getGradientPalette,
+  getCosinePaletteParams,
+  getGradientPaletteParams,
+  getCosinePaletteName,
+  getGradientPaletteName,
+  COSINE_PALETTE_COUNT,
+  GRADIENT_PALETTE_COUNT,
+  PaletteType,
+} from '../renderer/Palettes';
 
 import shaderSource from '../renderer/shaders/mandelbrot.wgsl?raw';
 
@@ -58,11 +68,15 @@ export class WebGPUFractalEngine {
   private savedViewState: { centerX: number; centerY: number; zoom: number } | null = null;
   private savedFractalType: FractalType | null = null;
 
-  private paletteIndex = 4; // Fire
+  private paletteType: PaletteType = 'cosine';
+  private cosinePaletteIndex = 1; // Fire
+  private gradientPaletteIndex = 0; // Blue
   private colorOffset = 0.0;
 
   /** HDR brightness bias: -1 to +1, shifts which regions appear bright */
   private hdrBrightnessBias = 0.0;
+  /** SDR gradient brightness multiplier: 0.2 to 2.0 */
+  private sdrGradientBrightness = 1.0;
 
   private debugOverlay: HTMLElement | null = null;
   private shareNotification: HTMLElement | null = null;
@@ -174,8 +188,11 @@ export class WebGPUFractalEngine {
     this.inputHandler.setIterationResetCallback(() => {
       this.clearMaxIterationsOverride();
     });
-    this.inputHandler.setPaletteCycleCallback((direction) => {
-      this.cyclePalette(direction);
+    this.inputHandler.setCosinePaletteCycleCallback((direction) => {
+      this.cycleCosinePalette(direction);
+    });
+    this.inputHandler.setGradientPaletteCycleCallback((direction) => {
+      this.cycleGradientPalette(direction);
     });
     this.inputHandler.setColorOffsetCallback((delta) => {
       this.adjustColorOffset(delta);
@@ -273,19 +290,26 @@ export class WebGPUFractalEngine {
       const z = this.viewState.zoom;
       const zoomStr = z >= 1e6 ? z.toExponential(2) : z < 1 ? z.toPrecision(4) : String(Math.round(z));
       const iterSuffix = this.maxIterationsOverride !== null ? ' (manual)' : '';
-      const paletteName = getPaletteName(this.paletteIndex);
+      const paletteName = this.paletteType === 'cosine'
+        ? getCosinePaletteName(this.cosinePaletteIndex)
+        : getGradientPaletteName(this.gradientPaletteIndex);
       const fractalName = FRACTAL_TYPE_NAMES[this.fractalType];
       const hdrStatus = this.renderer.hdrEnabled
         ? (Math.abs(this.hdrBrightnessBias) > 0.01
             ? `HDR (${this.hdrBrightnessBias > 0 ? '+' : ''}${this.hdrBrightnessBias.toFixed(2)})`
             : 'HDR')
         : (this.renderer.displaySupportsHDR ? 'HDR available' : 'SDR');
+      // Show SDR gradient brightness if adjusted (only relevant for SDR + gradient)
+      const sdrBrightnessStr = !this.renderer.hdrEnabled && this.paletteType === 'gradient' && Math.abs(this.sdrGradientBrightness - 1.0) > 0.01
+        ? `brightness ${this.sdrGradientBrightness.toFixed(1)}`
+        : '';
       const juliaStatus = this.juliaPickerMode ? '🎯 Pick Julia point' : '';
       const juliaCoords = isJulia ? `c=(${this.juliaC[0].toFixed(4)}, ${this.juliaC[1].toFixed(4)})` : '';
       const colorOffsetStr = Math.abs(this.colorOffset) > 0.001 ? `offset ${this.colorOffset.toFixed(1)}` : '';
 
       const statusParts = [fractalName, `zoom ${zoomStr}`, `iterations ${maxIter}${iterSuffix}`, paletteName];
       if (colorOffsetStr) statusParts.push(colorOffsetStr);
+      if (sdrBrightnessStr) statusParts.push(sdrBrightnessStr);
       if (juliaCoords) statusParts.push(juliaCoords);
       statusParts.push(hdrStatus);
       if (juliaStatus) statusParts.push(juliaStatus);
@@ -298,9 +322,14 @@ export class WebGPUFractalEngine {
     const floatView = new Float32Array(uniformData);
     const intView = new Int32Array(uniformData);
 
-    // Get current palette info and params
-    const palette = getPalette(this.paletteIndex);
-    const paletteParams = getPaletteParams(this.paletteIndex, this.renderer.hdrEnabled);
+    // Get current palette info and params based on palette type
+    const isCosine = this.paletteType === 'cosine';
+    const palette = isCosine
+      ? getCosinePalette(this.cosinePaletteIndex)
+      : getGradientPalette(this.gradientPaletteIndex);
+    const paletteParams = isCosine
+      ? getCosinePaletteParams(this.cosinePaletteIndex)
+      : getGradientPaletteParams(this.gradientPaletteIndex, this.renderer.hdrEnabled);
 
     // Pack base uniforms (must match WGSL struct layout with padding)
     floatView[0] = canvas.width;                    // resolution.x
@@ -312,65 +341,67 @@ export class WebGPUFractalEngine {
     floatView[6] = performance.now() * 0.001;       // time
     floatView[7] = this.colorOffset;                // colorOffset
     intView[8] = this.fractalType;                  // fractalType
-    // padding at 9
+    // padding at 9 (_pad_jc)
     floatView[10] = this.juliaC[0];                 // juliaC.x
     floatView[11] = this.juliaC[1];                 // juliaC.y
     intView[12] = this.renderer.hdrEnabled ? 1 : 0; // hdrEnabled
     floatView[13] = this.hdrBrightnessBias;         // hdrBrightnessBias
     intView[14] = paletteParams.type === 'cosine' ? 0 : 1; // paletteType
-    intView[15] = palette.isMonotonic ? 1 : 0;       // isMonotonic
+    intView[15] = palette.isMonotonic ? 1 : 0;      // isMonotonic
+    floatView[16] = this.sdrGradientBrightness;     // sdrGradientBrightness
+    // padding at 17, 18, 19 (_pad0, _pad1, _pad2)
 
-    // Pack palette parameters (offset 16 = 64 bytes)
+    // Pack palette parameters (offset 20 = 80 bytes, 16-byte aligned for vec3f)
     if (paletteParams.type === 'cosine') {
       // paletteA (vec3 + padding)
-      floatView[16] = paletteParams.a[0];
-      floatView[17] = paletteParams.a[1];
-      floatView[18] = paletteParams.a[2];
-      // padding at 19
-      // paletteB
-      floatView[20] = paletteParams.b[0];
-      floatView[21] = paletteParams.b[1];
-      floatView[22] = paletteParams.b[2];
+      floatView[20] = paletteParams.a[0];
+      floatView[21] = paletteParams.a[1];
+      floatView[22] = paletteParams.a[2];
       // padding at 23
-      // paletteC
-      floatView[24] = paletteParams.c[0];
-      floatView[25] = paletteParams.c[1];
-      floatView[26] = paletteParams.c[2];
+      // paletteB
+      floatView[24] = paletteParams.b[0];
+      floatView[25] = paletteParams.b[1];
+      floatView[26] = paletteParams.b[2];
       // padding at 27
-      // paletteD
-      floatView[28] = paletteParams.d[0];
-      floatView[29] = paletteParams.d[1];
-      floatView[30] = paletteParams.d[2];
+      // paletteC
+      floatView[28] = paletteParams.c[0];
+      floatView[29] = paletteParams.c[1];
+      floatView[30] = paletteParams.c[2];
       // padding at 31
+      // paletteD
+      floatView[32] = paletteParams.d[0];
+      floatView[33] = paletteParams.d[1];
+      floatView[34] = paletteParams.d[2];
+      // padding at 35
     }
 
-    // Gradient colors start at offset 32 (128 bytes)
+    // Gradient colors start at offset 36 (144 bytes)
     if (paletteParams.type === 'gradient') {
       // gradientC1
-      floatView[32] = paletteParams.c1[0];
-      floatView[33] = paletteParams.c1[1];
-      floatView[34] = paletteParams.c1[2];
-      // padding at 35
-      // gradientC2
-      floatView[36] = paletteParams.c2[0];
-      floatView[37] = paletteParams.c2[1];
-      floatView[38] = paletteParams.c2[2];
+      floatView[36] = paletteParams.c1[0];
+      floatView[37] = paletteParams.c1[1];
+      floatView[38] = paletteParams.c1[2];
       // padding at 39
-      // gradientC3
-      floatView[40] = paletteParams.c3[0];
-      floatView[41] = paletteParams.c3[1];
-      floatView[42] = paletteParams.c3[2];
+      // gradientC2
+      floatView[40] = paletteParams.c2[0];
+      floatView[41] = paletteParams.c2[1];
+      floatView[42] = paletteParams.c2[2];
       // padding at 43
-      // gradientC4
-      floatView[44] = paletteParams.c4[0];
-      floatView[45] = paletteParams.c4[1];
-      floatView[46] = paletteParams.c4[2];
+      // gradientC3
+      floatView[44] = paletteParams.c3[0];
+      floatView[45] = paletteParams.c3[1];
+      floatView[46] = paletteParams.c3[2];
       // padding at 47
-      // gradientC5
-      floatView[48] = paletteParams.c5[0];
-      floatView[49] = paletteParams.c5[1];
-      floatView[50] = paletteParams.c5[2];
+      // gradientC4
+      floatView[48] = paletteParams.c4[0];
+      floatView[49] = paletteParams.c4[1];
+      floatView[50] = paletteParams.c4[2];
       // padding at 51
+      // gradientC5
+      floatView[52] = paletteParams.c5[0];
+      floatView[53] = paletteParams.c5[1];
+      floatView[54] = paletteParams.c5[2];
+      // padding at 55
     }
 
     device.queue.writeBuffer(this.uniformBuffer, 0, uniformData);
@@ -431,29 +462,46 @@ export class WebGPUFractalEngine {
   }
 
   /**
-   * Adjust HDR brightness bias.
-   * @param direction 1 for brighter (more of image is bright), -1 for dimmer
+   * Adjust brightness.
+   * - In HDR mode: adjusts HDR brightness bias
+   * - In SDR mode with gradient palette: adjusts gradient color brightness
+   * @param direction 1 for brighter, -1 for dimmer
    */
   private adjustHdrBrightness(direction: 1 | -1): void {
-    if (!this.renderer.hdrEnabled) return;
-    // Adjust by 0.1 each step, clamped to -1 to +1
-    // Positive direction = increase bias = brighter
-    this.hdrBrightnessBias = Math.max(-1, Math.min(1, this.hdrBrightnessBias + direction * 0.1));
+    if (this.renderer.hdrEnabled) {
+      // HDR mode: adjust HDR brightness bias
+      this.hdrBrightnessBias = Math.max(-1, Math.min(1, this.hdrBrightnessBias + direction * 0.1));
+    } else if (this.paletteType === 'gradient') {
+      // SDR mode with gradient palette: adjust gradient brightness
+      // Adjust by 0.2 each step, clamped to 0.1 to 5.0
+      this.sdrGradientBrightness = Math.max(0.1, Math.min(10.0, this.sdrGradientBrightness + direction * 0.2));
+    }
+    // Cosine palettes in SDR mode: do nothing (no effect)
     this.render();
   }
 
   /**
-   * Reset HDR brightness bias to default (0)
+   * Reset brightness to default.
+   * - Resets HDR brightness bias to 0
+   * - Resets SDR gradient brightness to 1.0
    */
   private resetHdrBrightness(): void {
     this.hdrBrightnessBias = 0;
+    this.sdrGradientBrightness = 1.0;
     this.render();
   }
 
   // --- Palette controls ---
 
-  private cyclePalette(direction: 1 | -1): void {
-    this.paletteIndex = (this.paletteIndex + direction + PALETTE_COUNT) % PALETTE_COUNT;
+  private cycleCosinePalette(direction: 1 | -1): void {
+    this.cosinePaletteIndex = (this.cosinePaletteIndex + direction + COSINE_PALETTE_COUNT) % COSINE_PALETTE_COUNT;
+    this.paletteType = 'cosine';
+    this.render();
+  }
+
+  private cycleGradientPalette(direction: 1 | -1): void {
+    this.gradientPaletteIndex = (this.gradientPaletteIndex + direction + GRADIENT_PALETTE_COUNT) % GRADIENT_PALETTE_COUNT;
+    this.paletteType = 'gradient';
     this.render();
   }
 
@@ -545,7 +593,9 @@ export class WebGPUFractalEngine {
       centerX: this.viewState.centerX,
       centerY: this.viewState.centerY,
       zoom: this.viewState.zoom,
-      paletteIndex: this.paletteIndex,
+      paletteType: this.paletteType,
+      cosinePaletteIndex: this.cosinePaletteIndex,
+      gradientPaletteIndex: this.gradientPaletteIndex,
       colorOffset: this.colorOffset,
       juliaC: this.juliaC,
       maxIterationsOverride: this.maxIterationsOverride,
@@ -563,9 +613,36 @@ export class WebGPUFractalEngine {
     if (bookmark.maxIterationsOverride !== undefined) {
       this.maxIterationsOverride = bookmark.maxIterationsOverride;
     }
-    if (bookmark.paletteIndex !== undefined) {
-      this.paletteIndex = bookmark.paletteIndex % PALETTE_COUNT;
+
+    // New palette parameters
+    if (bookmark.paletteType !== undefined) {
+      this.paletteType = bookmark.paletteType;
     }
+    if (bookmark.cosinePaletteIndex !== undefined) {
+      this.cosinePaletteIndex = bookmark.cosinePaletteIndex % COSINE_PALETTE_COUNT;
+    }
+    if (bookmark.gradientPaletteIndex !== undefined) {
+      this.gradientPaletteIndex = bookmark.gradientPaletteIndex % GRADIENT_PALETTE_COUNT;
+    }
+
+    // Legacy: handle old paletteIndex if present (for backward compatibility)
+    // This is a best-effort mapping - old URLs will get close-ish results
+    if (bookmark.paletteIndex !== undefined && bookmark.paletteType === undefined) {
+      // Old palette indices: 0=Rainbow, 1=Blue, 2=Gold, 3=Grayscale, 4=Fire, 5=Ice,
+      // 6=Sepia, 7=Ocean, 8=Purple, 9=Forest, 10=Sunset, 11=Electric
+      // Cosine: Rainbow(0), Fire(4), Ice(5), Sunset(10), Electric(11)
+      // Gradient: Blue(1), Gold(2), Grayscale(3), Sepia(6), Ocean(7), Purple(8), Forest(9)
+      const cosineIndices = [0, 4, 5, 10, 11];
+      if (cosineIndices.includes(bookmark.paletteIndex)) {
+        this.paletteType = 'cosine';
+        this.cosinePaletteIndex = cosineIndices.indexOf(bookmark.paletteIndex);
+      } else {
+        this.paletteType = 'gradient';
+        const gradientIndices = [1, 2, 3, 6, 7, 8, 9];
+        this.gradientPaletteIndex = gradientIndices.indexOf(bookmark.paletteIndex);
+      }
+    }
+
     if (bookmark.colorOffset !== undefined) {
       this.colorOffset = bookmark.colorOffset;
     }
@@ -590,7 +667,9 @@ export class WebGPUFractalEngine {
     this.maxIterationsOverride = state.maxIterationsOverride;
     this.fractalType = state.fractalType;
     this.juliaC = state.juliaC;
-    this.paletteIndex = state.paletteIndex;
+    this.paletteType = state.paletteType;
+    this.cosinePaletteIndex = state.cosinePaletteIndex;
+    this.gradientPaletteIndex = state.gradientPaletteIndex;
     this.colorOffset = state.colorOffset;
 
     this.updateUrlBookmark();
@@ -684,7 +763,8 @@ export class WebGPUFractalEngine {
         <div style="margin-bottom: 12px;">
           <h3 style="margin: 0 0 8px 0; color: #a78bfa; font-size: 13px; text-transform: uppercase;">Colors</h3>
           <div style="display: grid; gap: 4px;">
-            ${this.helpRow('C / Shift+C', 'Cycle palettes')}
+            ${this.helpRow('C / Shift+C', 'Cosine palettes')}
+            ${this.helpRow('G / Shift+G', 'Gradient palettes')}
             ${this.helpRow(', / .', 'Shift colors (fine)')}
             ${this.helpRow('< / >', 'Shift colors (coarse)')}
             ${this.helpRow('R', 'Reset color offset')}
@@ -698,12 +778,12 @@ export class WebGPUFractalEngine {
           </div>
         </div>
         <div style="margin-bottom: 12px;">
-          <h3 style="margin: 0 0 8px 0; color: #a78bfa; font-size: 13px; text-transform: uppercase;">HDR Brightness</h3>
+          <h3 style="margin: 0 0 8px 0; color: #a78bfa; font-size: 13px; text-transform: uppercase;">Brightness</h3>
           <div style="display: grid; gap: 4px;">
-            ${this.helpRow('B', 'More bright (extend)')}
-            ${this.helpRow('Shift+B', 'Less bright (contract)')}
+            ${this.helpRow('B / Shift+B', 'Adjust brightness*')}
             ${this.helpRow('D', 'Reset brightness')}
           </div>
+          <div style="color: #888; font-size: 10px; margin-top: 4px;">*HDR bias or SDR gradient brightness</div>
         </div>
         <div style="margin-bottom: 12px;">
           <h3 style="margin: 0 0 8px 0; color: #a78bfa; font-size: 13px; text-transform: uppercase;">UI</h3>
