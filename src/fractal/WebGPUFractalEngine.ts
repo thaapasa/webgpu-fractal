@@ -672,8 +672,21 @@ export class WebGPUFractalEngine {
     this.gradientPaletteIndex = state.gradientPaletteIndex;
     this.colorOffset = state.colorOffset;
 
+    this.showLocationNotification(location.name, location.description);
     this.updateUrlBookmark();
     this.render();
+  }
+
+  private showLocationNotification(name: string, description: string): void {
+    if (!this.shareNotification) return;
+    this.shareNotification.innerHTML = `<strong style="font-size: 18px;">📍 ${name}</strong><br><span style="color: #aaa; font-size: 14px;">${description}</span>`;
+    this.shareNotification.style.color = '#60a5fa';
+    this.shareNotification.style.opacity = '1';
+    setTimeout(() => {
+      if (this.shareNotification) {
+        this.shareNotification.style.opacity = '0';
+      }
+    }, 2500);
   }
 
   private updateUrlBookmark(): void {
