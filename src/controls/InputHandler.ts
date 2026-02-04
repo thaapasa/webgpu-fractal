@@ -58,6 +58,11 @@ export class InputHandler {
   // Julia picker mode state
   private juliaPickerMode = false;
 
+  // Keyboard zoom state
+  private keyboardZoomDirection: 1 | -1 | null = null;
+  private keyboardZoomStartTime: number = 0;
+  private keyboardZoomAnimationId: number | null = null;
+
   constructor(
     canvas: HTMLCanvasElement,
     viewState: ViewState,
@@ -225,6 +230,7 @@ export class InputHandler {
 
     // Keyboard events (on window for global capture)
     window.addEventListener('keydown', this.handleKeyDown.bind(this));
+    window.addEventListener('keyup', this.handleKeyUp.bind(this));
   }
 
   private getCanvasRect(): DOMRect {
@@ -498,7 +504,78 @@ export class InputHandler {
         e.preventDefault();
         this.onToggleScreenshotMode?.();
         break;
+      case 'z':
+        e.preventDefault();
+        if (!e.repeat) {
+          this.startKeyboardZoom(1); // Zoom in
+        }
+        break;
+      case 'Z':
+        e.preventDefault();
+        if (!e.repeat) {
+          this.startKeyboardZoom(-1); // Zoom out
+        }
+        break;
     }
+  }
+
+  // Keyboard zoom handlers
+  private handleKeyUp(e: KeyboardEvent): void {
+    // Stop keyboard zoom when z or Z is released
+    if (e.key === 'z' || e.key === 'Z') {
+      this.stopKeyboardZoom();
+    }
+  }
+
+  /**
+   * Start continuous keyboard zoom
+   * @param direction 1 for zoom in, -1 for zoom out
+   */
+  private startKeyboardZoom(direction: 1 | -1): void {
+    // If already zooming in a different direction, stop first
+    if (this.keyboardZoomAnimationId !== null) {
+      this.stopKeyboardZoom();
+    }
+
+    this.keyboardZoomDirection = direction;
+    this.keyboardZoomStartTime = performance.now();
+    this.keyboardZoomAnimationId = requestAnimationFrame(this.keyboardZoomLoop.bind(this));
+  }
+
+  /**
+   * Stop continuous keyboard zoom
+   */
+  private stopKeyboardZoom(): void {
+    if (this.keyboardZoomAnimationId !== null) {
+      cancelAnimationFrame(this.keyboardZoomAnimationId);
+      this.keyboardZoomAnimationId = null;
+    }
+    this.keyboardZoomDirection = null;
+  }
+
+  /**
+   * Animation loop for continuous keyboard zoom
+   * Zoom rate is proportional to elapsed time, allowing fine control with quick taps
+   */
+  private keyboardZoomLoop(currentTime: number): void {
+    if (this.keyboardZoomDirection === null) return;
+
+    const elapsed = currentTime - this.keyboardZoomStartTime;
+    this.keyboardZoomStartTime = currentTime;
+
+    // Zoom rate: ~2x per second when holding key
+    // This means quick taps (< 50ms) result in very small zoom changes
+    const zoomSpeed = 0.7; // ln(2) ≈ 0.693, so ~2x/second
+    const zoomExponent = this.keyboardZoomDirection * zoomSpeed * (elapsed / 1000);
+    const zoomFactor = Math.exp(zoomExponent);
+
+    // Apply zoom centered on screen center
+    const [width, height] = this.getCanvasSize();
+    this.viewState.zoomAt(width / 2, height / 2, zoomFactor, width, height);
+    this.notifyChange();
+
+    // Continue animation
+    this.keyboardZoomAnimationId = requestAnimationFrame(this.keyboardZoomLoop.bind(this));
   }
 
   /**

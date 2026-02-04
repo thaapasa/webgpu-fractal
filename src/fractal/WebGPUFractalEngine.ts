@@ -754,7 +754,7 @@ export class WebGPUFractalEngine {
   private createHelpContent(): string {
     return `
       <h2 style="margin: 0 0 16px 0; color: #60a5fa; font-size: 20px; font-weight: 600;">
-        🌀 Fractal Explorer (WebGPU HDR) - Keyboard Shortcuts
+        🌀 Fractal Explorer - Keyboard Shortcuts
       </h2>
       <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px 32px;">
         <div style="margin-bottom: 12px;">
@@ -762,6 +762,7 @@ export class WebGPUFractalEngine {
           <div style="display: grid; gap: 4px;">
             ${this.helpRow('Drag', 'Pan view')}
             ${this.helpRow('Scroll', 'Zoom in/out')}
+            ${this.helpRow('z / Z', 'Fine zoom (hold)')}
             ${this.helpRow('Double-click', 'Zoom in at point')}
             ${this.helpRow('1-9', 'Famous locations')}
           </div>
