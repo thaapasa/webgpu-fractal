@@ -657,7 +657,7 @@ export class WebGPUFractalEngine {
   }
 
   private goToLocation(key: string): void {
-    const location = getLocationByKey(key);
+    const location = getLocationByKey(key, this.fractalType);
     if (!location) return;
 
     const state = location.state;
@@ -699,6 +699,76 @@ export class WebGPUFractalEngine {
     if (success) {
       this.updateUrlBookmark();
     }
+
+    // On localhost, also print createLocation() code for easy copy-paste
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+      this.logCreateLocationCode();
+    }
+  }
+
+  /**
+   * Log a ready-to-paste createLocation() call to the console.
+   * Only useful during development for curating famous locations.
+   */
+  private logCreateLocationCode(): void {
+    const fractalTypeName = this.getFractalTypeEnumName(this.fractalType);
+    const isJulia = isJuliaType(this.fractalType);
+
+    // Build options object, only including non-default values
+    const options: string[] = [];
+
+    if (this.paletteType === 'gradient') {
+      options.push(`paletteType: 'gradient'`);
+      if (this.gradientPaletteIndex !== 0) {
+        options.push(`gradientPaletteIndex: ${this.gradientPaletteIndex}`);
+      }
+    } else {
+      // Cosine palette (default type)
+      if (this.cosinePaletteIndex !== 1) {
+        options.push(`cosinePaletteIndex: ${this.cosinePaletteIndex}`);
+      }
+    }
+
+    if (Math.abs(this.colorOffset) > 0.001) {
+      options.push(`colorOffset: ${this.colorOffset}`);
+    }
+
+    if (isJulia) {
+      options.push(`juliaC: [${this.juliaC[0]}, ${this.juliaC[1]}]`);
+    }
+
+    if (this.maxIterationsOverride !== null) {
+      options.push(`maxIterationsOverride: ${this.maxIterationsOverride}`);
+    }
+
+    const optionsStr = options.length > 0
+      ? `,\n    { ${options.join(', ')} }`
+      : '';
+
+    const code = `createLocation(
+    'TODO: Name',
+    'TODO: Description',
+    'TODO: Key (1-9)',
+    FractalType.${fractalTypeName},
+    ${this.viewState.centerX}, ${this.viewState.centerY}, ${this.viewState.zoom}${optionsStr}
+  ),`;
+
+    console.log('%c📍 createLocation() code:', 'color: #4ade80; font-weight: bold; font-size: 14px;');
+    console.log(code);
+  }
+
+  /**
+   * Get the enum key name for a FractalType value.
+   */
+  private getFractalTypeEnumName(type: FractalType): string {
+    // Reverse lookup in FractalType enum
+    const entries = Object.entries(FractalType);
+    for (const [key, value] of entries) {
+      if (value === type && isNaN(Number(key))) {
+        return key;
+      }
+    }
+    return `Unknown(${type})`;
   }
 
   private showShareNotification(success: boolean): void {

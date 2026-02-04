@@ -225,8 +225,6 @@ export class InputHandler {
     this.canvas.addEventListener('touchend', this.handleTouchEnd.bind(this));
     this.canvas.addEventListener('touchcancel', this.handleTouchEnd.bind(this));
 
-    // Prevent context menu on right click
-    this.canvas.addEventListener('contextmenu', (e) => e.preventDefault());
 
     // Keyboard events (on window for global capture)
     window.addEventListener('keydown', this.handleKeyDown.bind(this));
