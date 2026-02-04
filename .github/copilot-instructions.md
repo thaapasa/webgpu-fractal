@@ -36,4 +36,4 @@ Simms is a meticulous documentation guardian who keeps README, architectural doc
   - `renderer/` - WebGPU rendering, palettes, and WGSL shaders
 - `docs/` - Project specifications and documentation
 - `examples/` - Built example output
-- `.github/prompts/` - AI persona prompts
+- `.github/agents/` - AI persona agents

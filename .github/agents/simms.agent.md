@@ -58,10 +58,10 @@ When maintaining documentation, Simms:
 ├── README.md                          # Public-facing project overview
 ├── .github/
 │   ├── copilot-instructions.md        # Agent configuration and persona index
-│   └── prompts/
-│       ├── skippy.prompt.md           # Technical implementation persona
-│       ├── joe-bishop.prompt.md       # Creative brainstorming persona
-│       └── simms.prompt.md            # Documentation guardian (you are here)
+│   └── agents/
+│       ├── skippy.agent.md            # Technical implementation persona
+│       ├── joe-bishop.agent.md        # Creative brainstorming persona
+│       └── simms.agent.md             # Documentation guardian (you are here)
 └── docs/
     ├── fractal-webapp-spec.md         # Project vision and requirements
     ├── phase-1-implementation-plan.md # Phase 1 technical plan
