@@ -64,9 +64,16 @@ function createLocation(
 // ============================================================================
 const MANDELBROT_LOCATIONS: FamousLocation[] = [
   createLocation(
+    'Mandelbrot',
+    'The famous Mandelbrot set',
+    '1',
+    FractalType.Mandelbrot,
+      -0.5, 0, 0.4
+  ),
+  createLocation(
     'Seahorse Valley',
     'The iconic seahorse-shaped spirals',
-    '1',
+    '2',
     FractalType.Mandelbrot,
     -0.7581249305506096, 0.11244273987387937, 36.41989684959737,
     { cosinePaletteIndex: 5, colorOffset: 0.05 }
@@ -74,7 +81,7 @@ const MANDELBROT_LOCATIONS: FamousLocation[] = [
   createLocation(
     'Elephant Valley',
     'Elephant trunk-like spirals on the positive real side',
-    '2',
+    '3',
     FractalType.Mandelbrot,
     0.2746341335933571, 0.0066936145282295205, 212.15493874953236,
     { cosinePaletteIndex: 3, colorOffset: -0.1 }
@@ -82,7 +89,7 @@ const MANDELBROT_LOCATIONS: FamousLocation[] = [
   createLocation(
     'Double Spiral Valley',
     'Beautiful double spirals deep in the set',
-    '3',
+    '4',
     FractalType.Mandelbrot,
     -0.743733589978665, 0.130905227502858, 350,
     { cosinePaletteIndex: 5, colorOffset: 0.15000000000000002 }
@@ -90,7 +97,7 @@ const MANDELBROT_LOCATIONS: FamousLocation[] = [
   createLocation(
     'Spiral Galaxy',
     'Galactic spiral arms emerging from chaos',
-    '4',
+    '5',
     FractalType.Mandelbrot,
     -0.7615484049386866, -0.08478444765887823, 1506.4927460380957,
     { cosinePaletteIndex: 4, colorOffset: 0.04999999999999999 }
@@ -98,7 +105,7 @@ const MANDELBROT_LOCATIONS: FamousLocation[] = [
   createLocation(
     'Douady Rabbit',
     'The famous rabbit-eared Julia set',
-    '5',
+    '6',
     FractalType.MandelbrotJulia,
     0, 0, 0.6,
     { cosinePaletteIndex: 4, colorOffset: 0.2, juliaC: [-0.123, 0.745] }
@@ -106,18 +113,10 @@ const MANDELBROT_LOCATIONS: FamousLocation[] = [
   createLocation(
     'Dragon Julia',
     'Fierce dragon-like Julia set',
-    '6',
-    FractalType.MandelbrotJulia,
-    0, 0, 0.45,
-    { cosinePaletteIndex: 3, colorOffset: -0.49999999999999994, juliaC: [-0.8, 0.156] }
-  ),
-  createLocation(
-    'Lightning Julia',
-    'Electric, lightning-like patterns',
     '7',
     FractalType.MandelbrotJulia,
     0, 0, 0.45,
-    { cosinePaletteIndex: 4, colorOffset: 0.2, juliaC: [-0.7269, 0.1889], maxIterationsOverride: 1000 }
+    { cosinePaletteIndex: 3, colorOffset: -0.49999999999999994, juliaC: [-0.8, 0.156] }
   ),
   createLocation(
     'Spiral Julia',
@@ -142,20 +141,20 @@ const MANDELBROT_LOCATIONS: FamousLocation[] = [
 // ============================================================================
 const BURNING_SHIP_LOCATIONS: FamousLocation[] = [
   createLocation(
-    'The Armada',
-    'Mini ships along the antenna',
-    '1',
-    FractalType.BurningShip,
-    -1.80173025652805, 0.0153452534367207, 9,
-    { cosinePaletteIndex: 4, colorOffset: 0.2 }
-  ),
-  createLocation(
     'Main Ship',
     'The iconic burning ship silhouette',
-    '2',
+    '1',
     FractalType.BurningShip,
     -0.6819541375872399, 0.5906040268456356, 0.4,
     { cosinePaletteIndex: 4, colorOffset: 0.3 }
+  ),
+  createLocation(
+      'The Armada',
+      'Mini ships along the antenna',
+      '2',
+      FractalType.BurningShip,
+      -1.80173025652805, 0.0153452534367207, 9,
+      { cosinePaletteIndex: 4, colorOffset: 0.2 }
   ),
   createLocation(
     'Bow Detail',
@@ -197,6 +196,14 @@ const BURNING_SHIP_LOCATIONS: FamousLocation[] = [
     0, 0, 0.41,
     { cosinePaletteIndex: 11, colorOffset: 0.55, juliaC: [0.28292507376881926, -0.007597008191683113] }
   ),
+  createLocation(
+      'Detailed Patterns',
+      'Beautiful detailed patterns near the bottom of the ship',
+      '8',
+      FractalType.BurningShipJulia,
+      0, 0, 0.5,
+      { cosinePaletteIndex: 2, colorOffset: 0.6, juliaC: [-0.3967192382583807, -0.09102348993288789] }
+  ),
 ];
 
 // ============================================================================
@@ -204,29 +211,52 @@ const BURNING_SHIP_LOCATIONS: FamousLocation[] = [
 // ============================================================================
 const TRICORN_LOCATIONS: FamousLocation[] = [
   createLocation(
-    'Tricorn Overview',
-    'The three-cornered Mandelbar fractal',
+    'Tricorn',
+    'The main tricorn shape with its distinctive three-cornered symmetry',
     '1',
     FractalType.Tricorn,
-    -0.3, 0, 0.4,
-    { cosinePaletteIndex: 5, colorOffset: 0 }
+    -0.1343398614022916, -0.07051105375213641, 0.24,
+    { cosinePaletteIndex: 11, colorOffset: -0.45 }
   ),
   createLocation(
-    'Tricorn Cusp',
-    'Intricate detail at one of the three cusps',
+    'Skewed Mandelbrot',
+    'Skewed Mandelbrot from one of the main bulbs',
     '2',
     FractalType.Tricorn,
-    -1.0, 0, 2,
-    { cosinePaletteIndex: 4, colorOffset: 0.1 }
+    -1.0683098234816064, 0.13055543771605108, 722.5553792774821,
+    { cosinePaletteIndex: 5, colorOffset: 1.1 }
   ),
-  // Tricorn Julia
   createLocation(
-    'Tricorn Julia',
-    'A Julia set from the Tricorn',
+    'Lightning Bolts',
+    'Lightning bolt-like patterns near the main cardioid edge',
     '3',
     FractalType.TricornJulia,
     0, 0, 0.5,
-    { cosinePaletteIndex: 6, colorOffset: 0, juliaC: [-0.3, 0.5] }
+    { cosinePaletteIndex: 5, colorOffset: 1.2, juliaC: [-0.7092474160797806, -0.113024316756254] }
+  ),
+  createLocation(
+      'Water Lily Leaf',
+      'Leaf-like structures from the center of the edge of the main cardioid',
+      '4',
+      FractalType.TricornJulia,
+      0, 0, 0.43,
+      { colorOffset: -0.7000000000000003, juliaC: [-0.1254330794660274, 0.2407433439223678] }
+  ),
+  createLocation(
+    'Lightning Brain',
+    'Brain-like structures',
+    '5',
+    FractalType.TricornJulia,
+    0, 0, 3.15,
+    { cosinePaletteIndex: 5, juliaC: [0.8748878776979363, -1.515483485507111] }
+  ),
+  createLocation(
+    'Spiral Mosaic',
+    'Mosaic patterns from the base of one of the main bulbs',
+    '6',
+    FractalType.TricornJulia,
+    0, 0, 0.5,
+    { cosinePaletteIndex: 11, colorOffset: 1.55, juliaC: [-0.5647012802389192, -0.06508603367125808] }
   ),
 ];
 
@@ -239,24 +269,32 @@ const CELTIC_LOCATIONS: FamousLocation[] = [
     'The main Celtic fractal shape',
     '1',
     FractalType.Celtic,
-    -0.5, 0, 0.4,
-    { cosinePaletteIndex: 6, colorOffset: 0 }
+    -0.5, 0, 0.25,
+    { cosinePaletteIndex: 10, colorOffset: 0.05 }
   ),
   createLocation(
     'Celtic Detail',
     'Intricate knotwork patterns',
     '2',
     FractalType.Celtic,
-    -0.75, 0.1, 5,
-    { cosinePaletteIndex: 4, colorOffset: 0.15 }
+    -0.7803221774980102, 0.1635662989215261, 119.01480682794772,
+    { cosinePaletteIndex: 10, colorOffset: 0.25, maxIterationsOverride: 10000 }
   ),
   createLocation(
-    'Celtic Julia',
-    'A Julia set from the Celtic fractal',
-    '3',
+      'Leafy Spirals',
+      'Symmetric shapes from the tip of the celtic shape',
+      '3',
+      FractalType.CelticJulia,
+      0, 0, 0.55,
+      { cosinePaletteIndex: 7, colorOffset: 0.1, juliaC: [0.25345198072532704, 0.0001580704105713714] }
+  ),
+  createLocation(
+    'Tendrils',
+    'Tendrils emerging from fog',
+    '4',
     FractalType.CelticJulia,
-    0, 0, 0.5,
-    { cosinePaletteIndex: 0, colorOffset: 0, juliaC: [-0.7, 0.27] }
+    -0.1649932591722856, -0.033582161161888655, 0.28,
+    { cosinePaletteIndex: 5, juliaC: [-0.4530201342281876, -0.8993288590604025] }
   ),
 ];
 
