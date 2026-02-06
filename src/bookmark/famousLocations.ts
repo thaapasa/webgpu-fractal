@@ -296,6 +296,30 @@ const CELTIC_LOCATIONS: FamousLocation[] = [
     -0.1649932591722856, -0.033582161161888655, 0.28,
     { cosinePaletteIndex: 5, juliaC: [-0.4530201342281876, -0.8993288590604025] }
   ),
+  createLocation(
+    'Electric Buzz',
+    'Electric patterns with uniform patterned regions',
+    '5',
+    FractalType.CelticJulia,
+    0.20, -0.30, 0.55,
+    { colorOffset: 0.2000000000000001, juliaC: [-0.6378073937333775, 1.2082886796996293] }
+  ),
+  createLocation(
+    'Intricate Patterns',
+    'Knotwork patterns with intricate details',
+    '6',
+    FractalType.CelticJulia,
+    0, 0, 0.52,
+    { cosinePaletteIndex: 10, colorOffset: 3.299999999999996, juliaC: [-0.7610237673309276, 0.12050023730653406] }
+  ),
+  createLocation(
+    'Petri Dish',
+    'Bacteria-like patterns that spread outwards',
+    '7',
+    FractalType.CelticJulia,
+    0, 0, 0.55,
+    { cosinePaletteIndex: 10, colorOffset: 4.449999999999991, juliaC: [-1.056655765809614, -0.16855216053399263] }
+  ),
 ];
 
 // ============================================================================
@@ -307,24 +331,40 @@ const BUFFALO_LOCATIONS: FamousLocation[] = [
     'The distinctive Buffalo fractal shape',
     '1',
     FractalType.Buffalo,
-    -0.5, 0, 0.4,
-    { cosinePaletteIndex: 3, colorOffset: 0 }
+    -0.7, 0.6, 0.4,
+    { cosinePaletteIndex: 2, colorOffset: 0.49999999999999994 }
   ),
   createLocation(
-    'Buffalo Horns',
-    'Curved horn-like structures',
+    'Overgrown Cities',
+    'Tree or cathedral-like structures emerging from real axis',
     '2',
     FractalType.Buffalo,
-    -1.0, 0.5, 3,
-    { cosinePaletteIndex: 1, colorOffset: 0.2 }
+    -1.75, 0.13, 2.4,
+    { colorOffset: -5 }
   ),
   createLocation(
-    'Buffalo Julia',
-    'A Julia set from the Buffalo fractal',
+    'Industrial Snowflake',
+    'Snowflake-like patterns with industrial structures woven in',
     '3',
     FractalType.BuffaloJulia,
+    0.45, 0, 0.85,
+    { cosinePaletteIndex: 4, colorOffset: -9.1, juliaC: [-1.62727125821226, 0.00873720402364775] }
+  ),
+  createLocation(
+    'Plasma Bursts',
+    'Plasma-like bursts of color',
+    '4',
+    FractalType.BuffaloJulia,
     0, 0, 0.5,
-    { cosinePaletteIndex: 4, colorOffset: 0, juliaC: [-0.5, 0.5] }
+    { cosinePaletteIndex: 8, colorOffset: -0.75, juliaC: [0.2745030250648227, 0.1797320656871218] }
+  ),
+  createLocation(
+    'Intricate Patterns',
+    'Intricate patterns near the bottom of the main shape',
+    '5',
+    FractalType.BuffaloJulia,
+    0, 0, 0.5,
+    { cosinePaletteIndex: 4, colorOffset: 4.25, juliaC: [-0.5828307625231954, -0.3049842077590671] }
   ),
 ];
 
@@ -401,20 +441,12 @@ const MULTIBROT4_LOCATIONS: FamousLocation[] = [
     { cosinePaletteIndex: 5, colorOffset: 0 }
   ),
   createLocation(
-    'Quad Symmetry',
-    'Four-way symmetric boundary details',
+    'Atomic Spirals',
+    'Structures resembling atomic orbitals with spiral patterns',
     '2',
-    FractalType.Multibrot4,
-    0.4, 0.4, 8,
-    { cosinePaletteIndex: 4, colorOffset: 0.15 }
-  ),
-  createLocation(
-    'Multibrot⁴ Julia',
-    'A Julia set with four-fold symmetry',
-    '3',
     FractalType.Multibrot4Julia,
-    0, 0, 0.5,
-    { cosinePaletteIndex: 0, colorOffset: 0, juliaC: [0.5, 0] }
+    0, -0, 0.35,
+    { cosinePaletteIndex: 5, colorOffset: 0.4, juliaC: [-0.7878865573262246, 0.02073442187254452] }
   ),
 ];
 

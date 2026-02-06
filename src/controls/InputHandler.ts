@@ -16,6 +16,7 @@ export type ColorOffsetCallback = (delta: number) => void;
 export type ToggleCallback = () => void;
 export type FractalCycleCallback = (direction: 1 | -1) => void;
 export type JuliaPickCallback = (fractalX: number, fractalY: number) => void;
+export type JuliaPickEndCallback = () => void;
 export type ShareCallback = () => void;
 export type LocationCallback = (key: string) => void;
 export type HelpToggleCallback = () => void;
@@ -44,6 +45,7 @@ export class InputHandler {
   private onFractalCycle: FractalCycleCallback | null = null;
   private onToggleJuliaMode: ToggleCallback | null = null;
   private onJuliaPick: JuliaPickCallback | null = null;
+  private onJuliaPickEnd: JuliaPickEndCallback | null = null;
   private onShare: ShareCallback | null = null;
   private onLocationSelect: LocationCallback | null = null;
   private onToggleHelp: HelpToggleCallback | null = null;
@@ -57,6 +59,8 @@ export class InputHandler {
 
   // Julia picker mode state
   private juliaPickerMode = false;
+  private isPickingJulia = false; // True when mouse is down in picker mode
+  private juliaPickViewState: { centerX: number; centerY: number; zoom: number } | null = null;
 
   // Keyboard zoom state
   private keyboardZoomDirection: 1 | -1 | null = null;
@@ -168,6 +172,13 @@ export class InputHandler {
   }
 
   /**
+   * Set callback for when Julia picking ends (mouse up in picker mode)
+   */
+  setJuliaPickEndCallback(callback: JuliaPickEndCallback): void {
+    this.onJuliaPickEnd = callback;
+  }
+
+  /**
    * Set callback for share/bookmark (s key)
    */
   setShareCallback(callback: ShareCallback): void {
@@ -246,6 +257,25 @@ export class InputHandler {
     return [rect.width, rect.height];
   }
 
+  /**
+   * Convert screen coordinates to fractal coordinates using a specific view state.
+   * Used during Julia picking to maintain consistent coordinate space.
+   */
+  private toFractalCoordsWithView(
+    screenX: number,
+    screenY: number,
+    screenWidth: number,
+    screenHeight: number,
+    view: { centerX: number; centerY: number; zoom: number }
+  ): [number, number] {
+    const aspect = screenWidth / screenHeight;
+    const uvX = (screenX / screenWidth - 0.5) * aspect;
+    const uvY = screenY / screenHeight - 0.5;
+    const fractalX = view.centerX + uvX / view.zoom;
+    const fractalY = view.centerY - uvY / view.zoom;
+    return [fractalX, fractalY];
+  }
+
   private notifyChange(): void {
     this.onChange(this.viewState);
   }
@@ -256,10 +286,22 @@ export class InputHandler {
 
     const [x, y] = this.getScreenCoords(e.clientX, e.clientY);
 
-    // Julia picker mode: pick a point instead of panning
+    // Julia picker mode: start continuous picking while mouse is held
     if (this.juliaPickerMode && this.onJuliaPick) {
       const [width, height] = this.getCanvasSize();
-      const [fractalX, fractalY] = this.viewState.toFractalCoords(x, y, width, height);
+      // Save view state at pick start - we'll use this for ALL coordinate conversions
+      // during this pick session, even after the view switches to Julia mode
+      this.juliaPickViewState = {
+        centerX: this.viewState.centerX,
+        centerY: this.viewState.centerY,
+        zoom: this.viewState.zoom,
+      };
+      const [fractalX, fractalY] = this.toFractalCoordsWithView(
+        x, y, width, height, this.juliaPickViewState
+      );
+      this.isPickingJulia = true;
+      this.lastX = x;
+      this.lastY = y;
       this.onJuliaPick(fractalX, fractalY);
       return;
     }
@@ -271,9 +313,23 @@ export class InputHandler {
   }
 
   private handleMouseMove(e: MouseEvent): void {
+    const [x, y] = this.getScreenCoords(e.clientX, e.clientY);
+
+    // Julia picking mode: continuously update Julia constant while mouse is held
+    if (this.isPickingJulia && this.onJuliaPick && this.juliaPickViewState) {
+      const [width, height] = this.getCanvasSize();
+      // Use saved view state for conversion - keeps us in Mandelbrot coordinate space
+      const [fractalX, fractalY] = this.toFractalCoordsWithView(
+        x, y, width, height, this.juliaPickViewState
+      );
+      this.onJuliaPick(fractalX, fractalY);
+      this.lastX = x;
+      this.lastY = y;
+      return;
+    }
+
     if (!this.isDragging) return;
 
-    const [x, y] = this.getScreenCoords(e.clientX, e.clientY);
     const deltaX = x - this.lastX;
     const deltaY = y - this.lastY;
 
@@ -286,6 +342,12 @@ export class InputHandler {
   }
 
   private handleMouseUp(): void {
+    if (this.isPickingJulia) {
+      this.isPickingJulia = false;
+      this.juliaPickViewState = null;
+      this.onJuliaPickEnd?.();
+      return;
+    }
     if (this.isDragging) {
       this.isDragging = false;
       this.canvas.style.cursor = 'grab';

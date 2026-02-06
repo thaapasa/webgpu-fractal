@@ -65,6 +65,7 @@ export class WebGPUFractalEngine {
   private fractalType: FractalType = FractalType.Mandelbrot;
   private juliaC: [number, number] = [-0.7, 0.27015];
   private juliaPickerMode = false;
+  private isActivelyPickingJulia = false; // True when mouse is down and previewing Julia
   private savedViewState: { centerX: number; centerY: number; zoom: number } | null = null;
   private savedFractalType: FractalType | null = null;
 
@@ -221,6 +222,9 @@ export class WebGPUFractalEngine {
     });
     this.inputHandler.setJuliaPickCallback((x, y) => {
       this.pickJuliaConstant(x, y);
+    });
+    this.inputHandler.setJuliaPickEndCallback(() => {
+      this.endJuliaPicking();
     });
     this.inputHandler.setShareCallback(() => {
       this.shareBookmark();
@@ -547,20 +551,37 @@ export class WebGPUFractalEngine {
   private pickJuliaConstant(fractalX: number, fractalY: number): void {
     if (!this.juliaPickerMode) return;
 
-    this.savedViewState = {
-      centerX: this.viewState.centerX,
-      centerY: this.viewState.centerY,
-      zoom: this.viewState.zoom,
-    };
-    this.savedFractalType = this.fractalType;
+    // First call - save state and switch to Julia mode
+    if (!this.isActivelyPickingJulia) {
+      this.savedViewState = {
+        centerX: this.viewState.centerX,
+        centerY: this.viewState.centerY,
+        zoom: this.viewState.zoom,
+      };
+      this.savedFractalType = this.fractalType;
+      this.fractalType = getJuliaVariant(this.fractalType);
 
+      // Reset view for Julia set
+      this.viewState.centerX = 0;
+      this.viewState.centerY = 0;
+      this.viewState.zoom = 0.5;
+
+      this.isActivelyPickingJulia = true;
+    }
+
+    // Update Julia constant and render
     this.juliaC = [fractalX, fractalY];
-    this.fractalType = getJuliaVariant(this.fractalType);
+    this.render();
+  }
 
-    this.viewState.centerX = 0;
-    this.viewState.centerY = 0;
-    this.viewState.zoom = 0.5;
+  /**
+   * Called when Julia picking ends (mouse up)
+   * Finalizes the pick and exits picker mode
+   */
+  private endJuliaPicking(): void {
+    if (!this.isActivelyPickingJulia) return;
 
+    this.isActivelyPickingJulia = false;
     this.juliaPickerMode = false;
     this.inputHandler.setJuliaPickerMode(false);
     this.render();

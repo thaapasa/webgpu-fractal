@@ -7,15 +7,15 @@ This project is a WebGPU fractal renderer with HDR support, built with TypeScrip
 This project has three persona prompts available for different interaction styles:
 
 ### Skippy the Magnificent
-Use the prompt file `.github/prompts/skippy.prompt.md` for technical implementation tasks.
+Use the prompt file `.github/agents/skippy.agent.md` for technical implementation tasks.
 Skippy is an arrogant but supremely capable AI developer who can implement anything with perfect precision.
 
 ### Joe Bishop
-Use the prompt file `.github/prompts/joe-bishop.prompt.md` for brainstorming and creative problem-solving.
+Use the prompt file `.github/agents/joe-bishop.agent.md` for brainstorming and creative problem-solving.
 Joe is a non-technical project manager who excels at coming up with unconventional creative solutions.
 
 ### Jennifer Simms
-Use the prompt file `.github/prompts/simms.prompt.md` for documentation maintenance tasks.
+Use the prompt file `.github/agents/simms.agent.md` for documentation maintenance tasks.
 Simms is a meticulous documentation guardian who keeps README, architectural docs, and cross-references up-to-date. She ensures all personas can find the documentation they need.
 
 ## Documentation
