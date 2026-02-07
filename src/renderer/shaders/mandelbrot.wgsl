@@ -164,12 +164,14 @@ fn fragmentMain(input: VertexOutput) -> @location(0) vec4f {
   let isPhoenix = baseType == 5;
 
   if (isJulia) {
-    z = pos;
+    // For Phoenix Julia, swap and negate to match conventional orientation
+    // (feathers extending horizontally, correct vertical orientation)
+    if (isPhoenix) {
+      z = vec2f(-pos.y, pos.x);  // Rotate 90° CCW to match reference images
+    } else {
+      z = pos;
+    }
     c = u.juliaC;
-  } else if (isPhoenix) {
-    // Phoenix: z starts at pixel (Julia-style), use classic parameters
-    z = pos;
-    c = vec2f(0.5667, -0.5); // Classic Phoenix (p, q)
   } else {
     z = vec2f(0.0);
     c = pos;
@@ -216,11 +218,11 @@ fn fragmentMain(input: VertexOutput) -> @location(0) vec4f {
     }
     else if (baseType == 5) {
       // Phoenix: z_{n+1} = z_n² + p + q * z_{n-1}
-      // Base Phoenix: c = pixel position = (p, q) for parameter exploration
-      // Julia Phoenix: c = juliaC = (p, q) for fixed parameters
-      // In both cases, c.x = p, c.y = q
-      let p = c.x;
-      let q = c.y;
+      // Classic formula from Shigehiro Ushiki
+      // We swap real/imag to rotate 90° and match conventional orientation
+      // where the "beak" points right and "feathers" extend horizontally
+      let p = c.y;  // Swapped: use imag as real constant
+      let q = c.x;  // Swapped: use real as coupling constant
       let zSq = vec2f(z.x * z.x - z.y * z.y, 2.0 * z.x * z.y);
       let newZ = vec2f(
         zSq.x + p + q * zPrev.x,

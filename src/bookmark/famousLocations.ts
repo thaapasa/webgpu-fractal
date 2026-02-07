@@ -258,6 +258,14 @@ const TRICORN_LOCATIONS: FamousLocation[] = [
     0, 0, 0.5,
     { cosinePaletteIndex: 11, colorOffset: 1.55, juliaC: [-0.5647012802389192, -0.06508603367125808] }
   ),
+  createLocation(
+      'Electric Tendrils',
+      'Electric tendril patterns with bright highlights',
+      '7',
+      FractalType.TricornJulia,
+      0, 0, 0.5,
+      { cosinePaletteIndex: 4, colorOffset: 0.05, juliaC: [-0.511125124692869, 0.0500484416152959] }
+  ),
 ];
 
 // ============================================================================
@@ -376,9 +384,9 @@ const PHOENIX_LOCATIONS: FamousLocation[] = [
     'Phoenix Overview',
     'The Phoenix parameter space',
     '1',
-    FractalType.Phoenix,
-    0, 0, 0.4,
-    { cosinePaletteIndex: 1, colorOffset: 0 }
+      FractalType.Phoenix,
+      -0.15, -0.7, 0.25,  // Parameter space center (p,q swapped in shader)
+      { cosinePaletteIndex: 5, colorOffset: -0.65 }
   ),
   createLocation(
     'Classic Phoenix Julia',
@@ -386,15 +394,31 @@ const PHOENIX_LOCATIONS: FamousLocation[] = [
     '2',
     FractalType.PhoenixJulia,
     0, 0, 0.5,
-    { cosinePaletteIndex: 1, colorOffset: 0.2, juliaC: [0.5667, -0.5] }
+    { cosinePaletteIndex: 2, colorOffset: 0.45, juliaC: [-0.5, 0.5667], maxIterationsOverride: 1152 }
   ),
   createLocation(
     'Phoenix Feathers',
     'Detailed feather-like structures',
     '3',
     FractalType.PhoenixJulia,
-    0.2, 0.3, 2,
-    { cosinePaletteIndex: 3, colorOffset: 0.1, juliaC: [0.5667, -0.5] }
+    0.38, 0.07, 3.4,
+    { cosinePaletteIndex: 5, juliaC: [-0.5, 0.5667] }
+  ),
+  createLocation(
+      'Golden Weaves',
+      'Bright golden patterns with intricate weaves',
+      '4',
+      FractalType.PhoenixJulia,
+      0, 0.08, 0.4,
+      { cosinePaletteIndex: 2, colorOffset: 0.35, juliaC: [0.656142759731905, 0.0353380147311402] }
+  ),
+  createLocation(
+    'Fiery Phoenix',
+    'Fiery wings spreading outwards',
+    '5',
+    FractalType.PhoenixJulia,
+    0, -0.03, 0.6,
+    { cosinePaletteIndex: 4, colorOffset: -1.7, juliaC: [-0.272349453272398, 0.4059142585519806] }
   ),
 ];
 
@@ -407,24 +431,56 @@ const MULTIBROT3_LOCATIONS: FamousLocation[] = [
     'The three-fold symmetric z³ Multibrot',
     '1',
     FractalType.Multibrot3,
-    0, 0, 0.4,
-    { cosinePaletteIndex: 4, colorOffset: 0 }
+    0, 0, 0.35,
+    { cosinePaletteIndex: 5, colorOffset: 2.35 }
   ),
   createLocation(
-    'Triple Spiral',
-    'Three-way symmetry in the boundary',
+    'The Bulb',
+    'A bulbous extrusion from the main shape',
     '2',
     FractalType.Multibrot3,
-    0.5, 0.3, 5,
-    { cosinePaletteIndex: 0, colorOffset: 0.1 }
+    0.5852686308492299, 0.27, 6,
+    { colorOffset: 0.10000000000000002 }
+  ),
+  createLocation(
+    'Three-fold Spirals',
+    'Bright pearly spirals with three-fold symmetry',
+    '3',
+    FractalType.Multibrot3Julia,
+    0, 0, 0.4,
+    { cosinePaletteIndex: 10, colorOffset: 0.15, juliaC: [0.5448826747676219, 0.26362559338015445] }
   ),
   createLocation(
     'Multibrot³ Julia',
     'A Julia set with three-fold symmetry',
-    '3',
+    '4',
     FractalType.Multibrot3Julia,
-    0, 0, 0.5,
-    { cosinePaletteIndex: 2, colorOffset: 0, juliaC: [0.4, 0.2] }
+    0, 0, 0.434,
+    { cosinePaletteIndex: 5, colorOffset: 0.10000000000000002, juliaC: [-0.45963436785036077, 0.03389484474578987] }
+  ),
+  createLocation(
+    'Double Elephant Valley',
+    'Two elephants in each group',
+    '5',
+    FractalType.Multibrot3,
+    0.42814685603247177, 0.01274807156960129577, 77,
+    { cosinePaletteIndex: 3, colorOffset: 1 }
+  ),
+  createLocation(
+    'Wonky Spiral',
+    'Wonky spiral Julia structure from inside the main set',
+    '6',
+    FractalType.Multibrot3Julia,
+    0.3695408370900379, 0.3371264555793177, 2.274691481464049,
+    { cosinePaletteIndex: 0, colorOffset: 0, juliaC: [0.5277614770068884, 0.15853942850341446], maxIterationsOverride: 2124 }
+  ),
+  createLocation(
+    'Spiral Galaxies',
+    'The wonky spiral Julia structure viewed as galaxies',
+    '7',
+    FractalType.Multibrot3Julia,
+    0, 0, 0.4,
+    { paletteType: 'gradient', juliaC: [0.5277614770068884, 0.15853942850341446], maxIterationsOverride: 1152 }
   ),
 ];
 
@@ -459,24 +515,48 @@ const FUNKY_LOCATIONS: FamousLocation[] = [
     'The wonderfully weird Funky fractal',
     '1',
     FractalType.Funky,
-    -0.5, 0, 0.4,
-    { cosinePaletteIndex: 0, colorOffset: 0 }
+    -0.5, 0, 0.35,
+    { cosinePaletteIndex: 4, colorOffset: 0.25 }
   ),
   createLocation(
-    'Funky Detail',
-    'Asymmetric chaos patterns',
+    'Tulip Bulb',
+    'Extrusions resembling tulips near the top of the main shape',
     '2',
     FractalType.Funky,
-    -0.75, 0.15, 10,
-    { cosinePaletteIndex: 4, colorOffset: 0.2 }
+    0.303, 0.534, 6.3,
+    { cosinePaletteIndex: 10, colorOffset: -0.05000000000000002 }
   ),
   createLocation(
-    'Funky Julia',
-    'A Julia set from the Funky fractal',
+    'Battleship',
+    'Spaceship-like structure with double turrets all around',
     '3',
     FractalType.FunkyJulia,
-    0, 0, 0.5,
-    { cosinePaletteIndex: 3, colorOffset: 0, juliaC: [-0.7, 0.27] }
+    0, 0, 0.45,
+    { cosinePaletteIndex: 4, colorOffset: -0.7, juliaC: [-1.02568231965141, 0.128286053018475] }
+  ),
+  createLocation(
+    'Frog Crab',
+    'Crablike structure with brain-like spiral patterns within it',
+    '4',
+    FractalType.FunkyJulia,
+    0, 0, 0.37,
+    { colorOffset: 0.1, juliaC: [0.30191025227457674, 0.5253550579235958] }
+  ),
+  createLocation(
+    'Spiral Details',
+    'Beautiful spiral details without too much clutter',
+    '5',
+    FractalType.FunkyJulia,
+    -0.2, 0, 0.4,
+    { cosinePaletteIndex: 5, colorOffset: 0.6, juliaC: [-0.06404194046216194, 0.662960137583706] }
+  ),
+  createLocation(
+    'Migrating Birds',
+    'Bird-like shapes flying in formation',
+    '6',
+    FractalType.FunkyJulia,
+    0.34, 0, 0.35,
+    { cosinePaletteIndex: 5, colorOffset: 4.4, juliaC: [0.5804003550040334, -0.9094296635818582] }
   ),
 ];
 
