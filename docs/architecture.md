@@ -17,7 +17,7 @@ _— Jennifer Simms_
 
 ## System Overview
 
-Fractal Explorer is a GPU-accelerated fractal renderer built with TypeScript and WebGPU. The application supports multiple fractal types (Mandelbrot, Burning Ship, Julia, and Burning Ship Julia), runs entirely in the browser, and features HDR (High Dynamic Range) rendering on compatible displays.
+Fractal Explorer is a GPU-accelerated fractal renderer built with TypeScript and WebGPU. The application supports 10 base fractal types (Mandelbrot, Burning Ship, Tricorn, Celtic, Buffalo, Phoenix, Multibrot³, Multibrot⁴, Funky, Perpendicular) each with a Julia variant (20 total), runs entirely in the browser, and features HDR (High Dynamic Range) rendering on compatible displays.
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -47,13 +47,13 @@ Fractal Explorer is a GPU-accelerated fractal renderer built with TypeScript and
 
 ## Technology Stack
 
-| Layer      | Technology   | Version |
-|------------|--------------|---------|
-| Language   | TypeScript   | ^5.3    |
-| Build Tool | Vite         | ^5.0    |
-| Rendering  | WebGPU       | —       |
-| Shaders    | WGSL         | —       |
-| HDR        | rgba16float + extended tone mapping | — |
+| Layer      | Technology                          | Version |
+|------------|-------------------------------------|---------|
+| Language   | TypeScript                          | ^5.3    |
+| Build Tool | Vite                                | ^5.0    |
+| Rendering  | WebGPU                              | —       |
+| Shaders    | WGSL                                | —       |
+| HDR        | rgba16float + extended tone mapping | —       |
 
 ---
 
@@ -89,7 +89,7 @@ The central orchestrator that ties all components together.
 - **Two palette types**: 12 cosine palettes (cycle with `c`/`C`) and 7 gradient palettes (cycle with `g`/`G`), with separate SDR and HDR variants for gradients
 - **Color offset**: Shift the color cycle with `,`/`.` keys
 - **HDR rendering**: Auto-detected, with adjustable brightness bias (`b`/`B`/`d` keys)
-- **Famous locations**: 9 curated fractal spots accessible via number keys `1`–`9`
+- **Famous locations**: Context-sensitive curated spots accessible via number keys `1`–`9`; each fractal family has its own location collection
 - **URL bookmarking**: Share views via URL hash parameters (`s` to copy link)
 - **Help overlay**: In-app keyboard shortcut reference (`h` to toggle)
 - **Screenshot mode**: Hide all UI for clean screenshots (`Space` to toggle)
@@ -195,29 +195,29 @@ Translates browser events into view state changes.
 
 **Supported Interactions:**
 
-| Input        | Action                               |
-|--------------|--------------------------------------|
-| Mouse drag   | Pan                                  |
-| Scroll wheel | Zoom at cursor                       |
-| Double-click | Zoom in 2× at cursor                 |
-| Touch drag   | Pan (mobile)                         |
-| Pinch        | Zoom at midpoint (mobile)            |
-| `f` / `F`    | Cycle fractal type forward/backward   |
-| `j`          | Toggle Julia picker mode              |
-| `+` / `-`    | Increase/decrease iterations          |
-| `0`          | Reset to auto-scaling iterations      |
-| `c` / `C`    | Cycle cosine palettes forward/backward|
-| `g` / `G`    | Cycle gradient palettes forward/backward|
-| `,` / `.`    | Shift color offset fine               |
-| `<` / `>`    | Shift color offset coarse            |
-| `r`          | Reset color offset                   |
-| `b`          | Extend HDR bright region             |
-| `B`          | Contract HDR bright region           |
-| `d`          | Reset HDR brightness                 |
-| `1`–`9`      | Jump to famous locations             |
-| `s`          | Copy shareable URL to clipboard      |
-| `h`          | Toggle help overlay                  |
-| `Space`      | Toggle screenshot mode               |
+| Input        | Action                                   |
+|--------------|------------------------------------------|
+| Mouse drag   | Pan                                      |
+| Scroll wheel | Zoom at cursor                           |
+| Double-click | Zoom in 2× at cursor                     |
+| Touch drag   | Pan (mobile)                             |
+| Pinch        | Zoom at midpoint (mobile)                |
+| `f` / `F`    | Cycle fractal type forward/backward      |
+| `j`          | Toggle Julia picker mode                 |
+| `+` / `-`    | Increase/decrease iterations             |
+| `0`          | Reset to auto-scaling iterations         |
+| `c` / `C`    | Cycle cosine palettes forward/backward   |
+| `g` / `G`    | Cycle gradient palettes forward/backward |
+| `,` / `.`    | Shift color offset fine                  |
+| `<` / `>`    | Shift color offset coarse                |
+| `r`          | Reset color offset                       |
+| `b`          | Extend HDR bright region                 |
+| `B`          | Contract HDR bright region               |
+| `d`          | Reset HDR brightness                     |
+| `1`–`9`      | Jump to famous locations                 |
+| `s`          | Copy shareable URL to clipboard          |
+| `h`          | Toggle help overlay                      |
+| `Space`      | Toggle screenshot mode                   |
 
 ### 7. Bookmark Manager (`src/bookmark/BookmarkManager.ts`)
 
@@ -232,38 +232,41 @@ Handles URL-based state persistence and sharing.
 
 **URL Parameters:**
 
-| Param | Full Name       | Description                        |
-|-------|-----------------|-----------------------------------|
-| `t`   | type            | Fractal type (0–19)               |
-| `x`   | centerX         | View center X coordinate          |
-| `y`   | centerY         | View center Y coordinate          |
-| `z`   | zoom            | Zoom level                        |
+| Param | Full Name       | Description                                 |
+|-------|-----------------|---------------------------------------------|
+| `t`   | type            | Fractal type (0–19)                         |
+| `x`   | centerX         | View center X coordinate                    |
+| `y`   | centerY         | View center Y coordinate                    |
+| `z`   | zoom            | Zoom level                                  |
 | `pt`  | paletteType     | Palette type ('c' = cosine, 'g' = gradient) |
-| `cp`  | cosinePalette   | Cosine palette index (0–11)       |
-| `gp`  | gradientPalette | Gradient palette index (0–6)      |
-| `o`   | colorOffset     | Color cycle offset                |
-| `jr`  | juliaReal       | Julia constant real component     |
-| `ji`  | juliaImag       | Julia constant imaginary component|
-| `i`   | iterations      | Max iterations override           |
-| `aa`  | antialiasing    | Antialiasing enabled              |
+| `cp`  | cosinePalette   | Cosine palette index (0–11)                 |
+| `gp`  | gradientPalette | Gradient palette index (0–6)                |
+| `o`   | colorOffset     | Color cycle offset                          |
+| `jr`  | juliaReal       | Julia constant real component               |
+| `ji`  | juliaImag       | Julia constant imaginary component          |
+| `i`   | iterations      | Max iterations override                     |
+| `aa`  | antialiasing    | Antialiasing enabled                        |
 
 ### 8. Famous Locations (`src/bookmark/famousLocations.ts`)
 
-Curated collection of interesting fractal coordinates.
+Curated collection of interesting fractal coordinates, organized by fractal family.
 
-**Available Locations:**
+**Context-Sensitive Locations:**
 
-| Key | Name                 | Fractal Type       |
-|-----|----------------------|--------------------|
-| 1   | Seahorse Valley      | Mandelbrot         |
-| 2   | Elephant Valley      | Mandelbrot         |
-| 3   | Double Spiral Valley | Mandelbrot         |
-| 4   | Spiral Galaxy        | Mandelbrot         |
-| 5   | The Armada           | Burning Ship       |
-| 6   | Douady Rabbit        | Julia              |
-| 7   | Dragon Julia         | Julia              |
-| 8   | Lightning Julia      | Julia              |
-| 9   | Burning Ship Julia   | Burning Ship Julia |
+Locations are organized by base fractal type. When you press a number key `1`–`9`, you visit a location from the current fractal's family. Both base and Julia variants of a fractal share the same location collection.
+
+| Fractal Family  | # Locations | Example Locations                           |
+|-----------------|-------------|---------------------------------------------|
+| Mandelbrot      | 9           | Seahorse Valley, Douady Rabbit Julia        |
+| Burning Ship    | 8           | Main Ship, The Armada, Space Brain Julia    |
+| Tricorn         | 7           | Lightning Bolts Julia, Spiral Mosaic Julia  |
+| Celtic          | 7           | Celtic Knot, Tendrils Julia, Petri Dish     |
+| Buffalo         | 6           | Overgrown Cities, Industrial Snowflake      |
+| Phoenix         | 5           | Classic Phoenix Julia, Fiery Phoenix        |
+| Multibrot³      | 7           | Three-fold Spirals, Spiral Galaxies Julia   |
+| Multibrot⁴      | 5           | Atomic Spirals Julia, Triple Elephant       |
+| Funky           | 7           | Tulip Bulb, Battleship Julia                |
+| Perpendicular   | 6           | Seed Pod, Peacock Eyes Julia                |
 
 Each location stores complete `BookmarkState` including position, zoom, fractal type, palette, color offset, and iteration settings.
 
@@ -287,31 +290,47 @@ The core fractal computation with HDR support:
 
 **Uniforms (passed via uniform buffer):**
 
-| Uniform           | Type  | Description                          |
-|-------------------|-------|--------------------------------------|
-| `resolution`      | vec2f | Canvas size in pixels                |
-| `center`          | vec2f | View center in fractal coords        |
-| `zoom`            | f32   | Current zoom level                   |
-| `maxIterations`   | i32   | Iteration limit                      |
-| `time`            | f32   | Time in seconds (for animations)     |
-| `colorOffset`     | f32   | Color cycle offset                   |
-| `fractalType`     | i32   | Fractal type (0–3)                   |
-| `juliaC`          | vec2f | Julia set constant (for Julia types) |
-| `hdrEnabled`      | i32   | Whether HDR output is active         |
-| `hdrBrightnessBias`| f32  | Brightness curve adjustment (-1 to +1)|
-| `paletteType`     | i32   | 0 = cosine, 1 = gradient             |
-| `isMonotonic`     | i32   | Whether palette is monotonic         |
-| `paletteA/B/C/D`  | vec3f | Cosine palette parameters            |
-| `gradientC1–C5`   | vec3f | Gradient color stops                 |
+| Uniform             | Type  | Description                            |
+|---------------------|-------|----------------------------------------|
+| `resolution`        | vec2f | Canvas size in pixels                  |
+| `center`            | vec2f | View center in fractal coords          |
+| `zoom`              | f32   | Current zoom level                     |
+| `maxIterations`     | i32   | Iteration limit                        |
+| `time`              | f32   | Time in seconds (for animations)       |
+| `colorOffset`       | f32   | Color cycle offset                     |
+| `fractalType`       | i32   | Fractal type (0–19)                    |
+| `juliaC`            | vec2f | Julia set constant (for Julia types)   |
+| `hdrEnabled`        | i32   | Whether HDR output is active           |
+| `hdrBrightnessBias` | f32   | Brightness curve adjustment (-1 to +1) |
+| `paletteType`       | i32   | 0 = cosine, 1 = gradient               |
+| `isMonotonic`       | i32   | Whether palette is monotonic           |
+| `paletteA/B/C/D`    | vec3f | Cosine palette parameters              |
+| `gradientC1–C5`     | vec3f | Gradient color stops                   |
 
 **Fractal Types:**
 
-| Value | Name               | Formula                                   |
-|-------|--------------------|-------------------------------------------|
-| 0     | Mandelbrot         | z = z² + c                                |
-| 1     | Burning Ship       | z = (\|Re(z)\| + i\|Im(z)\|)² + c         |
-| 2     | Julia              | z = z² + c (z starts at pixel, c fixed)   |
-| 3     | Burning Ship Julia | Burning Ship with fixed c                 |
+| Value | Name                   | Formula                                    |
+|-------|------------------------|--------------------------------------------|
+| 0     | Mandelbrot             | z = z² + c                                 |
+| 1     | Mandelbrot Julia       | z = z² + c (z starts at pixel, c fixed)    |
+| 2     | Burning Ship           | z = (\|Re(z)\| + i\|Im(z)\|)² + c          |
+| 3     | Burning Ship Julia     | Burning Ship with fixed c                  |
+| 4     | Tricorn                | z = conj(z)² + c                           |
+| 5     | Tricorn Julia          | Tricorn with fixed c                       |
+| 6     | Celtic                 | z = (\|Re(z²)\| + i·Im(z²)) + c            |
+| 7     | Celtic Julia           | Celtic with fixed c                        |
+| 8     | Buffalo                | z = \|z²\| + c                             |
+| 9     | Buffalo Julia          | Buffalo with fixed c                       |
+| 10    | Phoenix                | z = z² + c + p·z_prev                      |
+| 11    | Phoenix Julia          | Phoenix with fixed c                       |
+| 12    | Multibrot³             | z = z³ + c                                 |
+| 13    | Multibrot³ Julia       | Multibrot³ with fixed c                    |
+| 14    | Multibrot⁴             | z = z⁴ + c                                 |
+| 15    | Multibrot⁴ Julia       | Multibrot⁴ with fixed c                    |
+| 16    | Funky                  | z = \|Re(z)\| + i·Im(z²) + c               |
+| 17    | Funky Julia            | Funky with fixed c                         |
+| 18    | Perpendicular          | z = Re(z)·\|Im(z)\| (perpendicular) + c    |
+| 19    | Perpendicular Julia    | Perpendicular with fixed c                 |
 
 **Algorithm:**
 

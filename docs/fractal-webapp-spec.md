@@ -18,7 +18,7 @@ _- Colonel Joe Bishop_
 | Color schemes                       | ✅ Done (19 palettes: 12 cosine + 7 gradient!)                              |
 | Multiple fractal types              | ✅ Done (10 base types + Julia variants = 20 total)                         |
 | Julia sets                          | ✅ Done (with interactive picker mode!)                                     |
-| URL bookmarking                     | ✅ Done (shareable links + 9 famous locations)                              |
+| URL bookmarking                     | ✅ Done (shareable links + context-sensitive famous locations per fractal) |
 | Tourist mode                        | 🔲 Not yet                                                                 |
 | Offline support                     | 🔲 Not yet                                                                 |
 

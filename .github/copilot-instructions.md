@@ -1,6 +1,6 @@
 # Copilot Instructions
 
-This project is a WebGPU fractal renderer with HDR support, built with TypeScript and Vite.
+This project is a WebGPU fractal renderer with HDR support, built with TypeScript and Vite. It supports 10 fractal types (Mandelbrot, Burning Ship, Tricorn, Celtic, Buffalo, Phoenix, Multibrot³, Multibrot⁴, Funky, Perpendicular), each with a Julia variant (20 total), and features context-sensitive famous locations per fractal family.
 
 ## Available Personas
 
@@ -30,7 +30,8 @@ Simms is a meticulous documentation guardian who keeps README, architectural doc
 
 - `src/` - TypeScript source code
   - `main.ts` - Application entry point
-  - `bookmark/` - URL sharing and famous locations
+  - `types.ts` - Fractal type definitions (20 fractal types)
+  - `bookmark/` - URL sharing and per-fractal-type famous locations
   - `controls/` - Input handling and view state management
   - `fractal/` - WebGPU fractal computation engine
   - `renderer/` - WebGPU rendering, palettes, and WGSL shaders

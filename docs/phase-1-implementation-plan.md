@@ -39,7 +39,7 @@ These features were not in the original Phase 1 spec but have been added:
 - **Auto-scaling iterations** with manual override (not in spec)
 - **Debug overlay** showing fractal type, zoom, iterations, palette, Julia constant (not in spec)
 - **HDR support** with extended tone mapping and adjustable brightness (not in spec)
-- **9 famous locations** accessible via number keys (not in spec)
+- **Context-sensitive famous locations** — Each fractal family has its own curated spots accessible via `1`–`9` keys (not in spec)
 - **URL bookmarking** for sharing fractal views (not in spec)
 
 ---

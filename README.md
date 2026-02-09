@@ -6,7 +6,7 @@ _GPU-accelerated fractal rendering in the browser with HDR support. Because appa
 
 ## What Is This?
 
-**Fractal Explorer** is a webapp that renders fractals — the [Mandelbrot set](https://en.wikipedia.org/wiki/Mandelbrot_set), [Burning Ship](https://en.wikipedia.org/wiki/Burning_Ship_fractal), and [Julia sets](https://en.wikipedia.org/wiki/Julia_set) — those infinitely zoomable mathematical patterns that look like they came from another dimension — **directly on your GPU** using WebGPU. Every pixel is computed in parallel. No CPU sweat. No waiting. Just smooth, beautiful math.
+**Fractal Explorer** is a webapp that renders fractals — including the [Mandelbrot set](https://en.wikipedia.org/wiki/Mandelbrot_set), [Burning Ship](https://en.wikipedia.org/wiki/Burning_Ship_fractal), [Tricorn](https://en.wikipedia.org/wiki/Tricorn_(mathematics)), [Phoenix](https://en.wikipedia.org/wiki/Phoenix_fractal), and many more with their [Julia set](https://en.wikipedia.org/wiki/Julia_set) variants — those infinitely zoomable mathematical patterns that look like they came from another dimension — **directly on your GPU** using WebGPU. Every pixel is computed in parallel. No CPU sweat. No waiting. Just smooth, beautiful math.
 
 **HDR Support**: On compatible displays, the fractal boundary glows with true high dynamic range brightness — colors that literally shine brighter than standard white. It's like the math is on fire.
 
@@ -55,47 +55,50 @@ A static build also lives in [examples/webgpu/](./examples/webgpu/); run `npm ru
 
 ## Controls (Pay Attention)
 
-| Input            | Action                                 |
-|------------------|----------------------------------------|
-| **Mouse drag**   | Pan                                    |
-| **Scroll wheel** | Zoom (centered on cursor)              |
-| **Double‑click** | Zoom in at that spot                   |
-| **Touch drag**   | Pan (mobile)                           |
-| **Pinch**        | Zoom (mobile)                          |
-| **f** / **F**    | Cycle fractal type forward / backward  |
-| **j**            | Toggle Julia picker mode               |
-| **+** / **−**    | Increase / decrease iterations         |
-| **0**            | Reset iterations to auto‑scaling       |
-| **c** / **C**    | Cycle cosine palettes forward / backward |
+| Input            | Action                                     |
+|------------------|--------------------------------------------|
+| **Mouse drag**   | Pan                                        |
+| **Scroll wheel** | Zoom (centered on cursor)                  |
+| **Double‑click** | Zoom in at that spot                       |
+| **Touch drag**   | Pan (mobile)                               |
+| **Pinch**        | Zoom (mobile)                              |
+| **f** / **F**    | Cycle fractal type forward / backward      |
+| **j**            | Toggle Julia picker mode                   |
+| **+** / **−**    | Increase / decrease iterations             |
+| **0**            | Reset iterations to auto‑scaling           |
+| **c** / **C**    | Cycle cosine palettes forward / backward   |
 | **g** / **G**    | Cycle gradient palettes forward / backward |
-| **,** / **.**    | Shift colors (fine)                    |
-| **<** / **>**    | Shift colors (coarse)                  |
-| **r**            | Reset color offset                     |
-| **b**            | Extend HDR bright region               |
-| **B** (shift)    | Contract HDR bright region             |
-| **d**            | Reset HDR brightness                   |
-| **1–9**          | Jump to famous locations               |
-| **s**            | Copy shareable link to clipboard       |
-| **h**            | Toggle help overlay                    |
-| **Space**        | Toggle screenshot mode (hides UI)      |
+| **,** / **.**    | Shift colors (fine)                        |
+| **<** / **>**    | Shift colors (coarse)                      |
+| **r**            | Reset color offset                         |
+| **b**            | Extend HDR bright region                   |
+| **B** (shift)    | Contract HDR bright region                 |
+| **d**            | Reset HDR brightness                       |
+| **1–9**          | Jump to famous locations                   |
+| **s**            | Copy shareable link to clipboard           |
+| **h**            | Toggle help overlay                        |
+| **Space**        | Toggle screenshot mode (hides UI)          |
 
 Zoom centers on where you're pointing. Not the center of the screen. Because that would be stupid.
 
 ### Famous Locations
 
-Press number keys **1–9** to instantly visit curated fractal locations:
+Press number keys **1–9** to instantly visit curated fractal locations. Locations are **context-sensitive** — the available spots depend on your current fractal type. Each of the 10 fractal families has its own collection of interesting locations, including both base fractal views and Julia set showcases.
 
-| Key | Location             | Fractal            |
-|-----|----------------------|--------------------|
-| 1   | Seahorse Valley      | Mandelbrot         |
-| 2   | Elephant Valley      | Mandelbrot         |
-| 3   | Double Spiral Valley | Mandelbrot         |
-| 4   | Spiral Galaxy        | Mandelbrot         |
-| 5   | The Armada           | Burning Ship       |
-| 6   | Douady Rabbit        | Julia              |
-| 7   | Dragon Julia         | Julia              |
-| 8   | Lightning Julia      | Julia              |
-| 9   | Burning Ship Julia   | Burning Ship Julia |
+| Fractal Family  | Example Locations                                            |
+|-----------------|--------------------------------------------------------------|
+| Mandelbrot      | Seahorse Valley, Elephant Valley, Douady Rabbit Julia        |
+| Burning Ship    | Main Ship, The Armada, Space Brain Julia                     |
+| Tricorn         | Lightning Bolts, Spiral Mosaic Julia                         |
+| Celtic          | Celtic Knot, Tendrils Julia                                  |
+| Buffalo         | Overgrown Cities, Industrial Snowflake Julia                 |
+| Phoenix         | Classic Phoenix Julia, Fiery Phoenix                         |
+| Multibrot³      | Three-fold Spirals, Spiral Galaxies Julia                    |
+| Multibrot⁴      | Atomic Spirals Julia, Triple Elephant Valley                 |
+| Funky           | Tulip Bulb, Battleship Julia                                 |
+| Perpendicular   | Seed Pod, Peacock Eyes Julia                                 |
+
+Switch fractal types with `f`/`F`, then use `1`–`9` to explore that family's highlights.
 
 ### Link Sharing
 
@@ -103,14 +106,24 @@ Press **s** to copy a shareable URL to your clipboard. The URL encodes your curr
 
 ### Fractal Types
 
-- **Mandelbrot** — The classic set: z = z² + c
-- **Burning Ship** — Mandelbrot's angry cousin with absolute values
-- **Julia** — Each point in Mandelbrot corresponds to a unique Julia set
-- **Burning Ship Julia** — Julia variant of Burning Ship
+The app includes **10 base fractal types**, each with a Julia variant (20 total). Cycle through them with `f`/`F`:
+
+| Base Fractal      | Formula                                 | Julia Variant       |
+|-------------------|-----------------------------------------|---------------------|
+| **Mandelbrot**    | z = z² + c                              | Mandelbrot Julia    |
+| **Burning Ship**  | z = (\|Re(z)\| + i\|Im(z)\|)² + c       | Burning Ship Julia  |
+| **Tricorn**       | z = conj(z)² + c                        | Tricorn Julia       |
+| **Celtic**        | z = (\|Re(z²)\| + i·Im(z²)) + c         | Celtic Julia        |
+| **Buffalo**       | z = \|z²\| + c                          | Buffalo Julia       |
+| **Phoenix**       | z = z² + c + p·z_prev                   | Phoenix Julia       |
+| **Multibrot³**    | z = z³ + c                              | Multibrot³ Julia    |
+| **Multibrot⁴**    | z = z⁴ + c                              | Multibrot⁴ Julia    |
+| **Funky**         | z = \|Re(z)\| + i·Im(z²) + c            | Funky Julia         |
+| **Perpendicular** | z = Re(z)·\|Im(z)\| + c (perpendicular) | Perpendicular Julia |
 
 ### Julia Picker Mode
 
-Press **j** to enter Julia picker mode. Click anywhere on the Mandelbrot or Burning Ship to select a Julia constant. The corresponding Julia set (or Burning Ship Julia) will render. Press **j** again to return to your previous fractal and view.
+Press **j** to enter Julia picker mode. Click anywhere on any base fractal to select a Julia constant. The corresponding Julia set variant will render immediately. Press **j** again to return to your previous fractal and view. This works with all 10 base fractal types — each has its own unique Julia family to explore.
 
 ---
 
