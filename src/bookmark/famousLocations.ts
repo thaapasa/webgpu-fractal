@@ -374,6 +374,14 @@ const BUFFALO_LOCATIONS: FamousLocation[] = [
     0, 0, 0.5,
     { cosinePaletteIndex: 4, colorOffset: 4.25, juliaC: [-0.5828307625231954, -0.3049842077590671] }
   ),
+  createLocation(
+    'Seed Pods',
+    'Spirals bursting with seeds',
+    '6',
+    FractalType.BuffaloJulia,
+    0, 0, 0.6,
+    { cosinePaletteIndex: 3, colorOffset: -0.75, juliaC: [0.3056228373702423, -0.007698961937716242] }
+  ),
 ];
 
 // ============================================================================
@@ -504,6 +512,30 @@ const MULTIBROT4_LOCATIONS: FamousLocation[] = [
     0, -0, 0.35,
     { cosinePaletteIndex: 5, colorOffset: 0.4, juliaC: [-0.7878865573262246, 0.02073442187254452] }
   ),
+  createLocation(
+      'Triple Elephant Valley',
+      "Now there's three elephants in each group!",
+      '3',
+      FractalType.Multibrot4,
+      -0.2726362830546699, 0.44295218397589975, 42,
+      { cosinePaletteIndex: 3 }
+  ),
+  createLocation(
+    'Starscape',
+    'Spiraling galaxies surrounding a black hole',
+    '4',
+    FractalType.Multibrot4Julia,
+    0, 0, 0.5,
+    { paletteType: 'gradient', juliaC: [0.634977850702787, 0.194816172925824], maxIterationsOverride: 1152 }
+  ),
+  createLocation(
+      'Static Burst',
+      'Burst of electricity',
+      '5',
+      FractalType.Multibrot4Julia,
+      0, 0, 0.4,
+      { colorOffset: -1.7500000000000009, juliaC: [-0.6179887054490777, 0.487166930716755] }
+  ),
 ];
 
 // ============================================================================
@@ -558,6 +590,14 @@ const FUNKY_LOCATIONS: FamousLocation[] = [
     0.34, 0, 0.35,
     { cosinePaletteIndex: 5, colorOffset: 4.4, juliaC: [0.5804003550040334, -0.9094296635818582] }
   ),
+  createLocation(
+    'Glittering Coral',
+    'Brightly gleaming coral-like structures',
+    '7',
+    FractalType.FunkyJulia,
+    0, 0, 0.5,
+    { cosinePaletteIndex: 11, colorOffset: -0.39999999999999997, juliaC: [-0.45427582797825017, -0.06920415224913506] }
+  ),
 ];
 
 // ============================================================================
@@ -569,24 +609,48 @@ const PERPENDICULAR_LOCATIONS: FamousLocation[] = [
     'The Perpendicular Mandelbrot variant',
     '1',
     FractalType.Perpendicular,
-    -0.5, 0, 0.4,
+    -0.5, 0, 0.32,
     { cosinePaletteIndex: 2, colorOffset: 0 }
   ),
   createLocation(
-    'Perpendicular Spirals',
-    'Unique spiral formations',
+    'Seed Pod',
+    'A pod-like structure near the head of the main shape',
     '2',
     FractalType.Perpendicular,
-    -0.75, 0.1, 8,
-    { cosinePaletteIndex: 4, colorOffset: 0.1 }
+    -0.7734996631118647, 0.12393043736115505, 250,
+    { cosinePaletteIndex: 5 }
   ),
   createLocation(
-    'Perpendicular Julia',
-    'A Julia set from the Perpendicular fractal',
+    'Bird of Prey',
+    'Waveform bird flying out to get you',
     '3',
     FractalType.PerpendicularJulia,
-    0, 0, 0.5,
-    { cosinePaletteIndex: 0, colorOffset: 0, juliaC: [-0.5, 0.5] }
+    0, 0, 0.35,
+    { cosinePaletteIndex: 4, colorOffset: 0.14999999999999986, juliaC: [-1.2870593206662457, 0.022288689289989876] }
+  ),
+  createLocation(
+    'Old Dragon',
+    'Bird-like shape with leathery frayed wings',
+    '4',
+    FractalType.PerpendicularJulia,
+    0, 0, 0.3913248754208607,
+    { cosinePaletteIndex: 5, colorOffset: 0.44999999999999996, juliaC: [-1.0197782349577895, -0.13982096184940793] }
+  ),
+  createLocation(
+    'Peacock Eyes',
+    'Glowing eyes of a brightly coloured peacock',
+    '5',
+    FractalType.PerpendicularJulia,
+    0, -0.8821542839734092, 2.8,
+    { cosinePaletteIndex: 11, juliaC: [0.25987719401314263, -0.17615047146201984] }
+  ),
+  createLocation(
+    'Mask of the Ancients',
+    'A detailed mask with intricate patterns',
+    '6',
+    FractalType.PerpendicularJulia,
+    0, 0, 0.42,
+    { cosinePaletteIndex: 2, colorOffset: -0.1, juliaC: [0.3021983882651174, 0.4025604479726435] }
   ),
 ];
 

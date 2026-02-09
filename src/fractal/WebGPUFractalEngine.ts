@@ -84,6 +84,7 @@ export class WebGPUFractalEngine {
   private helpOverlay: HTMLElement | null = null;
   private helpVisible = false;
   private screenshotMode = false;
+  private notificationTimeoutId: ReturnType<typeof setTimeout> | null = null;
 
   private constructor(renderer: WebGPURenderer, canvas: HTMLCanvasElement) {
     this.renderer = renderer;
@@ -529,12 +530,23 @@ export class WebGPUFractalEngine {
     const currentIndex = baseType >> 1;
     const nextIndex = (currentIndex + direction + BASE_FRACTAL_COUNT) % BASE_FRACTAL_COUNT;
     // Multiply by 2 to get the new base type
-    this.fractalType = (nextIndex << 1) as FractalType;
+    const newFractalType = (nextIndex << 1) as FractalType;
 
     if (this.juliaPickerMode) {
       this.juliaPickerMode = false;
       this.inputHandler.setJuliaPickerMode(false);
     }
+
+    // Reset view to famous location 1 of the new fractal type
+    const location = getLocationByKey('1', newFractalType);
+    if (location) {
+      this.applyLocationState(location.state);
+      this.showLocationNotification(location.name, location.description);
+    } else {
+      // Fallback if no location defined
+      this.fractalType = newFractalType;
+    }
+
     this.render();
   }
 
@@ -681,7 +693,17 @@ export class WebGPUFractalEngine {
     const location = getLocationByKey(key, this.fractalType);
     if (!location) return;
 
-    const state = location.state;
+    this.applyLocationState(location.state);
+    this.showLocationNotification(location.name, location.description);
+    this.updateUrlBookmark();
+    this.render();
+  }
+
+  /**
+   * Apply a location's state to the engine.
+   * Shared by goToLocation() and cycleFractalType().
+   */
+  private applyLocationState(state: BookmarkState): void {
     this.viewState.centerX = state.centerX;
     this.viewState.centerY = state.centerY;
     this.viewState.zoom = state.zoom;
@@ -692,21 +714,24 @@ export class WebGPUFractalEngine {
     this.cosinePaletteIndex = state.cosinePaletteIndex;
     this.gradientPaletteIndex = state.gradientPaletteIndex;
     this.colorOffset = state.colorOffset;
-
-    this.showLocationNotification(location.name, location.description);
-    this.updateUrlBookmark();
-    this.render();
   }
 
   private showLocationNotification(name: string, description: string): void {
     if (!this.shareNotification) return;
+
+    // Clear any existing timeout to prevent premature hiding
+    if (this.notificationTimeoutId !== null) {
+      clearTimeout(this.notificationTimeoutId);
+    }
+
     this.shareNotification.innerHTML = `<strong style="font-size: 18px;">📍 ${name}</strong><br><span style="color: #aaa; font-size: 14px;">${description}</span>`;
     this.shareNotification.style.color = '#60a5fa';
     this.shareNotification.style.opacity = '1';
-    setTimeout(() => {
+    this.notificationTimeoutId = setTimeout(() => {
       if (this.shareNotification) {
         this.shareNotification.style.opacity = '0';
       }
+      this.notificationTimeoutId = null;
     }, 2500);
   }
 
@@ -794,15 +819,22 @@ export class WebGPUFractalEngine {
 
   private showShareNotification(success: boolean): void {
     if (!this.shareNotification) return;
+
+    // Clear any existing timeout to prevent premature hiding
+    if (this.notificationTimeoutId !== null) {
+      clearTimeout(this.notificationTimeoutId);
+    }
+
     this.shareNotification.textContent = success
       ? '📋 Link copied to clipboard!'
       : '❌ Failed to copy link';
     this.shareNotification.style.color = success ? '#4ade80' : '#f87171';
     this.shareNotification.style.opacity = '1';
-    setTimeout(() => {
+    this.notificationTimeoutId = setTimeout(() => {
       if (this.shareNotification) {
         this.shareNotification.style.opacity = '0';
       }
+      this.notificationTimeoutId = null;
     }, 2000);
   }
 
@@ -829,15 +861,21 @@ export class WebGPUFractalEngine {
       this.debugOverlay.style.display = this.screenshotMode ? 'none' : 'block';
     }
     if (this.shareNotification) {
+      // Clear any existing timeout to prevent premature hiding
+      if (this.notificationTimeoutId !== null) {
+        clearTimeout(this.notificationTimeoutId);
+      }
+
       this.shareNotification.textContent = this.screenshotMode
         ? '📷 Screenshot mode (Space to exit)'
         : '📷 UI restored';
       this.shareNotification.style.color = '#60a5fa';
       this.shareNotification.style.opacity = '1';
-      setTimeout(() => {
+      this.notificationTimeoutId = setTimeout(() => {
         if (this.shareNotification) {
           this.shareNotification.style.opacity = '0';
         }
+        this.notificationTimeoutId = null;
       }, 1000);
     }
   }
