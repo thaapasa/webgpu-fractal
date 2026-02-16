@@ -1,40 +1,55 @@
 # Copilot Instructions
 
-This project is a WebGPU fractal renderer with HDR support, built with TypeScript and Vite. It supports 10 fractal types (Mandelbrot, Burning Ship, Tricorn, Celtic, Buffalo, Phoenix, Multibrot³, Multibrot⁴, Funky, Perpendicular), each with a Julia variant (20 total), and features context-sensitive famous locations per fractal family.
+This project is a WebGPU fractal renderer with HDR support, built with TypeScript and Vite. It
+supports 10 fractal types (Mandelbrot, Burning Ship, Tricorn, Celtic, Buffalo, Phoenix, Multibrot³,
+Multibrot⁴, Funky, Perpendicular), each with a Julia variant (20 total), and features
+context-sensitive famous locations per fractal family.
 
 ## Available Personas
 
 This project has three persona prompts available for different interaction styles:
 
 ### Skippy the Magnificent
-Use the prompt file `.github/agents/skippy.agent.md` for technical implementation tasks.
-Skippy is an arrogant but supremely capable AI developer who can implement anything with perfect precision.
+
+Use the prompt file `.github/agents/skippy.agent.md` for technical implementation tasks. Skippy is
+an arrogant but supremely capable AI developer who can implement anything with perfect precision.
 
 ### Joe Bishop
-Use the prompt file `.github/agents/joe-bishop.agent.md` for brainstorming and creative problem-solving.
-Joe is a non-technical project manager who excels at coming up with unconventional creative solutions.
+
+Use the prompt file `.github/agents/joe-bishop.agent.md` for brainstorming and creative
+problem-solving. Joe is a non-technical project manager who excels at coming up with unconventional
+creative solutions.
 
 ### Jennifer Simms
-Use the prompt file `.github/agents/simms.agent.md` for documentation maintenance tasks.
-Simms is a meticulous documentation guardian who keeps README, architectural docs, and cross-references up-to-date. She ensures all personas can find the documentation they need.
+
+Use the prompt file `.github/agents/simms.agent.md` for documentation maintenance tasks. Simms is a
+meticulous documentation guardian who keeps README, architectural docs, and cross-references
+up-to-date. She ensures all personas can find the documentation they need.
 
 ## Documentation
 
 - `README.md` - Public-facing project overview and quick start
 - `docs/architecture.md` - System architecture and component reference (Simms's domain)
 - `docs/fractal-webapp-spec.md` - Project vision and requirements (Joe's domain)
-- `docs/phase-1-implementation-plan.md` - Technical implementation plan, ✅ complete (Skippy's domain)
+- `docs/phase-1-implementation-plan.md` - Technical implementation plan, ✅ complete (Skippy's
+  domain)
+- `docs/cleanup-plan.md` - Code refactoring plan, phases 1-5 and 7 ✅ complete
+- `docs/tourist-mode-plan.md` - Tourist mode implementation plan
 - `docs/deep-zoom-precision-plan.md` - Arbitrary precision roadmap (future work)
 
 ## Project Structure
 
 - `src/` - TypeScript source code
   - `main.ts` - Application entry point
-  - `types.ts` - Fractal type definitions (20 fractal types)
+  - `types.ts` - Re-exports all type definitions
   - `bookmark/` - URL sharing and per-fractal-type famous locations
   - `controls/` - Input handling and view state management
   - `fractal/` - WebGPU fractal computation engine
   - `renderer/` - WebGPU rendering, palettes, and WGSL shaders
+  - `state/` - Centralized state management (FractalState)
+  - `tourist/` - Automated exploration mode
+  - `types/` - Shared type definitions (Complex, Point, Color)
+  - `ui/` - Overlay components (debug, help, notifications)
 - `docs/` - Project specifications and documentation
 - `examples/` - Built example output
 - `.github/agents/` - AI persona agents

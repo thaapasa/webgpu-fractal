@@ -7,14 +7,14 @@ project. I've organized it by component responsibility."_ _— Jennifer Simms_
 
 ## Document Info
 
-| Field | Value |
-
-| ------------ | ---------------------- | | Last Updated | February 2026 | | Status | Current
-implementation | | Maintainer | Simms (documentation) |
+| Field        | Value                  |
+| ------------ | ---------------------- |
+| Last Updated | February 2026          |
+| Status       | Current implementation |
+| Maintainer   | Simms (documentation)  |
 
 > **📋 Refactoring Complete**: All planned cleanup phases (1-5, 7) complete. Only Phase 6 (render
 > pipeline isolation) remains as optional future work. See [cleanup-plan.md](./cleanup-plan.md).
-> improvements.
 
 ---
 
@@ -60,6 +60,49 @@ entirely in the browser, and features HDR (High Dynamic Range) rendering on comp
 | Rendering  | WebGPU                              | —       |
 | Shaders    | WGSL                                | —       |
 | HDR        | rgba16float + extended tone mapping | —       |
+
+---
+
+## Module Organization
+
+The codebase follows a modular architecture where each directory has a single responsibility:
+
+```
+src/
+├── bookmark/      → URL sharing and famous locations
+├── controls/      → User input handling
+├── fractal/       → Core engine orchestration
+├── renderer/      → WebGPU rendering and palettes
+├── state/         → Centralized state management
+├── tourist/       → Automated exploration mode
+├── types/         → Shared type definitions
+└── ui/            → Overlay components
+```
+
+**Design Principles:**
+
+1. **Facade Pattern**: Large modules (`palettes/`, `locations/`) use a facade file that re-exports
+   from sub-modules, allowing internal restructuring without breaking imports.
+
+2. **Single Responsibility**: Each module handles one concern:
+   - `state/` — What the app state is
+   - `controls/` — How user input changes state
+   - `renderer/` — How state becomes pixels
+   - `ui/` — How state is displayed as overlays
+
+3. **Dependency Direction**: Dependencies flow inward toward core types:
+
+   ```
+   ui/ → state/ → types/
+   controls/ → state/ → types/
+   fractal/ → renderer/, state/, controls/, ui/
+   ```
+
+4. **Data Separation**: Configuration data (palettes, locations) is separated from logic:
+   - `palettes/cosinePalettes.ts` — Just palette data
+   - `palettes/helpers.ts` — Just accessor functions
+   - `locations/mandelbrot.ts` — Just Mandelbrot locations | Build Tool | Vite | ^5.0 | | Rendering
+     | WebGPU | — | | Shaders | WGSL | — | | HDR | rgba16float + extended tone mapping | — |
 
 ---
 
@@ -142,9 +185,18 @@ context.configure({
 The renderer uses `matchMedia('(dynamic-range: high)')` to detect HDR displays and listens for
 changes when the user modifies display settings.
 
-### 4. Palettes (`src/renderer/Palettes.ts`)
+### 4. Palettes (`src/renderer/palettes/`)
 
-Defines all color palettes in TypeScript, passed to the GPU as uniform parameters.
+Color palette definitions, organized into separate modules:
+
+```
+palettes/
+├── types.ts           # PaletteParams, CosinePaletteParams, etc.
+├── cosinePalettes.ts  # 12 cycling palettes (Rainbow, Fire, Ice, etc.)
+├── gradientPalettes.ts # 7 monotonic palettes with HDR variants
+├── helpers.ts         # getCosinePalette, getGradientPaletteParams, etc.
+└── index.ts           # Re-exports everything
+```
 
 **Palette Types:**
 
@@ -156,22 +208,34 @@ Defines all color palettes in TypeScript, passed to the GPU as uniform parameter
 Monotonic palettes have optional HDR-specific color stops (brighter, more saturated) because HDR
 uses a brightness curve rather than color darkness to show iteration depth.
 
-**Available Palettes (12 total):**
+**Cosine Palettes (12):**
 
-| Index | Name      | Type      |
-| ----- | --------- | --------- |
-| 0     | Rainbow   | Cycling   |
-| 1     | Blue      | Monotonic |
-| 2     | Gold      | Monotonic |
-| 3     | Grayscale | Monotonic |
-| 4     | Fire      | Cycling   |
-| 5     | Ice       | Cycling   |
-| 6     | Sepia     | Monotonic |
-| 7     | Ocean     | Monotonic |
-| 8     | Purple    | Monotonic |
-| 9     | Forest    | Monotonic |
-| 10    | Sunset    | Cycling   |
-| 11    | Electric  | Cycling   |
+| Index | Name     |
+| ----- | -------- |
+| 0     | Rainbow  |
+| 1     | Fire     |
+| 2     | Ice      |
+| 3     | Sunset   |
+| 4     | Electric |
+| 5     | Neon     |
+| 6     | Emerald  |
+| 7     | Candy    |
+| 8     | Plasma   |
+| 9     | Peacock  |
+| 10    | Autumn   |
+| 11    | Aurora   |
+
+**Gradient Palettes (7):**
+
+| Index | Name      |
+| ----- | --------- |
+| 0     | Blue      |
+| 1     | Gold      |
+| 2     | Grayscale |
+| 3     | Sepia     |
+| 4     | Ocean     |
+| 5     | Purple    |
+| 6     | Forest    |
 
 ### 5. View State (`src/controls/ViewState.ts`)
 
@@ -205,7 +269,24 @@ Manages the current viewport in fractal coordinate space.
 
 ### 6. Input Handler (`src/controls/InputHandler.ts`)
 
-Translates browser events into view state changes.
+Translates browser events into application actions via the `InputCallbacks` interface.
+
+**Architecture:**
+
+```typescript
+// InputCallbacks.ts - Single interface for all input events
+interface InputCallbacks {
+  onIterationAdjust?(direction: 1 | -1): void;
+  onCosinePaletteCycle?(direction: 1 | -1): void;
+  onColorOffsetAdjust?(delta: number): void;
+  onFractalCycle?(direction: 1 | -1): void;
+  onLocationSelect?(key: string): void;
+  // ... etc
+}
+
+// Callbacks passed to constructor
+new InputHandler(canvas, viewState, onChange, callbacks);
+```
 
 **Supported Interactions:**
 
@@ -216,6 +297,7 @@ Translates browser events into view state changes.
 | Double-click | Zoom in 2× at cursor                     |
 | Touch drag   | Pan (mobile)                             |
 | Pinch        | Zoom at midpoint (mobile)                |
+| `z` / `Z`    | Keyboard zoom in/out (hold key)          |
 | `f` / `F`    | Cycle fractal type forward/backward      |
 | `j`          | Toggle Julia picker mode                 |
 | `+` / `-`    | Increase/decrease iterations             |
@@ -228,7 +310,8 @@ Translates browser events into view state changes.
 | `b`          | Extend HDR bright region                 |
 | `B`          | Contract HDR bright region               |
 | `d`          | Reset HDR brightness                     |
-| `1`–`9`      | Jump to famous locations                 |
+| `1`–`9`      | Jump to famous locations (tap or hold)   |
+| `t`          | Toggle tourist mode (auto-exploration)   |
 | `s`          | Copy shareable URL to clipboard          |
 | `h`          | Toggle help overlay                      |
 | `Space`      | Toggle screenshot mode                   |
@@ -261,9 +344,26 @@ Handles URL-based state persistence and sharing.
 | `i`   | iterations      | Max iterations override                     |
 | `aa`  | antialiasing    | Antialiasing enabled                        |
 
-### 8. Famous Locations (`src/bookmark/famousLocations.ts`)
+### 8. Famous Locations (`src/bookmark/locations/`)
 
-Curated collection of interesting fractal coordinates, organized by fractal family.
+Curated collection of interesting fractal coordinates, organized by fractal family:
+
+```
+locations/
+├── types.ts         # FamousLocation interface
+├── helpers.ts       # createLocation factory function
+├── mandelbrot.ts    # 9 Mandelbrot/Julia locations
+├── burningShip.ts   # 8 Burning Ship locations
+├── tricorn.ts       # 7 Tricorn locations
+├── celtic.ts        # 7 Celtic locations
+├── buffalo.ts       # 6 Buffalo locations
+├── phoenix.ts       # 5 Phoenix locations
+├── multibrot3.ts    # 7 Multibrot³ locations
+├── multibrot4.ts    # 5 Multibrot⁴ locations
+├── funky.ts         # 7 Funky locations
+├── perpendicular.ts # 6 Perpendicular locations
+└── index.ts         # Re-exports and accessor functions
+```
 
 **Context-Sensitive Locations:**
 
@@ -349,6 +449,34 @@ Centralized state management for all fractal-related state.
 **Utility Functions:**
 
 - `maxIterationsForZoom(zoom, isJulia)` — Calculate auto-scaled iteration count
+
+### 12. Types Module (`src/types/`)
+
+Shared type definitions used throughout the codebase:
+
+```
+types/
+├── Complex.ts   # Complex number type and operations
+├── Point.ts     # ScreenPoint, FractalPoint, ScreenSize
+├── Color.ts     # Vec3, Vec4, RGBColor, color utilities
+└── index.ts     # Re-exports everything
+```
+
+**Key Types:**
+
+| Type            | Description                           |
+| --------------- | ------------------------------------- |
+| `Complex`       | Complex number with `real` and `imag` |
+| `ScreenPoint`   | Pixel coordinates with `x` and `y`    |
+| `FractalPoint`  | Complex plane coordinates             |
+| `Vec3` / `Vec4` | Tuple types for shader compatibility  |
+| `RGBColor`      | Structured color with `r`, `g`, `b`   |
+
+**Helper Functions:**
+
+- `complex(real, imag)` — Create complex number
+- `complexToString(c)` — Format for display
+- `lerpVec3(a, b, t)` — Linear interpolation
 
 ---
 

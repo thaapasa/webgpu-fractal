@@ -79,6 +79,7 @@ then `npx serve examples` to preview locally.
 | **Double‑click** | Zoom in at that spot                       |
 | **Touch drag**   | Pan (mobile)                               |
 | **Pinch**        | Zoom (mobile)                              |
+| **z** / **Z**    | Keyboard zoom in / out (hold key)          |
 | **f** / **F**    | Cycle fractal type forward / backward      |
 | **j**            | Toggle Julia picker mode                   |
 | **+** / **−**    | Increase / decrease iterations             |
@@ -91,7 +92,8 @@ then `npx serve examples` to preview locally.
 | **b**            | Extend HDR bright region                   |
 | **B** (shift)    | Contract HDR bright region                 |
 | **d**            | Reset HDR brightness                       |
-| **1–9**          | Jump to famous locations                   |
+| **1–9**          | Jump to famous locations (tap or hold)     |
+| **t**            | Toggle tourist mode (auto-exploration)     |
 | **s**            | Copy shareable link to clipboard           |
 | **h**            | Toggle help overlay                        |
 | **Space**        | Toggle screenshot mode (hides UI)          |
@@ -100,10 +102,10 @@ Zoom centers on where you're pointing. Not the center of the screen. Because tha
 
 ### Famous Locations
 
-Press number keys **1–9** to instantly visit curated fractal locations. Locations are
-**context-sensitive** — the available spots depend on your current fractal type. Each of the 10
-fractal families has its own collection of interesting locations, including both base fractal views
-and Julia set showcases.
+Press number keys **1–9** to visit curated fractal locations. **Tap** for an instant jump, or
+**hold** the key for a smooth animated transition. Locations are **context-sensitive** — the
+available spots depend on your current fractal type. Each of the 10 fractal families has its own
+collection of interesting locations, including both base fractal views and Julia set showcases.
 
 | Fractal Family | Example Locations                                     |
 | -------------- | ----------------------------------------------------- |
@@ -151,6 +153,13 @@ constant. The corresponding Julia set variant will render immediately. Press **j
 to your previous fractal and view. This works with all 10 base fractal types — each has its own
 unique Julia family to explore.
 
+### Tourist Mode
+
+Press **t** to start tourist mode — an automated exploration that smoothly animates between famous
+locations across all fractal types. The palette interpolates during transitions for a cinematic
+effect. Any user interaction (mouse, keyboard, or touch) immediately stops the tour and returns
+control to you.
+
 ---
 
 ## Tech Stack
@@ -172,25 +181,41 @@ WebGPU, not WebGL. It's 2026 and we're doing this properly. HDR support requires
 
 ```
 src/
-├── main.ts                 # Entry point. Where the magic begins.
-├── types.ts                # Type definitions (because type safety)
+├── main.ts                    # Entry point
+├── types.ts                   # Re-exports all types
 ├── bookmark/
-│   ├── BookmarkManager.ts  # URL-based state sharing
-│   └── famousLocations.ts  # Curated famous fractal spots
-├── renderer/
-│   ├── WebGPURenderer.ts   # WebGPU context, canvas, HDR config
-│   ├── Palettes.ts         # Color palette definitions
-│   └── shaders/
-│       └── mandelbrot.wgsl # Fractal computation (WGSL)
+│   ├── BookmarkManager.ts     # URL-based state sharing
+│   ├── famousLocations.ts     # Facade for locations module
+│   └── locations/             # Famous locations by fractal type
+├── controls/
+│   ├── InputCallbacks.ts      # Input callback interface
+│   ├── InputHandler.ts        # Mouse, touch, keyboard events
+│   └── ViewState.ts           # Pan/zoom state management
 ├── fractal/
-│   └── WebGPUFractalEngine.ts  # Orchestrates everything
-└── controls/
-    ├── ViewState.ts        # Pan/zoom state, coordinate transforms
-    └── InputHandler.ts     # Mouse & touch → view changes
+│   └── WebGPUFractalEngine.ts # Central orchestrator
+├── renderer/
+│   ├── WebGPURenderer.ts      # WebGPU context, canvas, HDR
+│   ├── Palette.ts             # Facade for palettes module
+│   ├── palettes/              # Color palette definitions
+│   └── shaders/
+│       └── mandelbrot.wgsl    # Fractal computation (WGSL)
+├── state/
+│   └── FractalState.ts        # Centralized state management
+├── tourist/
+│   └── TouristMode.ts         # Automated exploration
+├── types/
+│   ├── Complex.ts             # Complex number operations
+│   ├── Point.ts               # Screen/fractal coordinates
+│   └── Color.ts               # Color utilities
+└── ui/
+    ├── OverlayManager.ts      # Coordinates all overlays
+    ├── DebugOverlay.ts        # Status bar display
+    ├── HelpOverlay.ts         # Keyboard shortcuts
+    └── NotificationOverlay.ts # Toast notifications
 ```
 
-`docs/` has the spec and phase‑1 implementation plan. Read them if you want to know _why_ things are
-the way they are.
+`docs/` has the spec, architecture overview, and implementation plans. Read them if you want to know
+_why_ things are the way they are.
 
 ---
 
