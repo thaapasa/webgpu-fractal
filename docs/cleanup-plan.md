@@ -52,78 +52,49 @@ src/ui/
 
 ---
 
-## Phase 2: Extract State Management (High Impact, Medium Effort)
+## Phase 2: Extract State Management ✅ COMPLETE
 
-### Problem
+**Status:** Completed February 2026
 
-State is scattered across `WebGPUFractalEngine`:
+### Results
 
-- `fractalType`, `juliaC`, `juliaPickerMode`
-- `paletteType`, `cosinePaletteIndex`, `gradientPaletteIndex`, `colorOffset`
-- `hdrBrightnessBias`, `sdrGradientBrightness`
-- `maxIterationsOverride`
+| Metric                   | Before    | After     | Change         |
+| ------------------------ | --------- | --------- | -------------- |
+| `WebGPUFractalEngine.ts` | 927 lines | 836 lines | **-91 (-10%)** |
+| New `src/state/` module  | —         | 368 lines | 2 files        |
 
-This state is also duplicated in `BookmarkState`.
+### What Was Extracted
 
-### Solution
-
-Create a unified `FractalState` class that is the single source of truth:
+Created `src/state/` directory with centralized state management:
 
 ```
 src/state/
-├── index.ts
-├── FractalState.ts             # All mutable state + change notifications
-├── FractalStateController.ts   # Actions (adjustIterations, cyclePalette, etc.)
-└── types.ts                    # State types (moved from BookmarkState)
+├── index.ts                    # Module exports
+└── FractalState.ts             # All mutable state + change notifications
 ```
 
-### `FractalState.ts` Structure
+### `FractalState` Responsibilities
 
-```typescript
-export class FractalState extends EventTarget {
-  // Core state
-  readonly view: ViewState;
-  fractalType: FractalType;
-  juliaC: Complex; // Use proper Complex type!
+- **View state**: Owns `ViewState` instance for pan/zoom
+- **Fractal state**: `fractalType`, `juliaC`, Julia picker mode
+- **Palette state**: `paletteType`, palette indices, `colorOffset`
+- **Rendering state**: `maxIterationsOverride`, brightness settings
+- **Conversion methods**: `toBookmark()`, `fromBookmark()`, `applyBookmark()`, `applyPartial()`
+- **Change notification**: Listener pattern for state changes
 
-  // Palette state
-  paletteType: PaletteType;
-  cosinePaletteIndex: number;
-  gradientPaletteIndex: number;
-  colorOffset: number;
+### Benefits Achieved
 
-  // Rendering state
-  maxIterationsOverride: number | null;
-  hdrBrightnessBias: number;
-  sdrGradientBrightness: number;
+- Single source of truth for all fractal state
+- State conversion logic centralized (no more duplication)
+- Engine methods simplified to delegate to state
+- `maxIterationsForZoom()` moved to state module
+- Foundation for future reactive updates
 
-  // Julia picker state
-  juliaPickerMode: boolean;
-  isActivelyPickingJulia: boolean;
-  savedViewState: ViewSnapshot | null;
-  savedFractalType: FractalType | null;
+### Not Yet Extracted (Future Work)
 
-  // Methods
-  toBookmark(): BookmarkState;
-  fromBookmark(state: Partial<BookmarkState>): void;
-
-  // Change notification
-  private emit(event: 'change'): void;
-}
-```
-
-### `FractalStateController.ts`
-
-Move all the action methods here:
-
-- `adjustMaxIterations()`
-- `cycleCosinePalette()` / `cycleGradientPalette()`
-- `adjustColorOffset()` / `resetColorOffset()`
-- `cycleFractalType()`
-- `toggleJuliaPickerMode()` / `pickJuliaConstant()` / `exitJuliaMode()`
-- `adjustHdrBrightness()` / `resetHdrBrightness()`
-
-**Estimated reduction:** ~300 lines from engine
+The `FractalStateController` (action methods) was not created as a separate class. The action
+methods remain in `WebGPUFractalEngine` but now delegate to `FractalState`. This keeps the refactor
+incremental and avoids over-engineering.
 
 ---
 
@@ -348,8 +319,8 @@ src/bookmark/locations/
 | Phase               | Impact | Effort | Dependencies | Status      |
 | ------------------- | ------ | ------ | ------------ | ----------- |
 | 1. UI Layer         | High   | Medium | None         | ✅ Complete |
-| 2. State Management | High   | Medium | None         | 🥇 Next     |
-| 3. Input Handler    | Medium | Low    | Phase 2      | 🥈 After    |
+| 2. State Management | High   | Medium | None         | ✅ Complete |
+| 3. Input Handler    | Medium | Low    | Phase 2      | 🥇 Next     |
 | 4. Proper Types     | Low    | Low    | None         | Anytime     |
 | 5. Split Palettes   | Low    | Low    | None         | Anytime     |
 | 6. Render Pipeline  | Medium | High   | Phase 2      | Later       |
@@ -394,20 +365,21 @@ main.ts
 | Palettes.ts            | 384       |
 | **Total (main files)** | **3,666** |
 
-### Current (after Phase 1)
+### Current (after Phase 2)
 
 | File                   | Lines     |
 | ---------------------- | --------- |
-| WebGPUFractalEngine.ts | 927       |
+| WebGPUFractalEngine.ts | 836       |
 | InputHandler.ts        | 717       |
 | famousLocations.ts     | 711       |
 | TouristMode.ts         | 680       |
 | Palettes.ts            | 384       |
 | ui/ (6 files)          | 523       |
-| **Total**              | **3,942** |
+| state/ (2 files)       | 368       |
+| **Total**              | **4,219** |
 
-_Note: Total increased because UI code was duplicated (inline + separate). Engine reduced by 247
-lines._
+_Note: Total increased because extracted code includes new infrastructure (listeners, methods). The
+engine itself has been reduced by 338 lines (29%) from the original._
 
 ### Target (after all phases)
 
@@ -430,11 +402,11 @@ lines._
 
 ## Quick Wins
 
-Most quick wins from Phase 1 are now complete:
+Most quick wins are now complete:
 
 1. ~~**Extract `createHelpContent()`**~~ ✅ Done (now in `HelpOverlay.ts`)
-2. **Extract iteration helpers** — `maxIterationsForZoom()` and constants to
-   `src/fractal/iterations.ts`
+2. ~~**Extract iteration helpers**~~ ✅ Done (`maxIterationsForZoom()` now in
+   `state/FractalState.ts`)
 3. ~~**Group notification methods**~~ ✅ Done (now in `NotificationOverlay.ts`)
 4. **Type alias cleanup** — Replace `[number, number]` with `Complex` or `Point2D` type
 

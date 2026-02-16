@@ -12,9 +12,8 @@ project. I've organized it by component responsibility."_ _— Jennifer Simms_
 | ------------ | ---------------------- | | Last Updated | February 2026 | | Status | Current
 implementation | | Maintainer | Simms (documentation) |
 
-> **📋 Refactoring In Progress**: Phase 1 (UI extraction) complete. See
-> [cleanup-plan.md](./cleanup-plan.md) for remaining phases: state management, input handler
-> simplification, and more.
+> **📋 Refactoring In Progress**: Phases 1-2 (UI extraction, state management) complete. See
+> [cleanup-plan.md](./cleanup-plan.md) for remaining phases: input handler simplification and more.
 
 ---
 
@@ -318,6 +317,38 @@ Automated fractal exploration that navigates between famous locations.
 - Can switch between fractal types during the tour
 - User interaction immediately stops the tour
 
+### 11. State Management (`src/state/`)
+
+Centralized state management for all fractal-related state.
+
+**`FractalState` Class:**
+
+| Property                | Type                   | Description                         |
+| ----------------------- | ---------------------- | ----------------------------------- |
+| `view`                  | `ViewState`            | Pan/zoom state (owned)              |
+| `fractalType`           | `FractalType`          | Current fractal type (0-19)         |
+| `juliaC`                | `[number, number]`     | Julia set constant                  |
+| `juliaPickerMode`       | `boolean`              | Whether Julia picker is active      |
+| `paletteType`           | `'cosine'\|'gradient'` | Current palette type                |
+| `cosinePaletteIndex`    | `number`               | Selected cosine palette (0-11)      |
+| `gradientPaletteIndex`  | `number`               | Selected gradient palette (0-6)     |
+| `colorOffset`           | `number`               | Color cycle offset                  |
+| `maxIterationsOverride` | `number \| null`       | Manual iteration override           |
+| `hdrBrightnessBias`     | `number`               | HDR brightness adjustment (-1 to 1) |
+| `sdrGradientBrightness` | `number`               | SDR gradient brightness (0.1 to 10) |
+
+**Key Methods:**
+
+- `toBookmark()` — Convert state to `BookmarkState` for URL sharing
+- `fromBookmark(partial)` — Load state from partial bookmark (URL params)
+- `applyBookmark(full)` — Apply complete bookmark (famous location)
+- `applyPartial(partial)` — Apply partial update (tourist mode animation)
+- `addListener(callback)` — Subscribe to state changes
+
+**Utility Functions:**
+
+- `maxIterationsForZoom(zoom, isJulia)` — Calculate auto-scaled iteration count
+
 ---
 
 ## Shader (`src/renderer/shaders/mandelbrot.wgsl`)
@@ -497,6 +528,9 @@ src/
 │   ├── Palettes.ts                # Color palette definitions
 │   └── shaders/
 │       └── mandelbrot.wgsl        # WGSL shader (fractal + HDR)
+├── state/
+│   ├── index.ts                   # Module exports
+│   └── FractalState.ts            # Centralized state management
 ├── tourist/
 │   └── TouristMode.ts             # Automated fractal exploration
 └── ui/

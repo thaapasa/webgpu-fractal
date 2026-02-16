@@ -6,7 +6,6 @@
  */
 
 import { WebGPURenderer } from '../renderer/WebGPURenderer';
-import { ViewState } from '../controls/ViewState';
 import { InputHandler } from '../controls/InputHandler';
 import {
   FractalType,
@@ -33,28 +32,14 @@ import {
   getGradientPaletteName,
   COSINE_PALETTE_COUNT,
   GRADIENT_PALETTE_COUNT,
-  PaletteType,
   PaletteParams,
 } from '../renderer/Palettes';
-import { OverlayManager, DebugOverlayState } from '../ui';
+import { OverlayManager, type DebugOverlayState } from '../ui';
+import { FractalState, maxIterationsForZoom } from '../state';
 
 import shaderSource from '../renderer/shaders/mandelbrot.wgsl?raw';
 
-/** Base iterations at zoom 1 */
-const MAX_ITERATIONS_BASE = 256;
-const MAX_ITERATIONS_BASE_JULIA = 512;
-const MAX_ITERATIONS_AUTO_CAP = 4096;
-const MAX_ITERATIONS_LOG_SCALE = 640;
-const MAX_ITERATIONS_LOG_POWER = 1.65;
 const ITERATION_ADJUST_RATIO = 1.5;
-
-function maxIterationsForZoom(zoom: number, isJulia: boolean = false): number {
-  const z = Math.max(1, zoom);
-  const L = Math.log10(z);
-  const base = isJulia ? MAX_ITERATIONS_BASE_JULIA : MAX_ITERATIONS_BASE;
-  const n = base + MAX_ITERATIONS_LOG_SCALE * Math.pow(L, MAX_ITERATIONS_LOG_POWER);
-  return Math.round(Math.max(base, Math.min(MAX_ITERATIONS_AUTO_CAP, n)));
-}
 
 // Uniform buffer structure (must match WGSL)
 // Base uniforms: 64 bytes
@@ -64,43 +49,22 @@ const UNIFORM_BUFFER_SIZE = 256;
 
 export class WebGPUFractalEngine {
   private renderer: WebGPURenderer;
-  private viewState: ViewState;
+  private state: FractalState;
   private inputHandler: InputHandler;
 
   private pipeline!: GPURenderPipeline;
   private uniformBuffer!: GPUBuffer;
   private bindGroup!: GPUBindGroup;
 
-  private maxIterationsOverride: number | null = null;
-  private fractalType: FractalType = FractalType.Mandelbrot;
-  private juliaC: [number, number] = [-0.7, 0.27015];
-  private juliaPickerMode = false;
-  private isActivelyPickingJulia = false; // True when mouse is down and previewing Julia
-  private savedViewState: { centerX: number; centerY: number; zoom: number } | null = null;
-  private savedFractalType: FractalType | null = null;
-
-  private paletteType: PaletteType = 'cosine';
-  private cosinePaletteIndex = 1; // Fire
-  private gradientPaletteIndex = 0; // Blue
-  private colorOffset = 0.0;
-
-  /** HDR brightness bias: -1 to +1, shifts which regions appear bright */
-  private hdrBrightnessBias = 0.0;
-  /** SDR gradient brightness multiplier: 0.2 to 2.0 */
-  private sdrGradientBrightness = 1.0;
-
   private overlays!: OverlayManager;
 
   private touristMode: TouristMode | null = null;
 
-  // Interpolated palette params override (used during tourist mode transitions)
-  private interpolatedPaletteParams: PaletteParams | null = null;
-
   private constructor(renderer: WebGPURenderer, canvas: HTMLCanvasElement) {
     this.renderer = renderer;
-    this.viewState = new ViewState();
+    this.state = new FractalState();
 
-    this.inputHandler = new InputHandler(canvas, this.viewState, () => {
+    this.inputHandler = new InputHandler(canvas, this.state.view, () => {
       this.render();
     });
 
@@ -291,31 +255,31 @@ export class WebGPUFractalEngine {
     // Update FPS counter
     this.overlays.tickFPS(now);
 
-    const isJulia = isJuliaType(this.fractalType);
+    const isJulia = isJuliaType(this.state.fractalType);
     const maxIter =
-      this.maxIterationsOverride ?? maxIterationsForZoom(this.viewState.zoom, isJulia);
+      this.state.maxIterationsOverride ?? maxIterationsForZoom(this.state.view.zoom, isJulia);
 
     // Update debug overlay
     const paletteName =
-      this.paletteType === 'cosine'
-        ? getCosinePaletteName(this.cosinePaletteIndex)
-        : getGradientPaletteName(this.gradientPaletteIndex);
+      this.state.paletteType === 'cosine'
+        ? getCosinePaletteName(this.state.cosinePaletteIndex)
+        : getGradientPaletteName(this.state.gradientPaletteIndex);
 
     const debugState: DebugOverlayState = {
-      fractalName: FRACTAL_TYPE_NAMES[this.fractalType],
-      zoom: this.viewState.zoom,
+      fractalName: FRACTAL_TYPE_NAMES[this.state.fractalType],
+      zoom: this.state.view.zoom,
       maxIterations: maxIter,
-      isManualIterations: this.maxIterationsOverride !== null,
+      isManualIterations: this.state.maxIterationsOverride !== null,
       paletteName,
-      colorOffset: this.colorOffset,
+      colorOffset: this.state.colorOffset,
       isJulia,
-      juliaC: this.juliaC,
+      juliaC: this.state.juliaC,
       hdrEnabled: this.renderer.hdrEnabled,
-      hdrBrightnessBias: this.hdrBrightnessBias,
+      hdrBrightnessBias: this.state.hdrBrightnessBias,
       displaySupportsHDR: this.renderer.displaySupportsHDR,
-      sdrGradientBrightness: this.sdrGradientBrightness,
-      paletteType: this.paletteType,
-      juliaPickerMode: this.juliaPickerMode,
+      sdrGradientBrightness: this.state.sdrGradientBrightness,
+      paletteType: this.state.paletteType,
+      juliaPickerMode: this.state.juliaPickerMode,
     };
     this.overlays.updateDebug(debugState);
 
@@ -326,34 +290,34 @@ export class WebGPUFractalEngine {
 
     // Get current palette info and params based on palette type
     // Use interpolated params during tourist mode transitions, otherwise look up by index
-    const isCosine = this.paletteType === 'cosine';
+    const isCosine = this.state.paletteType === 'cosine';
     const palette = isCosine
-      ? getCosinePalette(this.cosinePaletteIndex)
-      : getGradientPalette(this.gradientPaletteIndex);
+      ? getCosinePalette(this.state.cosinePaletteIndex)
+      : getGradientPalette(this.state.gradientPaletteIndex);
     const paletteParams =
-      this.interpolatedPaletteParams ??
+      this.state.interpolatedPaletteParams ??
       (isCosine
-        ? getCosinePaletteParams(this.cosinePaletteIndex)
-        : getGradientPaletteParams(this.gradientPaletteIndex, this.renderer.hdrEnabled));
+        ? getCosinePaletteParams(this.state.cosinePaletteIndex)
+        : getGradientPaletteParams(this.state.gradientPaletteIndex, this.renderer.hdrEnabled));
 
     // Pack base uniforms (must match WGSL struct layout with padding)
     floatView[0] = canvas.width; // resolution.x
     floatView[1] = canvas.height; // resolution.y
-    floatView[2] = this.viewState.centerX; // center.x
-    floatView[3] = this.viewState.centerY; // center.y
-    floatView[4] = this.viewState.zoom; // zoom
+    floatView[2] = this.state.view.centerX; // center.x
+    floatView[3] = this.state.view.centerY; // center.y
+    floatView[4] = this.state.view.zoom; // zoom
     intView[5] = maxIter; // maxIterations
     floatView[6] = performance.now() * 0.001; // time
-    floatView[7] = this.colorOffset; // colorOffset
-    intView[8] = this.fractalType; // fractalType
+    floatView[7] = this.state.colorOffset; // colorOffset
+    intView[8] = this.state.fractalType; // fractalType
     // padding at 9 (_pad_jc)
-    floatView[10] = this.juliaC[0]; // juliaC.x
-    floatView[11] = this.juliaC[1]; // juliaC.y
+    floatView[10] = this.state.juliaC[0]; // juliaC.x
+    floatView[11] = this.state.juliaC[1]; // juliaC.y
     intView[12] = this.renderer.hdrEnabled ? 1 : 0; // hdrEnabled
-    floatView[13] = this.hdrBrightnessBias; // hdrBrightnessBias
+    floatView[13] = this.state.hdrBrightnessBias; // hdrBrightnessBias
     intView[14] = paletteParams.type === 'cosine' ? 0 : 1; // paletteType
     intView[15] = palette.isMonotonic ? 1 : 0; // isMonotonic
-    floatView[16] = this.sdrGradientBrightness; // sdrGradientBrightness
+    floatView[16] = this.state.sdrGradientBrightness; // sdrGradientBrightness
     // padding at 17, 18, 19 (_pad0, _pad1, _pad2)
 
     // Pack palette parameters (offset 20 = 80 bytes, 16-byte aligned for vec3f)
@@ -445,17 +409,17 @@ export class WebGPUFractalEngine {
   // --- Iteration controls ---
 
   private adjustMaxIterations(direction: 1 | -1): void {
-    const isJulia = isJuliaType(this.fractalType);
+    const isJulia = isJuliaType(this.state.fractalType);
     const currentIter =
-      this.maxIterationsOverride ?? maxIterationsForZoom(this.viewState.zoom, isJulia);
+      this.state.maxIterationsOverride ?? maxIterationsForZoom(this.state.view.zoom, isJulia);
     const newIter =
       direction > 0 ? currentIter * ITERATION_ADJUST_RATIO : currentIter / ITERATION_ADJUST_RATIO;
-    this.maxIterationsOverride = Math.round(Math.max(1, newIter));
+    this.state.maxIterationsOverride = Math.round(Math.max(1, newIter));
     this.render();
   }
 
   private clearMaxIterationsOverride(): void {
-    this.maxIterationsOverride = null;
+    this.state.maxIterationsOverride = null;
     this.render();
   }
 
@@ -476,13 +440,16 @@ export class WebGPUFractalEngine {
   private adjustHdrBrightness(direction: 1 | -1): void {
     if (this.renderer.hdrEnabled) {
       // HDR mode: adjust HDR brightness bias
-      this.hdrBrightnessBias = Math.max(-1, Math.min(1, this.hdrBrightnessBias + direction * 0.1));
-    } else if (this.paletteType === 'gradient') {
+      this.state.hdrBrightnessBias = Math.max(
+        -1,
+        Math.min(1, this.state.hdrBrightnessBias + direction * 0.1)
+      );
+    } else if (this.state.paletteType === 'gradient') {
       // SDR mode with gradient palette: adjust gradient brightness
       // Adjust by 0.2 each step, clamped to 0.1 to 5.0
-      this.sdrGradientBrightness = Math.max(
+      this.state.sdrGradientBrightness = Math.max(
         0.1,
-        Math.min(10.0, this.sdrGradientBrightness + direction * 0.2)
+        Math.min(10.0, this.state.sdrGradientBrightness + direction * 0.2)
       );
     }
     // Cosine palettes in SDR mode: do nothing (no effect)
@@ -495,34 +462,35 @@ export class WebGPUFractalEngine {
    * - Resets SDR gradient brightness to 1.0
    */
   private resetHdrBrightness(): void {
-    this.hdrBrightnessBias = 0;
-    this.sdrGradientBrightness = 1.0;
+    this.state.hdrBrightnessBias = 0;
+    this.state.sdrGradientBrightness = 1.0;
     this.render();
   }
 
   // --- Palette controls ---
 
   private cycleCosinePalette(direction: 1 | -1): void {
-    this.cosinePaletteIndex =
-      (this.cosinePaletteIndex + direction + COSINE_PALETTE_COUNT) % COSINE_PALETTE_COUNT;
-    this.paletteType = 'cosine';
+    this.state.cosinePaletteIndex =
+      (this.state.cosinePaletteIndex + direction + COSINE_PALETTE_COUNT) % COSINE_PALETTE_COUNT;
+    this.state.paletteType = 'cosine';
     this.render();
   }
 
   private cycleGradientPalette(direction: 1 | -1): void {
-    this.gradientPaletteIndex =
-      (this.gradientPaletteIndex + direction + GRADIENT_PALETTE_COUNT) % GRADIENT_PALETTE_COUNT;
-    this.paletteType = 'gradient';
+    this.state.gradientPaletteIndex =
+      (this.state.gradientPaletteIndex + direction + GRADIENT_PALETTE_COUNT) %
+      GRADIENT_PALETTE_COUNT;
+    this.state.paletteType = 'gradient';
     this.render();
   }
 
   private adjustColorOffset(delta: number): void {
-    this.colorOffset += delta;
+    this.state.colorOffset += delta;
     this.render();
   }
 
   private resetColorOffset(): void {
-    this.colorOffset = 0;
+    this.state.colorOffset = 0;
     this.render();
   }
 
@@ -530,7 +498,7 @@ export class WebGPUFractalEngine {
 
   private cycleFractalType(direction: 1 | -1 = 1): void {
     // Get the base fractal type (non-Julia) using bitwise: base = type & ~1
-    const baseType = getBaseFractalType(this.fractalType);
+    const baseType = getBaseFractalType(this.state.fractalType);
     // Base types are even: 0, 2, 4, 6, 8, 10, 12, 14, 16
     // Divide by 2 to get the index: 0, 1, 2, 3, 4, 5, 6, 7, 8
     const currentIndex = baseType >> 1;
@@ -538,8 +506,8 @@ export class WebGPUFractalEngine {
     // Multiply by 2 to get the new base type
     const newFractalType = (nextIndex << 1) as FractalType;
 
-    if (this.juliaPickerMode) {
-      this.juliaPickerMode = false;
+    if (this.state.juliaPickerMode) {
+      this.state.juliaPickerMode = false;
       this.inputHandler.setJuliaPickerMode(false);
     }
 
@@ -550,45 +518,45 @@ export class WebGPUFractalEngine {
       this.showLocationNotification(location.name, location.description);
     } else {
       // Fallback if no location defined
-      this.fractalType = newFractalType;
+      this.state.fractalType = newFractalType;
     }
 
     this.render();
   }
 
   private toggleJuliaPickerMode(): void {
-    if (isJuliaType(this.fractalType)) {
+    if (isJuliaType(this.state.fractalType)) {
       this.exitJuliaMode();
       return;
     }
-    this.juliaPickerMode = !this.juliaPickerMode;
-    this.inputHandler.setJuliaPickerMode(this.juliaPickerMode);
+    this.state.juliaPickerMode = !this.state.juliaPickerMode;
+    this.inputHandler.setJuliaPickerMode(this.state.juliaPickerMode);
     this.render();
   }
 
   private pickJuliaConstant(fractalX: number, fractalY: number): void {
-    if (!this.juliaPickerMode) return;
+    if (!this.state.juliaPickerMode) return;
 
     // First call - save state and switch to Julia mode
-    if (!this.isActivelyPickingJulia) {
-      this.savedViewState = {
-        centerX: this.viewState.centerX,
-        centerY: this.viewState.centerY,
-        zoom: this.viewState.zoom,
+    if (!this.state.isActivelyPickingJulia) {
+      this.state.savedViewState = {
+        centerX: this.state.view.centerX,
+        centerY: this.state.view.centerY,
+        zoom: this.state.view.zoom,
       };
-      this.savedFractalType = this.fractalType;
-      this.fractalType = getJuliaVariant(this.fractalType);
+      this.state.savedFractalType = this.state.fractalType;
+      this.state.fractalType = getJuliaVariant(this.state.fractalType);
 
       // Reset view for Julia set
-      this.viewState.centerX = 0;
-      this.viewState.centerY = 0;
-      this.viewState.zoom = 0.5;
+      this.state.view.centerX = 0;
+      this.state.view.centerY = 0;
+      this.state.view.zoom = 0.5;
 
-      this.isActivelyPickingJulia = true;
+      this.state.isActivelyPickingJulia = true;
     }
 
     // Update Julia constant and render
-    this.juliaC = [fractalX, fractalY];
+    this.state.juliaC = [fractalX, fractalY];
     this.render();
   }
 
@@ -597,29 +565,29 @@ export class WebGPUFractalEngine {
    * Finalizes the pick and exits picker mode
    */
   private endJuliaPicking(): void {
-    if (!this.isActivelyPickingJulia) return;
+    if (!this.state.isActivelyPickingJulia) return;
 
-    this.isActivelyPickingJulia = false;
-    this.juliaPickerMode = false;
+    this.state.isActivelyPickingJulia = false;
+    this.state.juliaPickerMode = false;
     this.inputHandler.setJuliaPickerMode(false);
     this.render();
   }
 
   private exitJuliaMode(): void {
-    if (this.savedViewState) {
-      this.viewState.centerX = this.savedViewState.centerX;
-      this.viewState.centerY = this.savedViewState.centerY;
-      this.viewState.zoom = this.savedViewState.zoom;
-      this.savedViewState = null;
+    if (this.state.savedViewState) {
+      this.state.view.centerX = this.state.savedViewState.centerX;
+      this.state.view.centerY = this.state.savedViewState.centerY;
+      this.state.view.zoom = this.state.savedViewState.zoom;
+      this.state.savedViewState = null;
     }
-    if (this.savedFractalType !== null) {
-      this.fractalType = this.savedFractalType;
-      this.savedFractalType = null;
+    if (this.state.savedFractalType !== null) {
+      this.state.fractalType = this.state.savedFractalType;
+      this.state.savedFractalType = null;
     } else {
       // Fall back to base fractal type
-      this.fractalType = getBaseFractalType(this.fractalType);
+      this.state.fractalType = getBaseFractalType(this.state.fractalType);
     }
-    this.juliaPickerMode = false;
+    this.state.juliaPickerMode = false;
     this.inputHandler.setJuliaPickerMode(false);
     this.render();
   }
@@ -627,45 +595,14 @@ export class WebGPUFractalEngine {
   // --- Bookmarks ---
 
   private getBookmarkState(): BookmarkState {
-    return {
-      fractalType: this.fractalType,
-      centerX: this.viewState.centerX,
-      centerY: this.viewState.centerY,
-      zoom: this.viewState.zoom,
-      paletteType: this.paletteType,
-      cosinePaletteIndex: this.cosinePaletteIndex,
-      gradientPaletteIndex: this.gradientPaletteIndex,
-      colorOffset: this.colorOffset,
-      juliaC: this.juliaC,
-      maxIterationsOverride: this.maxIterationsOverride,
-      aaEnabled: false, // AA not supported in WebGPU version
-    };
+    return this.state.toBookmark();
   }
 
   private loadBookmark(): void {
     const bookmark = readUrlBookmark();
     if (!bookmark) return;
 
-    if (bookmark.centerX !== undefined) this.viewState.centerX = bookmark.centerX;
-    if (bookmark.centerY !== undefined) this.viewState.centerY = bookmark.centerY;
-    if (bookmark.zoom !== undefined) this.viewState.zoom = bookmark.zoom;
-    if (bookmark.maxIterationsOverride !== undefined) {
-      this.maxIterationsOverride = bookmark.maxIterationsOverride;
-    }
-
-    // New palette parameters
-    if (bookmark.paletteType !== undefined) {
-      this.paletteType = bookmark.paletteType;
-    }
-    if (bookmark.cosinePaletteIndex !== undefined) {
-      this.cosinePaletteIndex = bookmark.cosinePaletteIndex % COSINE_PALETTE_COUNT;
-    }
-    if (bookmark.gradientPaletteIndex !== undefined) {
-      this.gradientPaletteIndex = bookmark.gradientPaletteIndex % GRADIENT_PALETTE_COUNT;
-    }
-
-    // Legacy: handle old paletteIndex if present (for backward compatibility)
-    // This is a best-effort mapping - old URLs will get close-ish results
+    // Handle legacy paletteIndex before applying bookmark
     if (bookmark.paletteIndex !== undefined && bookmark.paletteType === undefined) {
       // Old palette indices: 0=Rainbow, 1=Blue, 2=Gold, 3=Grayscale, 4=Fire, 5=Ice,
       // 6=Sepia, 7=Ocean, 8=Purple, 9=Forest, 10=Sunset, 11=Electric
@@ -673,30 +610,21 @@ export class WebGPUFractalEngine {
       // Gradient: Blue(1), Gold(2), Grayscale(3), Sepia(6), Ocean(7), Purple(8), Forest(9)
       const cosineIndices = [0, 4, 5, 10, 11];
       if (cosineIndices.includes(bookmark.paletteIndex)) {
-        this.paletteType = 'cosine';
-        this.cosinePaletteIndex = cosineIndices.indexOf(bookmark.paletteIndex);
+        bookmark.paletteType = 'cosine';
+        bookmark.cosinePaletteIndex = cosineIndices.indexOf(bookmark.paletteIndex);
       } else {
-        this.paletteType = 'gradient';
+        bookmark.paletteType = 'gradient';
         const gradientIndices = [1, 2, 3, 6, 7, 8, 9];
-        this.gradientPaletteIndex = gradientIndices.indexOf(bookmark.paletteIndex);
+        bookmark.gradientPaletteIndex = gradientIndices.indexOf(bookmark.paletteIndex);
       }
     }
 
-    if (bookmark.colorOffset !== undefined) {
-      this.colorOffset = bookmark.colorOffset;
-    }
-    if (bookmark.fractalType !== undefined) {
-      this.fractalType = bookmark.fractalType;
-    }
-    if (bookmark.juliaC !== undefined) {
-      this.juliaC = bookmark.juliaC;
-    }
-
+    this.state.fromBookmark(bookmark);
     this.render();
   }
 
   private goToLocation(key: string): void {
-    const location = getLocationByKey(key, this.fractalType);
+    const location = getLocationByKey(key, this.state.fractalType);
     if (!location) return;
 
     this.applyLocationState(location.state);
@@ -709,7 +637,7 @@ export class WebGPUFractalEngine {
    * Animate smoothly to a location (long-press on number key)
    */
   private animateToLocation(key: string): void {
-    const location = getLocationByKey(key, this.fractalType);
+    const location = getLocationByKey(key, this.state.fractalType);
     if (!location) return;
 
     // Create tourist mode instance if it doesn't exist
@@ -734,16 +662,7 @@ export class WebGPUFractalEngine {
    * Shared by goToLocation() and cycleFractalType().
    */
   private applyLocationState(state: BookmarkState): void {
-    this.viewState.centerX = state.centerX;
-    this.viewState.centerY = state.centerY;
-    this.viewState.zoom = state.zoom;
-    this.maxIterationsOverride = state.maxIterationsOverride;
-    this.fractalType = state.fractalType;
-    this.juliaC = state.juliaC;
-    this.paletteType = state.paletteType;
-    this.cosinePaletteIndex = state.cosinePaletteIndex;
-    this.gradientPaletteIndex = state.gradientPaletteIndex;
-    this.colorOffset = state.colorOffset;
+    this.state.applyBookmark(state);
   }
 
   private showLocationNotification(name: string, description: string): void {
@@ -772,34 +691,34 @@ export class WebGPUFractalEngine {
    * Only useful during development for curating famous locations.
    */
   private logCreateLocationCode(): void {
-    const fractalTypeName = this.getFractalTypeEnumName(this.fractalType);
-    const isJulia = isJuliaType(this.fractalType);
+    const fractalTypeName = this.getFractalTypeEnumName(this.state.fractalType);
+    const isJulia = isJuliaType(this.state.fractalType);
 
     // Build options object, only including non-default values
     const options: string[] = [];
 
-    if (this.paletteType === 'gradient') {
+    if (this.state.paletteType === 'gradient') {
       options.push(`paletteType: 'gradient'`);
-      if (this.gradientPaletteIndex !== 0) {
-        options.push(`gradientPaletteIndex: ${this.gradientPaletteIndex}`);
+      if (this.state.gradientPaletteIndex !== 0) {
+        options.push(`gradientPaletteIndex: ${this.state.gradientPaletteIndex}`);
       }
     } else {
       // Cosine palette (default type)
-      if (this.cosinePaletteIndex !== 1) {
-        options.push(`cosinePaletteIndex: ${this.cosinePaletteIndex}`);
+      if (this.state.cosinePaletteIndex !== 1) {
+        options.push(`cosinePaletteIndex: ${this.state.cosinePaletteIndex}`);
       }
     }
 
-    if (Math.abs(this.colorOffset) > 0.001) {
-      options.push(`colorOffset: ${this.colorOffset}`);
+    if (Math.abs(this.state.colorOffset) > 0.001) {
+      options.push(`colorOffset: ${this.state.colorOffset}`);
     }
 
     if (isJulia) {
-      options.push(`juliaC: [${this.juliaC[0]}, ${this.juliaC[1]}]`);
+      options.push(`juliaC: [${this.state.juliaC[0]}, ${this.state.juliaC[1]}]`);
     }
 
-    if (this.maxIterationsOverride !== null) {
-      options.push(`maxIterationsOverride: ${this.maxIterationsOverride}`);
+    if (this.state.maxIterationsOverride !== null) {
+      options.push(`maxIterationsOverride: ${this.state.maxIterationsOverride}`);
     }
 
     const optionsStr = options.length > 0 ? `,\n    { ${options.join(', ')} }` : '';
@@ -809,7 +728,7 @@ export class WebGPUFractalEngine {
     'TODO: Description',
     'TODO: Key (1-9)',
     FractalType.${fractalTypeName},
-    ${this.viewState.centerX}, ${this.viewState.centerY}, ${this.viewState.zoom}${optionsStr}
+    ${this.state.view.centerX}, ${this.state.view.centerY}, ${this.state.view.zoom}${optionsStr}
   ),`;
 
     console.log(
@@ -879,7 +798,7 @@ export class WebGPUFractalEngine {
   private stopTouristMode(): void {
     if (this.touristMode) {
       this.touristMode.stop();
-      this.interpolatedPaletteParams = null; // Clear the override
+      this.state.interpolatedPaletteParams = null; // Clear the override
       this.showTouristModeNotification(false);
       this.updateUrlBookmark();
     }
@@ -896,19 +815,8 @@ export class WebGPUFractalEngine {
     state: Partial<BookmarkState>,
     interpolatedPaletteParams?: PaletteParams
   ): void {
-    if (state.centerX !== undefined) this.viewState.centerX = state.centerX;
-    if (state.centerY !== undefined) this.viewState.centerY = state.centerY;
-    if (state.zoom !== undefined) this.viewState.zoom = state.zoom;
-    if (state.fractalType !== undefined) this.fractalType = state.fractalType;
-    if (state.paletteType !== undefined) this.paletteType = state.paletteType;
-    if (state.cosinePaletteIndex !== undefined) this.cosinePaletteIndex = state.cosinePaletteIndex;
-    if (state.gradientPaletteIndex !== undefined)
-      this.gradientPaletteIndex = state.gradientPaletteIndex;
-    if (state.colorOffset !== undefined) this.colorOffset = state.colorOffset;
-
-    // Store interpolated palette params for use in render()
-    this.interpolatedPaletteParams = interpolatedPaletteParams ?? null;
-    if (state.juliaC !== undefined) this.juliaC = state.juliaC;
+    this.state.applyPartial(state);
+    this.state.interpolatedPaletteParams = interpolatedPaletteParams ?? null;
   }
 
   private showTouristModeNotification(started: boolean): void {
