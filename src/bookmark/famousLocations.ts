@@ -92,7 +92,7 @@ const MANDELBROT_LOCATIONS: FamousLocation[] = [
     '4',
     FractalType.Mandelbrot,
     -0.743733589978665, 0.130905227502858, 350,
-    { cosinePaletteIndex: 5, colorOffset: 0.15000000000000002 }
+    { cosinePaletteIndex: 5, colorOffset: 0.15 }
   ),
   createLocation(
     'Spiral Galaxy',
@@ -100,7 +100,7 @@ const MANDELBROT_LOCATIONS: FamousLocation[] = [
     '5',
     FractalType.Mandelbrot,
     -0.7615484049386866, -0.08478444765887823, 1506.4927460380957,
-    { cosinePaletteIndex: 4, colorOffset: 0.04999999999999999 }
+    { cosinePaletteIndex: 4, colorOffset: 0.05 }
   ),
   createLocation(
     'Douady Rabbit',
@@ -116,7 +116,7 @@ const MANDELBROT_LOCATIONS: FamousLocation[] = [
     '7',
     FractalType.MandelbrotJulia,
     0, 0, 0.45,
-    { cosinePaletteIndex: 3, colorOffset: -0.49999999999999994, juliaC: [-0.8, 0.156] }
+    { cosinePaletteIndex: 3, colorOffset: -0.5, juliaC: [-0.8, 0.156] }
   ),
   createLocation(
     'Spiral Julia',
@@ -170,7 +170,7 @@ const BURNING_SHIP_LOCATIONS: FamousLocation[] = [
       '4',
       FractalType.BurningShipJulia,
       0, 0, 0.3,
-      { cosinePaletteIndex: 10, colorOffset: -0.5499999999999998, juliaC: [0.5179709888623353, 0.8057669844188748] }
+      { cosinePaletteIndex: 10, colorOffset: -0.55, juliaC: [0.5179709888623353, 0.8057669844188748] }
   ),
   createLocation(
     'Wispy Coils',
@@ -224,7 +224,7 @@ const TRICORN_LOCATIONS: FamousLocation[] = [
     '2',
     FractalType.Tricorn,
     -1.0683098234816064, 0.13055543771605108, 722.5553792774821,
-    { cosinePaletteIndex: 5, colorOffset: 1.1 }
+    { cosinePaletteIndex: 5, colorOffset: 0.1 }
   ),
   createLocation(
     'Lightning Bolts',
@@ -232,7 +232,7 @@ const TRICORN_LOCATIONS: FamousLocation[] = [
     '3',
     FractalType.TricornJulia,
     0, 0, 0.5,
-    { cosinePaletteIndex: 5, colorOffset: 1.2, juliaC: [-0.7092474160797806, -0.113024316756254] }
+    { cosinePaletteIndex: 5, colorOffset: 0.2, juliaC: [-0.7092474160797806, -0.113024316756254] }
   ),
   createLocation(
       'Water Lily Leaf',
@@ -240,7 +240,7 @@ const TRICORN_LOCATIONS: FamousLocation[] = [
       '4',
       FractalType.TricornJulia,
       0, 0, 0.43,
-      { colorOffset: -0.7000000000000003, juliaC: [-0.1254330794660274, 0.2407433439223678] }
+      { colorOffset: -0.7, juliaC: [-0.1254330794660274, 0.2407433439223678] }
   ),
   createLocation(
     'Lightning Brain',
@@ -256,7 +256,7 @@ const TRICORN_LOCATIONS: FamousLocation[] = [
     '6',
     FractalType.TricornJulia,
     0, 0, 0.5,
-    { cosinePaletteIndex: 11, colorOffset: 1.55, juliaC: [-0.5647012802389192, -0.06508603367125808] }
+    { cosinePaletteIndex: 11, colorOffset: 0.55, juliaC: [-0.5647012802389192, -0.06508603367125808] }
   ),
   createLocation(
       'Electric Tendrils',
@@ -310,7 +310,7 @@ const CELTIC_LOCATIONS: FamousLocation[] = [
     '5',
     FractalType.CelticJulia,
     0.20, -0.30, 0.55,
-    { colorOffset: 0.2000000000000001, juliaC: [-0.6378073937333775, 1.2082886796996293] }
+    { colorOffset: 0.2, juliaC: [-0.6378073937333775, 1.2082886796996293] }
   ),
   createLocation(
     'Intricate Patterns',
@@ -318,7 +318,7 @@ const CELTIC_LOCATIONS: FamousLocation[] = [
     '6',
     FractalType.CelticJulia,
     0, 0, 0.52,
-    { cosinePaletteIndex: 10, colorOffset: 3.299999999999996, juliaC: [-0.7610237673309276, 0.12050023730653406] }
+    { cosinePaletteIndex: 10, colorOffset: 0.3, juliaC: [-0.7610237673309276, 0.12050023730653406] }
   ),
   createLocation(
     'Petri Dish',
@@ -326,7 +326,7 @@ const CELTIC_LOCATIONS: FamousLocation[] = [
     '7',
     FractalType.CelticJulia,
     0, 0, 0.55,
-    { cosinePaletteIndex: 10, colorOffset: 4.449999999999991, juliaC: [-1.056655765809614, -0.16855216053399263] }
+    { cosinePaletteIndex: 10, colorOffset: 0.45, juliaC: [-1.056655765809614, -0.16855216053399263] }
   ),
 ];
 
@@ -340,7 +340,7 @@ const BUFFALO_LOCATIONS: FamousLocation[] = [
     '1',
     FractalType.Buffalo,
     -0.7, 0.6, 0.4,
-    { cosinePaletteIndex: 2, colorOffset: 0.49999999999999994 }
+    { cosinePaletteIndex: 2, colorOffset: 0.45 }
   ),
   createLocation(
     'Overgrown Cities',
@@ -348,7 +348,7 @@ const BUFFALO_LOCATIONS: FamousLocation[] = [
     '2',
     FractalType.Buffalo,
     -1.75, 0.13, 2.4,
-    { colorOffset: -5 }
+    { colorOffset: 0 }
   ),
   createLocation(
     'Industrial Snowflake',
@@ -356,7 +356,7 @@ const BUFFALO_LOCATIONS: FamousLocation[] = [
     '3',
     FractalType.BuffaloJulia,
     0.45, 0, 0.85,
-    { cosinePaletteIndex: 4, colorOffset: -9.1, juliaC: [-1.62727125821226, 0.00873720402364775] }
+    { cosinePaletteIndex: 4, colorOffset: -0.1, juliaC: [-1.62727125821226, 0.00873720402364775] }
   ),
   createLocation(
     'Plasma Bursts',
@@ -372,7 +372,7 @@ const BUFFALO_LOCATIONS: FamousLocation[] = [
     '5',
     FractalType.BuffaloJulia,
     0, 0, 0.5,
-    { cosinePaletteIndex: 4, colorOffset: 4.25, juliaC: [-0.5828307625231954, -0.3049842077590671] }
+    { cosinePaletteIndex: 4, colorOffset: 0.25, juliaC: [-0.5828307625231954, -0.3049842077590671] }
   ),
   createLocation(
     'Seed Pods',
@@ -426,7 +426,7 @@ const PHOENIX_LOCATIONS: FamousLocation[] = [
     '5',
     FractalType.PhoenixJulia,
     0, -0.03, 0.6,
-    { cosinePaletteIndex: 4, colorOffset: -1.7, juliaC: [-0.272349453272398, 0.4059142585519806] }
+    { cosinePaletteIndex: 4, colorOffset: -0.7, juliaC: [-0.272349453272398, 0.4059142585519806] }
   ),
 ];
 
@@ -440,7 +440,7 @@ const MULTIBROT3_LOCATIONS: FamousLocation[] = [
     '1',
     FractalType.Multibrot3,
     0, 0, 0.35,
-    { cosinePaletteIndex: 5, colorOffset: 2.35 }
+    { cosinePaletteIndex: 5, colorOffset: 0.35 }
   ),
   createLocation(
     'The Bulb',
@@ -448,7 +448,7 @@ const MULTIBROT3_LOCATIONS: FamousLocation[] = [
     '2',
     FractalType.Multibrot3,
     0.5852686308492299, 0.27, 6,
-    { colorOffset: 0.10000000000000002 }
+    { colorOffset: 0.1 }
   ),
   createLocation(
     'Three-fold Spirals',
@@ -464,7 +464,7 @@ const MULTIBROT3_LOCATIONS: FamousLocation[] = [
     '4',
     FractalType.Multibrot3Julia,
     0, 0, 0.434,
-    { cosinePaletteIndex: 5, colorOffset: 0.10000000000000002, juliaC: [-0.45963436785036077, 0.03389484474578987] }
+    { cosinePaletteIndex: 5, colorOffset: 0.1, juliaC: [-0.45963436785036077, 0.03389484474578987] }
   ),
   createLocation(
     'Double Elephant Valley',
@@ -472,7 +472,7 @@ const MULTIBROT3_LOCATIONS: FamousLocation[] = [
     '5',
     FractalType.Multibrot3,
     0.42814685603247177, 0.01274807156960129577, 77,
-    { cosinePaletteIndex: 3, colorOffset: 1 }
+    { cosinePaletteIndex: 3, colorOffset: 0 }
   ),
   createLocation(
     'Wonky Spiral',
@@ -534,7 +534,7 @@ const MULTIBROT4_LOCATIONS: FamousLocation[] = [
       '5',
       FractalType.Multibrot4Julia,
       0, 0, 0.4,
-      { colorOffset: -1.7500000000000009, juliaC: [-0.6179887054490777, 0.487166930716755] }
+      { colorOffset: -0.75, juliaC: [-0.6179887054490777, 0.487166930716755] }
   ),
 ];
 
@@ -556,7 +556,7 @@ const FUNKY_LOCATIONS: FamousLocation[] = [
     '2',
     FractalType.Funky,
     0.303, 0.534, 6.3,
-    { cosinePaletteIndex: 10, colorOffset: -0.05000000000000002 }
+    { cosinePaletteIndex: 10 }
   ),
   createLocation(
     'Battleship',
@@ -588,7 +588,7 @@ const FUNKY_LOCATIONS: FamousLocation[] = [
     '6',
     FractalType.FunkyJulia,
     0.34, 0, 0.35,
-    { cosinePaletteIndex: 5, colorOffset: 4.4, juliaC: [0.5804003550040334, -0.9094296635818582] }
+    { cosinePaletteIndex: 5, colorOffset: 0.4, juliaC: [0.5804003550040334, -0.9094296635818582] }
   ),
   createLocation(
     'Glittering Coral',
@@ -596,7 +596,7 @@ const FUNKY_LOCATIONS: FamousLocation[] = [
     '7',
     FractalType.FunkyJulia,
     0, 0, 0.5,
-    { cosinePaletteIndex: 11, colorOffset: -0.39999999999999997, juliaC: [-0.45427582797825017, -0.06920415224913506] }
+    { cosinePaletteIndex: 11, colorOffset: -0.4, juliaC: [-0.45427582797825017, -0.06920415224913506] }
   ),
 ];
 
@@ -626,7 +626,7 @@ const PERPENDICULAR_LOCATIONS: FamousLocation[] = [
     '3',
     FractalType.PerpendicularJulia,
     0, 0, 0.35,
-    { cosinePaletteIndex: 4, colorOffset: 0.14999999999999986, juliaC: [-1.2870593206662457, 0.022288689289989876] }
+    { cosinePaletteIndex: 4, colorOffset: 0.15, juliaC: [-1.2870593206662457, 0.022288689289989876] }
   ),
   createLocation(
     'Old Dragon',
@@ -634,7 +634,7 @@ const PERPENDICULAR_LOCATIONS: FamousLocation[] = [
     '4',
     FractalType.PerpendicularJulia,
     0, 0, 0.3913248754208607,
-    { cosinePaletteIndex: 5, colorOffset: 0.44999999999999996, juliaC: [-1.0197782349577895, -0.13982096184940793] }
+    { cosinePaletteIndex: 5, colorOffset: 0.45, juliaC: [-1.0197782349577895, -0.13982096184940793] }
   ),
   createLocation(
     'Peacock Eyes',
