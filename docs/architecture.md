@@ -12,9 +12,9 @@ project. I've organized it by component responsibility."_ _— Jennifer Simms_
 | ------------ | ---------------------- | | Last Updated | February 2026 | | Status | Current
 implementation | | Maintainer | Simms (documentation) |
 
-> **📋 Refactoring Planned**: See [cleanup-plan.md](./cleanup-plan.md) for the planned architectural
-> improvements, including extraction of UI components, unified state management, and simplified
-> input handling.
+> **📋 Refactoring In Progress**: Phase 1 (UI extraction) complete. See
+> [cleanup-plan.md](./cleanup-plan.md) for remaining phases: state management, input handler
+> simplification, and more.
 
 ---
 
@@ -287,6 +287,37 @@ location collection.
 Each location stores complete `BookmarkState` including position, zoom, fractal type, palette, color
 offset, and iteration settings.
 
+### 9. UI Overlays (`src/ui/`)
+
+The UI module provides all on-screen overlays, coordinated by the `OverlayManager`.
+
+**Components:**
+
+| Component             | Responsibility                                         |
+| --------------------- | ------------------------------------------------------ |
+| `OverlayManager`      | Coordinates all overlays, manages screenshot mode      |
+| `DebugOverlay`        | Status bar showing zoom, iterations, palette, HDR info |
+| `FPSOverlay`          | Frames per second counter (bottom-right)               |
+| `HelpOverlay`         | Keyboard shortcuts reference (toggle with `h`)         |
+| `NotificationOverlay` | Toast notifications for actions (share, location, etc) |
+
+**Screenshot Mode:**
+
+When enabled (`Space` key), hides debug and FPS overlays while keeping notifications visible. The
+`OverlayManager` coordinates this state across all overlay components.
+
+### 10. Tourist Mode (`src/tourist/TouristMode.ts`)
+
+Automated fractal exploration that navigates between famous locations.
+
+**Features:**
+
+- Smooth animated transitions between locations
+- Automatic palette interpolation during transitions
+- Random selection of next destination (avoids immediate repeats)
+- Can switch between fractal types during the tour
+- User interaction immediately stops the tour
+
 ---
 
 ## Shader (`src/renderer/shaders/mandelbrot.wgsl`)
@@ -461,11 +492,20 @@ src/
 │   └── ViewState.ts               # Pan/zoom state management
 ├── fractal/
 │   └── WebGPUFractalEngine.ts     # Central orchestrator
-└── renderer/
-    ├── WebGPURenderer.ts          # WebGPU context and HDR config
-    ├── Palettes.ts                # Color palette definitions
-    └── shaders/
-        └── mandelbrot.wgsl        # WGSL shader (fractal + HDR)
+├── renderer/
+│   ├── WebGPURenderer.ts          # WebGPU context and HDR config
+│   ├── Palettes.ts                # Color palette definitions
+│   └── shaders/
+│       └── mandelbrot.wgsl        # WGSL shader (fractal + HDR)
+├── tourist/
+│   └── TouristMode.ts             # Automated fractal exploration
+└── ui/
+    ├── index.ts                   # Module exports
+    ├── OverlayManager.ts          # Coordinates all UI overlays
+    ├── DebugOverlay.ts            # Status bar (zoom, iterations, etc.)
+    ├── FPSOverlay.ts              # Frames per second counter
+    ├── HelpOverlay.ts             # Keyboard shortcuts overlay
+    └── NotificationOverlay.ts     # Toast notifications
 ```
 
 ---

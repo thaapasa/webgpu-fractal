@@ -36,6 +36,7 @@ import {
   PaletteType,
   PaletteParams,
 } from '../renderer/Palettes';
+import { OverlayManager, DebugOverlayState } from '../ui';
 
 import shaderSource from '../renderer/shaders/mandelbrot.wgsl?raw';
 
@@ -88,24 +89,12 @@ export class WebGPUFractalEngine {
   /** SDR gradient brightness multiplier: 0.2 to 2.0 */
   private sdrGradientBrightness = 1.0;
 
-  private debugOverlay: HTMLElement | null = null;
-  private shareNotification: HTMLElement | null = null;
-  private helpOverlay: HTMLElement | null = null;
-  private helpVisible = false;
-  private screenshotMode = false;
-  private notificationTimeoutId: ReturnType<typeof setTimeout> | null = null;
+  private overlays!: OverlayManager;
 
   private touristMode: TouristMode | null = null;
 
   // Interpolated palette params override (used during tourist mode transitions)
   private interpolatedPaletteParams: PaletteParams | null = null;
-
-  // FPS tracking
-  private fpsOverlay: HTMLElement | null = null;
-  private frameCount: number = 0;
-  private fps: number = 0;
-  private fpsUpdateInterval: number = 500; // Update FPS display every 500ms
-  private lastFpsUpdate: number = 0;
 
   private constructor(renderer: WebGPURenderer, canvas: HTMLCanvasElement) {
     this.renderer = renderer;
@@ -279,46 +268,10 @@ export class WebGPUFractalEngine {
 
   private setupOverlays(canvas: HTMLCanvasElement): void {
     const parent = canvas.parentElement;
-    if (!parent) return;
-
-    this.debugOverlay = document.createElement('div');
-    this.debugOverlay.id = 'zoom-debug';
-    parent.appendChild(this.debugOverlay);
-
-    this.shareNotification = document.createElement('div');
-    this.shareNotification.id = 'share-notification';
-    this.shareNotification.style.cssText = `
-      position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-      background: rgba(0, 0, 0, 0.85); color: #4ade80; padding: 16px 32px;
-      border-radius: 8px; font-family: system-ui, sans-serif; font-size: 16px;
-      z-index: 1000; opacity: 0; transition: opacity 0.3s ease; pointer-events: none;
-    `;
-    parent.appendChild(this.shareNotification);
-
-    this.helpOverlay = document.createElement('div');
-    this.helpOverlay.id = 'help-overlay';
-    this.helpOverlay.innerHTML = this.createHelpContent();
-    this.helpOverlay.style.cssText = `
-      position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-      background: rgba(0, 0, 0, 0.92); color: #e5e5e5; padding: 24px 32px;
-      border-radius: 12px; font-family: system-ui, -apple-system, sans-serif;
-      font-size: 14px; z-index: 1001; opacity: 0; transition: opacity 0.2s ease;
-      pointer-events: none; max-width: 90vw; max-height: 90vh; overflow-y: auto;
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5); border: 1px solid rgba(255, 255, 255, 0.1);
-    `;
-    parent.appendChild(this.helpOverlay);
-
-    this.fpsOverlay = document.createElement('div');
-    this.fpsOverlay.id = 'fps-overlay';
-    this.fpsOverlay.style.cssText = `
-      position: fixed; bottom: 12px; right: 12px;
-      background: rgba(0, 0, 0, 0.6); color: #888;
-      padding: 4px 8px; border-radius: 4px;
-      font-family: ui-monospace, monospace; font-size: 12px;
-      pointer-events: none; z-index: 100;
-    `;
-    this.fpsOverlay.textContent = '-- FPS';
-    parent.appendChild(this.fpsOverlay);
+    if (!parent) {
+      throw new Error('Canvas must have a parent element for overlays');
+    }
+    this.overlays = new OverlayManager(parent);
   }
 
   private handleResize = (): void => {
@@ -336,66 +289,35 @@ export class WebGPUFractalEngine {
     const now = performance.now();
 
     // Update FPS counter
-    this.frameCount++;
-    if (now - this.lastFpsUpdate >= this.fpsUpdateInterval) {
-      this.fps = Math.round((this.frameCount * 1000) / (now - this.lastFpsUpdate));
-      this.frameCount = 0;
-      this.lastFpsUpdate = now;
-      if (this.fpsOverlay && !this.screenshotMode) {
-        this.fpsOverlay.textContent = `${this.fps} FPS`;
-      }
-    }
+    this.overlays.tickFPS(now);
 
     const isJulia = isJuliaType(this.fractalType);
     const maxIter =
       this.maxIterationsOverride ?? maxIterationsForZoom(this.viewState.zoom, isJulia);
 
     // Update debug overlay
-    if (this.debugOverlay && !this.screenshotMode) {
-      const z = this.viewState.zoom;
-      const zoomStr =
-        z >= 1e6 ? z.toExponential(2) : z < 1 ? z.toPrecision(4) : String(Math.round(z));
-      const iterSuffix = this.maxIterationsOverride !== null ? ' (manual)' : '';
-      const paletteName =
-        this.paletteType === 'cosine'
-          ? getCosinePaletteName(this.cosinePaletteIndex)
-          : getGradientPaletteName(this.gradientPaletteIndex);
-      const fractalName = FRACTAL_TYPE_NAMES[this.fractalType];
-      const hdrStatus = this.renderer.hdrEnabled
-        ? Math.abs(this.hdrBrightnessBias) > 0.01
-          ? `HDR (${this.hdrBrightnessBias > 0 ? '+' : ''}${this.hdrBrightnessBias.toFixed(2)})`
-          : 'HDR'
-        : this.renderer.displaySupportsHDR
-          ? 'HDR available'
-          : 'SDR';
-      // Show SDR gradient brightness if adjusted (only relevant for SDR + gradient)
-      const sdrBrightnessStr =
-        !this.renderer.hdrEnabled &&
-        this.paletteType === 'gradient' &&
-        Math.abs(this.sdrGradientBrightness - 1.0) > 0.01
-          ? `brightness ${this.sdrGradientBrightness.toFixed(1)}`
-          : '';
-      const juliaStatus = this.juliaPickerMode ? '🎯 Pick Julia point' : '';
-      const juliaCoords = isJulia
-        ? `c=(${this.juliaC[0].toFixed(4)}, ${this.juliaC[1].toFixed(4)})`
-        : '';
-      const colorOffsetStr =
-        Math.abs(this.colorOffset) > 0.001 ? `offset ${this.colorOffset.toFixed(1)}` : '';
+    const paletteName =
+      this.paletteType === 'cosine'
+        ? getCosinePaletteName(this.cosinePaletteIndex)
+        : getGradientPaletteName(this.gradientPaletteIndex);
 
-      const statusParts = [
-        fractalName,
-        `zoom ${zoomStr}`,
-        `iterations ${maxIter}${iterSuffix}`,
-        paletteName,
-      ];
-      if (colorOffsetStr) statusParts.push(colorOffsetStr);
-      if (sdrBrightnessStr) statusParts.push(sdrBrightnessStr);
-      if (juliaCoords) statusParts.push(juliaCoords);
-      statusParts.push(hdrStatus);
-      if (juliaStatus) statusParts.push(juliaStatus);
-      statusParts.push('H = help');
-      this.debugOverlay.textContent = statusParts.join('  ·  ');
-    }
+    const debugState: DebugOverlayState = {
+      fractalName: FRACTAL_TYPE_NAMES[this.fractalType],
+      zoom: this.viewState.zoom,
+      maxIterations: maxIter,
+      isManualIterations: this.maxIterationsOverride !== null,
+      paletteName,
+      colorOffset: this.colorOffset,
+      isJulia,
+      juliaC: this.juliaC,
+      hdrEnabled: this.renderer.hdrEnabled,
+      hdrBrightnessBias: this.hdrBrightnessBias,
+      displaySupportsHDR: this.renderer.displaySupportsHDR,
+      sdrGradientBrightness: this.sdrGradientBrightness,
+      paletteType: this.paletteType,
+      juliaPickerMode: this.juliaPickerMode,
+    };
+    this.overlays.updateDebug(debugState);
 
     // Update uniforms
     const uniformData = new ArrayBuffer(UNIFORM_BUFFER_SIZE);
@@ -825,22 +747,7 @@ export class WebGPUFractalEngine {
   }
 
   private showLocationNotification(name: string, description: string): void {
-    if (!this.shareNotification) return;
-
-    // Clear any existing timeout to prevent premature hiding
-    if (this.notificationTimeoutId !== null) {
-      clearTimeout(this.notificationTimeoutId);
-    }
-
-    this.shareNotification.innerHTML = `<strong style="font-size: 18px;">📍 ${name}</strong><br><span style="color: #aaa; font-size: 14px;">${description}</span>`;
-    this.shareNotification.style.color = '#60a5fa';
-    this.shareNotification.style.opacity = '1';
-    this.notificationTimeoutId = setTimeout(() => {
-      if (this.shareNotification) {
-        this.shareNotification.style.opacity = '0';
-      }
-      this.notificationTimeoutId = null;
-    }, 2500);
+    this.overlays.notification.showLocation(name, description);
   }
 
   private updateUrlBookmark(): void {
@@ -927,147 +834,17 @@ export class WebGPUFractalEngine {
   }
 
   private showShareNotification(success: boolean): void {
-    if (!this.shareNotification) return;
-
-    // Clear any existing timeout to prevent premature hiding
-    if (this.notificationTimeoutId !== null) {
-      clearTimeout(this.notificationTimeoutId);
-    }
-
-    this.shareNotification.textContent = success
-      ? '📋 Link copied to clipboard!'
-      : '❌ Failed to copy link';
-    this.shareNotification.style.color = success ? '#4ade80' : '#f87171';
-    this.shareNotification.style.opacity = '1';
-    this.notificationTimeoutId = setTimeout(() => {
-      if (this.shareNotification) {
-        this.shareNotification.style.opacity = '0';
-      }
-      this.notificationTimeoutId = null;
-    }, 2000);
+    this.overlays.notification.showShareResult(success);
   }
 
   // --- UI toggles ---
 
   private toggleHelp(): void {
-    this.helpVisible = !this.helpVisible;
-    if (this.helpOverlay) {
-      this.helpOverlay.style.opacity = this.helpVisible ? '1' : '0';
-      this.helpOverlay.style.pointerEvents = this.helpVisible ? 'auto' : 'none';
-    }
+    this.overlays.toggleHelp();
   }
 
   private toggleScreenshotMode(): void {
-    this.screenshotMode = !this.screenshotMode;
-    if (this.screenshotMode && this.helpVisible) {
-      this.helpVisible = false;
-      if (this.helpOverlay) {
-        this.helpOverlay.style.opacity = '0';
-        this.helpOverlay.style.pointerEvents = 'none';
-      }
-    }
-    if (this.debugOverlay) {
-      this.debugOverlay.style.display = this.screenshotMode ? 'none' : 'block';
-    }
-    if (this.fpsOverlay) {
-      this.fpsOverlay.style.display = this.screenshotMode ? 'none' : 'block';
-    }
-    if (this.shareNotification) {
-      // Clear any existing timeout to prevent premature hiding
-      if (this.notificationTimeoutId !== null) {
-        clearTimeout(this.notificationTimeoutId);
-      }
-
-      this.shareNotification.textContent = this.screenshotMode
-        ? '📷 Screenshot mode (Space to exit)'
-        : '📷 UI restored';
-      this.shareNotification.style.color = '#60a5fa';
-      this.shareNotification.style.opacity = '1';
-      this.notificationTimeoutId = setTimeout(() => {
-        if (this.shareNotification) {
-          this.shareNotification.style.opacity = '0';
-        }
-        this.notificationTimeoutId = null;
-      }, 1000);
-    }
-  }
-
-  private createHelpContent(): string {
-    return `
-      <h2 style="margin: 0 0 16px 0; color: #60a5fa; font-size: 20px; font-weight: 600;">
-        🌀 Fractal Explorer - Keyboard Shortcuts
-      </h2>
-      <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px 32px;">
-        <div style="margin-bottom: 12px;">
-          <h3 style="margin: 0 0 8px 0; color: #a78bfa; font-size: 13px; text-transform: uppercase;">Navigation</h3>
-          <div style="display: grid; gap: 4px;">
-            ${this.helpRow('Drag', 'Pan view')}
-            ${this.helpRow('Scroll', 'Zoom in/out')}
-            ${this.helpRow('z / Z', 'Fine zoom (hold)')}
-            ${this.helpRow('Double-click', 'Zoom in at point')}
-            ${this.helpRow('1-9', 'Famous locations')}
-          </div>
-        </div>
-        <div style="margin-bottom: 12px;">
-          <h3 style="margin: 0 0 8px 0; color: #a78bfa; font-size: 13px; text-transform: uppercase;">Iterations</h3>
-          <div style="display: grid; gap: 4px;">
-            ${this.helpRow('+/-', 'Adjust iterations')}
-            ${this.helpRow('0', 'Reset to auto')}
-          </div>
-        </div>
-        <div style="margin-bottom: 12px;">
-          <h3 style="margin: 0 0 8px 0; color: #a78bfa; font-size: 13px; text-transform: uppercase;">Colors</h3>
-          <div style="display: grid; gap: 4px;">
-            ${this.helpRow('C / Shift+C', 'Cosine palettes')}
-            ${this.helpRow('G / Shift+G', 'Gradient palettes')}
-            ${this.helpRow(', / .', 'Shift colors (fine)')}
-            ${this.helpRow('< / >', 'Shift colors (coarse)')}
-            ${this.helpRow('R', 'Reset color offset')}
-          </div>
-        </div>
-        <div style="margin-bottom: 12px;">
-          <h3 style="margin: 0 0 8px 0; color: #a78bfa; font-size: 13px; text-transform: uppercase;">Fractal Type</h3>
-          <div style="display: grid; gap: 4px;">
-            ${this.helpRow('F / Shift+F', 'Cycle fractals')}
-            ${this.helpRow('J', 'Julia picker mode')}
-          </div>
-        </div>
-        <div style="margin-bottom: 12px;">
-          <h3 style="margin: 0 0 8px 0; color: #a78bfa; font-size: 13px; text-transform: uppercase;">Brightness</h3>
-          <div style="display: grid; gap: 4px;">
-            ${this.helpRow('B / Shift+B', 'Adjust brightness*')}
-            ${this.helpRow('D', 'Reset brightness')}
-          </div>
-          <div style="color: #888; font-size: 10px; margin-top: 4px;">*HDR bias or SDR gradient brightness</div>
-        </div>
-        <div style="margin-bottom: 12px;">
-          <h3 style="margin: 0 0 8px 0; color: #a78bfa; font-size: 13px; text-transform: uppercase;">UI</h3>
-          <div style="display: grid; gap: 4px;">
-            ${this.helpRow('T', 'Tourist mode (auto-tour)')}
-            ${this.helpRow('H', 'Toggle this help')}
-            ${this.helpRow('Space', 'Screenshot mode')}
-          </div>
-        </div>
-        <div style="margin-bottom: 12px;">
-          <h3 style="margin: 0 0 8px 0; color: #a78bfa; font-size: 13px; text-transform: uppercase;">Share</h3>
-          <div style="display: grid; gap: 4px;">
-            ${this.helpRow('S', 'Copy bookmark URL')}
-          </div>
-        </div>
-      </div>
-      <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.1); color: #888; font-size: 12px; text-align: center;">
-        Press <kbd style="background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 4px;">H</kbd> to close
-      </div>
-    `;
-  }
-
-  private helpRow(key: string, description: string): string {
-    return `
-      <div style="display: flex; align-items: baseline; gap: 8px;">
-        <kbd style="background: rgba(255,255,255,0.1); color: #f0f0f0; padding: 2px 8px; border-radius: 4px; font-family: ui-monospace, monospace; font-size: 12px; min-width: 60px; text-align: center;">${key}</kbd>
-        <span style="color: #ccc;">${description}</span>
-      </div>
-    `;
+    this.overlays.toggleScreenshotMode();
   }
 
   // --- Tourist Mode ---
@@ -1135,27 +912,7 @@ export class WebGPUFractalEngine {
   }
 
   private showTouristModeNotification(started: boolean): void {
-    if (!this.shareNotification) return;
-
-    // Clear any existing timeout
-    if (this.notificationTimeoutId !== null) {
-      clearTimeout(this.notificationTimeoutId);
-    }
-
-    this.shareNotification.innerHTML = started
-      ? '🚀 <strong>Tourist Mode</strong> — Sit back and enjoy the ride!<br><span style="color: #aaa; font-size: 12px;">Click or press T to take control</span>'
-      : "🎮 <strong>Manual Control</strong> — You're driving now";
-    this.shareNotification.style.color = started ? '#60a5fa' : '#4ade80';
-    this.shareNotification.style.opacity = '1';
-    this.notificationTimeoutId = setTimeout(
-      () => {
-        if (this.shareNotification) {
-          this.shareNotification.style.opacity = '0';
-        }
-        this.notificationTimeoutId = null;
-      },
-      started ? 3000 : 1500
-    );
+    this.overlays.notification.showTouristMode(started);
   }
 
   destroy(): void {
@@ -1163,10 +920,7 @@ export class WebGPUFractalEngine {
     this.stop();
     window.removeEventListener('resize', this.handleResize);
     window.removeEventListener('hashchange', this.handleHashChange);
-    this.debugOverlay?.remove();
-    this.shareNotification?.remove();
-    this.helpOverlay?.remove();
-    this.fpsOverlay?.remove();
+    this.overlays.destroy();
     this.inputHandler.destroy();
     this.renderer.destroy();
   }

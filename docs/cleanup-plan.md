@@ -9,8 +9,7 @@ Skippy the Magnificent
 
 The codebase works, but has accumulated technical debt typical of rapid iteration. The main issues:
 
-1. **`WebGPUFractalEngine.ts` (1,128 lines)** — A god class doing everything from rendering to UI to
-   bookmarks
+1. **`WebGPUFractalEngine.ts` (~~1,128~~ 927 lines)** — Still large but improving
 2. **`InputHandler.ts` (717 lines)** — Bloated callback setter pattern with 20+ callbacks
 3. **Mixed responsibilities** — UI, state, rendering, and business logic intertwined
 4. **Primitive obsession** — Multiple `[number, number]` tuples instead of proper types
@@ -19,23 +18,20 @@ This plan proposes a phased refactoring approach, each phase delivering incremen
 
 ---
 
-## Phase 1: Extract UI Layer (High Impact, Medium Effort)
+## Phase 1: Extract UI Layer ✅ COMPLETE
 
-### Problem
+**Status:** Completed February 2026
 
-`WebGPUFractalEngine.ts` handles:
+### Results
 
-- Pipeline initialization ✓ (belongs here)
-- Rendering ✓ (belongs here)
-- **Debug overlay management** ✗
-- **Help overlay management** ✗
-- **Share notification** ✗
-- **FPS counter** ✗
-- **Screenshot mode** ✗
+| Metric                   | Before      | After     | Change          |
+| ------------------------ | ----------- | --------- | --------------- |
+| `WebGPUFractalEngine.ts` | 1,174 lines | 927 lines | **-247 (-21%)** |
+| New `src/ui/` module     | —           | 523 lines | 6 files         |
 
-### Solution
+### What Was Extracted
 
-Create `src/ui/` directory with dedicated UI components:
+Created `src/ui/` directory with dedicated UI components:
 
 ```
 src/ui/
@@ -44,22 +40,15 @@ src/ui/
 ├── DebugOverlay.ts             # Status bar (zoom, iterations, palette)
 ├── HelpOverlay.ts              # Keyboard shortcuts overlay
 ├── NotificationOverlay.ts      # Toast notifications (share, location)
-├── FPSCounter.ts               # FPS display
-└── ScreenshotMode.ts           # Screenshot mode state + UI hiding
+└── FPSOverlay.ts               # FPS display
 ```
 
-### Specific Extractions from `WebGPUFractalEngine.ts`
+### Benefits Achieved
 
-| Lines    | Current Location                         | New Location                 |
-| -------- | ---------------------------------------- | ---------------------------- |
-| 262-298  | `setupOverlays()`                        | `OverlayManager.create()`    |
-| 311-354  | Debug overlay update in `render()`       | `DebugOverlay.update()`      |
-| 899-943  | `toggleHelp()`, `toggleScreenshotMode()` | `ScreenshotMode.ts`          |
-| 951-1009 | `createHelpContent()`, `helpRow()`       | `HelpOverlay.ts`             |
-| 808-823  | `showLocationNotification()`             | `NotificationOverlay.show()` |
-| 881-896  | `showShareNotification()`                | `NotificationOverlay.show()` |
-
-**Estimated reduction:** ~250 lines from engine
+- UI concerns isolated from rendering logic
+- Each overlay is independently testable
+- `OverlayManager` provides clean facade for all UI operations
+- Engine no longer has HTML generation mixed with GPU code
 
 ---
 
@@ -356,15 +345,15 @@ src/bookmark/locations/
 
 ## Priority Matrix
 
-| Phase               | Impact | Effort | Dependencies | Suggested Order |
-| ------------------- | ------ | ------ | ------------ | --------------- |
-| 1. UI Layer         | High   | Medium | None         | 🥇 First        |
-| 2. State Management | High   | Medium | None         | 🥈 Second       |
-| 3. Input Handler    | Medium | Low    | Phase 2      | 🥉 Third        |
-| 4. Proper Types     | Low    | Low    | None         | Anytime         |
-| 5. Split Palettes   | Low    | Low    | None         | Anytime         |
-| 6. Render Pipeline  | Medium | High   | Phase 2      | Later           |
-| 7. Famous Locations | Low    | Low    | None         | Anytime         |
+| Phase               | Impact | Effort | Dependencies | Status      |
+| ------------------- | ------ | ------ | ------------ | ----------- |
+| 1. UI Layer         | High   | Medium | None         | ✅ Complete |
+| 2. State Management | High   | Medium | None         | 🥇 Next     |
+| 3. Input Handler    | Medium | Low    | Phase 2      | 🥈 After    |
+| 4. Proper Types     | Low    | Low    | None         | Anytime     |
+| 5. Split Palettes   | Low    | Low    | None         | Anytime     |
+| 6. Render Pipeline  | Medium | High   | Phase 2      | Later       |
+| 7. Famous Locations | Low    | Low    | None         | Anytime     |
 
 ---
 
@@ -394,18 +383,33 @@ main.ts
 
 ## Metrics
 
-### Before
+### Before (original)
 
 | File                   | Lines     |
 | ---------------------- | --------- |
-| WebGPUFractalEngine.ts | 1,128     |
+| WebGPUFractalEngine.ts | 1,174     |
 | InputHandler.ts        | 717       |
 | famousLocations.ts     | 711       |
 | TouristMode.ts         | 680       |
 | Palettes.ts            | 384       |
-| **Total (main files)** | **3,620** |
+| **Total (main files)** | **3,666** |
 
-### After (estimated)
+### Current (after Phase 1)
+
+| File                   | Lines     |
+| ---------------------- | --------- |
+| WebGPUFractalEngine.ts | 927       |
+| InputHandler.ts        | 717       |
+| famousLocations.ts     | 711       |
+| TouristMode.ts         | 680       |
+| Palettes.ts            | 384       |
+| ui/ (6 files)          | 523       |
+| **Total**              | **3,942** |
+
+_Note: Total increased because UI code was duplicated (inline + separate). Engine reduced by 247
+lines._
+
+### Target (after all phases)
 
 | File                         | Lines      |
 | ---------------------------- | ---------- |
@@ -424,12 +428,14 @@ main.ts
 
 ---
 
-## Quick Wins (Do Today)
+## Quick Wins
 
-1. **Extract `createHelpContent()`** — Move to separate file, it's pure HTML generation
+Most quick wins from Phase 1 are now complete:
+
+1. ~~**Extract `createHelpContent()`**~~ ✅ Done (now in `HelpOverlay.ts`)
 2. **Extract iteration helpers** — `maxIterationsForZoom()` and constants to
    `src/fractal/iterations.ts`
-3. **Group notification methods** — All `show*Notification()` methods are copy-paste, unify them
+3. ~~**Group notification methods**~~ ✅ Done (now in `NotificationOverlay.ts`)
 4. **Type alias cleanup** — Replace `[number, number]` with `Complex` or `Point2D` type
 
 ---
