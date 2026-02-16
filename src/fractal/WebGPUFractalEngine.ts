@@ -89,6 +89,13 @@ export class WebGPUFractalEngine {
 
   private touristMode: TouristMode | null = null;
 
+  // FPS tracking
+  private fpsOverlay: HTMLElement | null = null;
+  private frameCount: number = 0;
+  private fps: number = 0;
+  private fpsUpdateInterval: number = 500; // Update FPS display every 500ms
+  private lastFpsUpdate: number = 0;
+
   private constructor(renderer: WebGPURenderer, canvas: HTMLCanvasElement) {
     this.renderer = renderer;
     this.viewState = new ViewState();
@@ -280,6 +287,18 @@ export class WebGPUFractalEngine {
       box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5); border: 1px solid rgba(255, 255, 255, 0.1);
     `;
     parent.appendChild(this.helpOverlay);
+
+    this.fpsOverlay = document.createElement('div');
+    this.fpsOverlay.id = 'fps-overlay';
+    this.fpsOverlay.style.cssText = `
+      position: fixed; bottom: 12px; right: 12px;
+      background: rgba(0, 0, 0, 0.6); color: #888;
+      padding: 4px 8px; border-radius: 4px;
+      font-family: ui-monospace, monospace; font-size: 12px;
+      pointer-events: none; z-index: 100;
+    `;
+    this.fpsOverlay.textContent = '-- FPS';
+    parent.appendChild(this.fpsOverlay);
   }
 
   private handleResize = (): void => {
@@ -294,6 +313,18 @@ export class WebGPUFractalEngine {
   private render(): void {
     const device = this.renderer.device;
     const canvas = this.renderer.canvas;
+    const now = performance.now();
+
+    // Update FPS counter
+    this.frameCount++;
+    if (now - this.lastFpsUpdate >= this.fpsUpdateInterval) {
+      this.fps = Math.round((this.frameCount * 1000) / (now - this.lastFpsUpdate));
+      this.frameCount = 0;
+      this.lastFpsUpdate = now;
+      if (this.fpsOverlay && !this.screenshotMode) {
+        this.fpsOverlay.textContent = `${this.fps} FPS`;
+      }
+    }
 
     const isJulia = isJuliaType(this.fractalType);
     const maxIter = this.maxIterationsOverride ??
@@ -869,6 +900,9 @@ export class WebGPUFractalEngine {
     if (this.debugOverlay) {
       this.debugOverlay.style.display = this.screenshotMode ? 'none' : 'block';
     }
+    if (this.fpsOverlay) {
+      this.fpsOverlay.style.display = this.screenshotMode ? 'none' : 'block';
+    }
     if (this.shareNotification) {
       // Clear any existing timeout to prevent premature hiding
       if (this.notificationTimeoutId !== null) {
@@ -1050,6 +1084,7 @@ export class WebGPUFractalEngine {
     this.debugOverlay?.remove();
     this.shareNotification?.remove();
     this.helpOverlay?.remove();
+    this.fpsOverlay?.remove();
     this.inputHandler.destroy();
     this.renderer.destroy();
   }
