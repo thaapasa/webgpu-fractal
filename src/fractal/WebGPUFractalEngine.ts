@@ -8,7 +8,14 @@
 import { WebGPURenderer } from '../renderer/WebGPURenderer';
 import { ViewState } from '../controls/ViewState';
 import { InputHandler } from '../controls/InputHandler';
-import { FractalType, FRACTAL_TYPE_NAMES, BASE_FRACTAL_COUNT, isJuliaType, getBaseFractalType, getJuliaVariant } from '../types';
+import {
+  FractalType,
+  FRACTAL_TYPE_NAMES,
+  BASE_FRACTAL_COUNT,
+  isJuliaType,
+  getBaseFractalType,
+  getJuliaVariant,
+} from '../types';
 import {
   BookmarkState,
   readUrlBookmark,
@@ -151,21 +158,25 @@ export class WebGPUFractalEngine {
     // Create bind group layout
     const bindGroupLayout = device.createBindGroupLayout({
       label: 'Bind Group Layout',
-      entries: [{
-        binding: 0,
-        visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
-        buffer: { type: 'uniform' },
-      }],
+      entries: [
+        {
+          binding: 0,
+          visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
+          buffer: { type: 'uniform' },
+        },
+      ],
     });
 
     // Create bind group
     this.bindGroup = device.createBindGroup({
       label: 'Bind Group',
       layout: bindGroupLayout,
-      entries: [{
-        binding: 0,
-        resource: { buffer: this.uniformBuffer },
-      }],
+      entries: [
+        {
+          binding: 0,
+          resource: { buffer: this.uniformBuffer },
+        },
+      ],
     });
 
     // Create pipeline layout
@@ -185,9 +196,11 @@ export class WebGPUFractalEngine {
       fragment: {
         module: shaderModule,
         entryPoint: 'fragmentMain',
-        targets: [{
-          format: this.renderer.format,
-        }],
+        targets: [
+          {
+            format: this.renderer.format,
+          },
+        ],
       },
       primitive: {
         topology: 'triangle-list',
@@ -334,32 +347,47 @@ export class WebGPUFractalEngine {
     }
 
     const isJulia = isJuliaType(this.fractalType);
-    const maxIter = this.maxIterationsOverride ??
-                    maxIterationsForZoom(this.viewState.zoom, isJulia);
+    const maxIter =
+      this.maxIterationsOverride ?? maxIterationsForZoom(this.viewState.zoom, isJulia);
 
     // Update debug overlay
     if (this.debugOverlay && !this.screenshotMode) {
       const z = this.viewState.zoom;
-      const zoomStr = z >= 1e6 ? z.toExponential(2) : z < 1 ? z.toPrecision(4) : String(Math.round(z));
+      const zoomStr =
+        z >= 1e6 ? z.toExponential(2) : z < 1 ? z.toPrecision(4) : String(Math.round(z));
       const iterSuffix = this.maxIterationsOverride !== null ? ' (manual)' : '';
-      const paletteName = this.paletteType === 'cosine'
-        ? getCosinePaletteName(this.cosinePaletteIndex)
-        : getGradientPaletteName(this.gradientPaletteIndex);
+      const paletteName =
+        this.paletteType === 'cosine'
+          ? getCosinePaletteName(this.cosinePaletteIndex)
+          : getGradientPaletteName(this.gradientPaletteIndex);
       const fractalName = FRACTAL_TYPE_NAMES[this.fractalType];
       const hdrStatus = this.renderer.hdrEnabled
-        ? (Math.abs(this.hdrBrightnessBias) > 0.01
-            ? `HDR (${this.hdrBrightnessBias > 0 ? '+' : ''}${this.hdrBrightnessBias.toFixed(2)})`
-            : 'HDR')
-        : (this.renderer.displaySupportsHDR ? 'HDR available' : 'SDR');
+        ? Math.abs(this.hdrBrightnessBias) > 0.01
+          ? `HDR (${this.hdrBrightnessBias > 0 ? '+' : ''}${this.hdrBrightnessBias.toFixed(2)})`
+          : 'HDR'
+        : this.renderer.displaySupportsHDR
+          ? 'HDR available'
+          : 'SDR';
       // Show SDR gradient brightness if adjusted (only relevant for SDR + gradient)
-      const sdrBrightnessStr = !this.renderer.hdrEnabled && this.paletteType === 'gradient' && Math.abs(this.sdrGradientBrightness - 1.0) > 0.01
-        ? `brightness ${this.sdrGradientBrightness.toFixed(1)}`
-        : '';
+      const sdrBrightnessStr =
+        !this.renderer.hdrEnabled &&
+        this.paletteType === 'gradient' &&
+        Math.abs(this.sdrGradientBrightness - 1.0) > 0.01
+          ? `brightness ${this.sdrGradientBrightness.toFixed(1)}`
+          : '';
       const juliaStatus = this.juliaPickerMode ? '🎯 Pick Julia point' : '';
-      const juliaCoords = isJulia ? `c=(${this.juliaC[0].toFixed(4)}, ${this.juliaC[1].toFixed(4)})` : '';
-      const colorOffsetStr = Math.abs(this.colorOffset) > 0.001 ? `offset ${this.colorOffset.toFixed(1)}` : '';
+      const juliaCoords = isJulia
+        ? `c=(${this.juliaC[0].toFixed(4)}, ${this.juliaC[1].toFixed(4)})`
+        : '';
+      const colorOffsetStr =
+        Math.abs(this.colorOffset) > 0.001 ? `offset ${this.colorOffset.toFixed(1)}` : '';
 
-      const statusParts = [fractalName, `zoom ${zoomStr}`, `iterations ${maxIter}${iterSuffix}`, paletteName];
+      const statusParts = [
+        fractalName,
+        `zoom ${zoomStr}`,
+        `iterations ${maxIter}${iterSuffix}`,
+        paletteName,
+      ];
       if (colorOffsetStr) statusParts.push(colorOffsetStr);
       if (sdrBrightnessStr) statusParts.push(sdrBrightnessStr);
       if (juliaCoords) statusParts.push(juliaCoords);
@@ -380,29 +408,30 @@ export class WebGPUFractalEngine {
     const palette = isCosine
       ? getCosinePalette(this.cosinePaletteIndex)
       : getGradientPalette(this.gradientPaletteIndex);
-    const paletteParams = this.interpolatedPaletteParams
-      ?? (isCosine
+    const paletteParams =
+      this.interpolatedPaletteParams ??
+      (isCosine
         ? getCosinePaletteParams(this.cosinePaletteIndex)
         : getGradientPaletteParams(this.gradientPaletteIndex, this.renderer.hdrEnabled));
 
     // Pack base uniforms (must match WGSL struct layout with padding)
-    floatView[0] = canvas.width;                    // resolution.x
-    floatView[1] = canvas.height;                   // resolution.y
-    floatView[2] = this.viewState.centerX;          // center.x
-    floatView[3] = this.viewState.centerY;          // center.y
-    floatView[4] = this.viewState.zoom;             // zoom
-    intView[5] = maxIter;                           // maxIterations
-    floatView[6] = performance.now() * 0.001;       // time
-    floatView[7] = this.colorOffset;                // colorOffset
-    intView[8] = this.fractalType;                  // fractalType
+    floatView[0] = canvas.width; // resolution.x
+    floatView[1] = canvas.height; // resolution.y
+    floatView[2] = this.viewState.centerX; // center.x
+    floatView[3] = this.viewState.centerY; // center.y
+    floatView[4] = this.viewState.zoom; // zoom
+    intView[5] = maxIter; // maxIterations
+    floatView[6] = performance.now() * 0.001; // time
+    floatView[7] = this.colorOffset; // colorOffset
+    intView[8] = this.fractalType; // fractalType
     // padding at 9 (_pad_jc)
-    floatView[10] = this.juliaC[0];                 // juliaC.x
-    floatView[11] = this.juliaC[1];                 // juliaC.y
+    floatView[10] = this.juliaC[0]; // juliaC.x
+    floatView[11] = this.juliaC[1]; // juliaC.y
     intView[12] = this.renderer.hdrEnabled ? 1 : 0; // hdrEnabled
-    floatView[13] = this.hdrBrightnessBias;         // hdrBrightnessBias
+    floatView[13] = this.hdrBrightnessBias; // hdrBrightnessBias
     intView[14] = paletteParams.type === 'cosine' ? 0 : 1; // paletteType
-    intView[15] = palette.isMonotonic ? 1 : 0;      // isMonotonic
-    floatView[16] = this.sdrGradientBrightness;     // sdrGradientBrightness
+    intView[15] = palette.isMonotonic ? 1 : 0; // isMonotonic
+    floatView[16] = this.sdrGradientBrightness; // sdrGradientBrightness
     // padding at 17, 18, 19 (_pad0, _pad1, _pad2)
 
     // Pack palette parameters (offset 20 = 80 bytes, 16-byte aligned for vec3f)
@@ -465,12 +494,14 @@ export class WebGPUFractalEngine {
     const textureView = this.renderer.getCurrentTexture().createView();
 
     const renderPass = commandEncoder.beginRenderPass({
-      colorAttachments: [{
-        view: textureView,
-        clearValue: { r: 0, g: 0, b: 0, a: 1 },
-        loadOp: 'clear',
-        storeOp: 'store',
-      }],
+      colorAttachments: [
+        {
+          view: textureView,
+          clearValue: { r: 0, g: 0, b: 0, a: 1 },
+          loadOp: 'clear',
+          storeOp: 'store',
+        },
+      ],
     });
 
     renderPass.setPipeline(this.pipeline);
@@ -493,11 +524,10 @@ export class WebGPUFractalEngine {
 
   private adjustMaxIterations(direction: 1 | -1): void {
     const isJulia = isJuliaType(this.fractalType);
-    const currentIter = this.maxIterationsOverride ??
-                        maxIterationsForZoom(this.viewState.zoom, isJulia);
-    const newIter = direction > 0
-      ? currentIter * ITERATION_ADJUST_RATIO
-      : currentIter / ITERATION_ADJUST_RATIO;
+    const currentIter =
+      this.maxIterationsOverride ?? maxIterationsForZoom(this.viewState.zoom, isJulia);
+    const newIter =
+      direction > 0 ? currentIter * ITERATION_ADJUST_RATIO : currentIter / ITERATION_ADJUST_RATIO;
     this.maxIterationsOverride = Math.round(Math.max(1, newIter));
     this.render();
   }
@@ -528,7 +558,10 @@ export class WebGPUFractalEngine {
     } else if (this.paletteType === 'gradient') {
       // SDR mode with gradient palette: adjust gradient brightness
       // Adjust by 0.2 each step, clamped to 0.1 to 5.0
-      this.sdrGradientBrightness = Math.max(0.1, Math.min(10.0, this.sdrGradientBrightness + direction * 0.2));
+      this.sdrGradientBrightness = Math.max(
+        0.1,
+        Math.min(10.0, this.sdrGradientBrightness + direction * 0.2)
+      );
     }
     // Cosine palettes in SDR mode: do nothing (no effect)
     this.render();
@@ -548,13 +581,15 @@ export class WebGPUFractalEngine {
   // --- Palette controls ---
 
   private cycleCosinePalette(direction: 1 | -1): void {
-    this.cosinePaletteIndex = (this.cosinePaletteIndex + direction + COSINE_PALETTE_COUNT) % COSINE_PALETTE_COUNT;
+    this.cosinePaletteIndex =
+      (this.cosinePaletteIndex + direction + COSINE_PALETTE_COUNT) % COSINE_PALETTE_COUNT;
     this.paletteType = 'cosine';
     this.render();
   }
 
   private cycleGradientPalette(direction: 1 | -1): void {
-    this.gradientPaletteIndex = (this.gradientPaletteIndex + direction + GRADIENT_PALETTE_COUNT) % GRADIENT_PALETTE_COUNT;
+    this.gradientPaletteIndex =
+      (this.gradientPaletteIndex + direction + GRADIENT_PALETTE_COUNT) % GRADIENT_PALETTE_COUNT;
     this.paletteType = 'gradient';
     this.render();
   }
@@ -761,7 +796,8 @@ export class WebGPUFractalEngine {
         {
           onUpdate: (state) => this.applyTouristUpdate(state),
           onRender: () => this.render(),
-          onLocationNotification: (name, description) => this.showLocationNotification(name, description),
+          onLocationNotification: (name, description) =>
+            this.showLocationNotification(name, description),
         },
         this.getBookmarkState()
       );
@@ -859,9 +895,7 @@ export class WebGPUFractalEngine {
       options.push(`maxIterationsOverride: ${this.maxIterationsOverride}`);
     }
 
-    const optionsStr = options.length > 0
-      ? `,\n    { ${options.join(', ')} }`
-      : '';
+    const optionsStr = options.length > 0 ? `,\n    { ${options.join(', ')} }` : '';
 
     const code = `createLocation(
     'TODO: Name',
@@ -871,7 +905,10 @@ export class WebGPUFractalEngine {
     ${this.viewState.centerX}, ${this.viewState.centerY}, ${this.viewState.zoom}${optionsStr}
   ),`;
 
-    console.log('%c📍 createLocation() code:', 'color: #4ade80; font-weight: bold; font-size: 14px;');
+    console.log(
+      '%c📍 createLocation() code:',
+      'color: #4ade80; font-weight: bold; font-size: 14px;'
+    );
     console.log(code);
   }
 
@@ -1048,9 +1085,11 @@ export class WebGPUFractalEngine {
     if (!this.touristMode) {
       this.touristMode = new TouristMode(
         {
-          onUpdate: (state, interpolatedPaletteParams) => this.applyTouristUpdate(state, interpolatedPaletteParams),
+          onUpdate: (state, interpolatedPaletteParams) =>
+            this.applyTouristUpdate(state, interpolatedPaletteParams),
           onRender: () => this.render(),
-          onLocationNotification: (name, description) => this.showLocationNotification(name, description),
+          onLocationNotification: (name, description) =>
+            this.showLocationNotification(name, description),
         },
         this.getBookmarkState()
       );
@@ -1076,14 +1115,18 @@ export class WebGPUFractalEngine {
     }
   }
 
-  private applyTouristUpdate(state: Partial<BookmarkState>, interpolatedPaletteParams?: PaletteParams): void {
+  private applyTouristUpdate(
+    state: Partial<BookmarkState>,
+    interpolatedPaletteParams?: PaletteParams
+  ): void {
     if (state.centerX !== undefined) this.viewState.centerX = state.centerX;
     if (state.centerY !== undefined) this.viewState.centerY = state.centerY;
     if (state.zoom !== undefined) this.viewState.zoom = state.zoom;
     if (state.fractalType !== undefined) this.fractalType = state.fractalType;
     if (state.paletteType !== undefined) this.paletteType = state.paletteType;
     if (state.cosinePaletteIndex !== undefined) this.cosinePaletteIndex = state.cosinePaletteIndex;
-    if (state.gradientPaletteIndex !== undefined) this.gradientPaletteIndex = state.gradientPaletteIndex;
+    if (state.gradientPaletteIndex !== undefined)
+      this.gradientPaletteIndex = state.gradientPaletteIndex;
     if (state.colorOffset !== undefined) this.colorOffset = state.colorOffset;
 
     // Store interpolated palette params for use in render()
@@ -1101,15 +1144,18 @@ export class WebGPUFractalEngine {
 
     this.shareNotification.innerHTML = started
       ? '🚀 <strong>Tourist Mode</strong> — Sit back and enjoy the ride!<br><span style="color: #aaa; font-size: 12px;">Click or press T to take control</span>'
-      : '🎮 <strong>Manual Control</strong> — You\'re driving now';
+      : "🎮 <strong>Manual Control</strong> — You're driving now";
     this.shareNotification.style.color = started ? '#60a5fa' : '#4ade80';
     this.shareNotification.style.opacity = '1';
-    this.notificationTimeoutId = setTimeout(() => {
-      if (this.shareNotification) {
-        this.shareNotification.style.opacity = '0';
-      }
-      this.notificationTimeoutId = null;
-    }, started ? 3000 : 1500);
+    this.notificationTimeoutId = setTimeout(
+      () => {
+        if (this.shareNotification) {
+          this.shareNotification.style.opacity = '0';
+        }
+        this.notificationTimeoutId = null;
+      },
+      started ? 3000 : 1500
+    );
   }
 
   destroy(): void {

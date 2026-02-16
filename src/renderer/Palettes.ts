@@ -77,7 +77,7 @@ const COSINE_PALETTES: CosinePalette[] = [
       a: [0.5, 0.5, 0.5],
       b: [0.5, 0.5, 0.5],
       c: [1.0, 0.7, 0.4],
-      d: [0.0, 0.15, 0.20],
+      d: [0.0, 0.15, 0.2],
     },
   },
   {
@@ -102,7 +102,7 @@ const COSINE_PALETTES: CosinePalette[] = [
       d: [0.3, 0.2, 0.2],
     },
   },
-    {
+  {
     name: 'Neon',
     isMonotonic: false,
     params: {
@@ -380,4 +380,3 @@ export function getCosinePaletteName(index: number): string {
 export function getGradientPaletteName(index: number): string {
   return GRADIENT_PALETTES[index % GRADIENT_PALETTE_COUNT].name;
 }
-

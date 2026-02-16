@@ -1,22 +1,35 @@
 # Fractal Explorer
 
-_GPU-accelerated fractal rendering in the browser with HDR support. Because apparently you monkeys need something pretty to look at._
+_GPU-accelerated fractal rendering in the browser with HDR support. Because apparently you monkeys
+need something pretty to look at._
 
 ---
 
 ## What Is This?
 
-**Fractal Explorer** is a webapp that renders fractals — including the [Mandelbrot set](https://en.wikipedia.org/wiki/Mandelbrot_set), [Burning Ship](https://en.wikipedia.org/wiki/Burning_Ship_fractal), [Tricorn](https://en.wikipedia.org/wiki/Tricorn_(mathematics)), [Phoenix](https://en.wikipedia.org/wiki/Phoenix_fractal), and many more with their [Julia set](https://en.wikipedia.org/wiki/Julia_set) variants — those infinitely zoomable mathematical patterns that look like they came from another dimension — **directly on your GPU** using WebGPU. Every pixel is computed in parallel. No CPU sweat. No waiting. Just smooth, beautiful math.
+**Fractal Explorer** is a webapp that renders fractals — including the
+[Mandelbrot set](https://en.wikipedia.org/wiki/Mandelbrot_set),
+[Burning Ship](https://en.wikipedia.org/wiki/Burning_Ship_fractal),
+[Tricorn](<https://en.wikipedia.org/wiki/Tricorn_(mathematics)>),
+[Phoenix](https://en.wikipedia.org/wiki/Phoenix_fractal), and many more with their
+[Julia set](https://en.wikipedia.org/wiki/Julia_set) variants — those infinitely zoomable
+mathematical patterns that look like they came from another dimension — **directly on your GPU**
+using WebGPU. Every pixel is computed in parallel. No CPU sweat. No waiting. Just smooth, beautiful
+math.
 
-**HDR Support**: On compatible displays, the fractal boundary glows with true high dynamic range brightness — colors that literally shine brighter than standard white. It's like the math is on fire.
+**HDR Support**: On compatible displays, the fractal boundary glows with true high dynamic range
+brightness — colors that literally shine brighter than standard white. It's like the math is on
+fire.
 
-The goal: open the app, see a fractal, drag to pan, scroll to zoom, and fall into infinity. No loading screens. No configuration menus. Just *bam*.
+The goal: open the app, see a fractal, drag to pan, scroll to zoom, and fall into infinity. No
+loading screens. No configuration menus. Just _bam_.
 
 ---
 
 ## For Monkeys Who Want to Run It
 
-**Prerequisites:** [Node.js](https://nodejs.org/) (v20+ required) and a WebGPU-capable browser (Chrome 113+, Edge 113+, Firefox Nightly).
+**Prerequisites:** [Node.js](https://nodejs.org/) (v20+ required) and a WebGPU-capable browser
+(Chrome 113+, Edge 113+, Firefox Nightly).
 
 ```bash
 # Install dependencies
@@ -26,7 +39,9 @@ npm install
 npm run dev
 ```
 
-Then open your browser at the URL Vite prints (usually `http://localhost:5173`). If you see a blank page, check the console. If you see "WebGPU Not Supported," use a modern browser with WebGPU enabled.
+Then open your browser at the URL Vite prints (usually `http://localhost:5173`). If you see a blank
+page, check the console. If you see "WebGPU Not Supported," use a modern browser with WebGPU
+enabled.
 
 **Build for production:**
 
@@ -47,16 +62,18 @@ Output goes to `examples/`.
 
 ## Live Example
 
-**[Fractal Explorer](https://thaapasa.github.io/webgpu-fractal/examples/webgpu/)** — try it in the browser; click [here](https://thaapasa.github.io/webgpu-fractal/examples/webgl/) for WebGL version.
+**[Fractal Explorer](https://thaapasa.github.io/webgpu-fractal/examples/webgpu/)** — try it in the
+browser; click [here](https://thaapasa.github.io/webgpu-fractal/examples/webgl/) for WebGL version.
 
-A static build also lives in [examples/webgpu/](./examples/webgpu/); run `npm run build:examples` then `npx serve examples` to preview locally.
+A static build also lives in [examples/webgpu/](./examples/webgpu/); run `npm run build:examples`
+then `npx serve examples` to preview locally.
 
 ---
 
 ## Controls (Pay Attention)
 
 | Input            | Action                                     |
-|------------------|--------------------------------------------|
+| ---------------- | ------------------------------------------ |
 | **Mouse drag**   | Pan                                        |
 | **Scroll wheel** | Zoom (centered on cursor)                  |
 | **Double‑click** | Zoom in at that spot                       |
@@ -83,33 +100,39 @@ Zoom centers on where you're pointing. Not the center of the screen. Because tha
 
 ### Famous Locations
 
-Press number keys **1–9** to instantly visit curated fractal locations. Locations are **context-sensitive** — the available spots depend on your current fractal type. Each of the 10 fractal families has its own collection of interesting locations, including both base fractal views and Julia set showcases.
+Press number keys **1–9** to instantly visit curated fractal locations. Locations are
+**context-sensitive** — the available spots depend on your current fractal type. Each of the 10
+fractal families has its own collection of interesting locations, including both base fractal views
+and Julia set showcases.
 
-| Fractal Family  | Example Locations                                            |
-|-----------------|--------------------------------------------------------------|
-| Mandelbrot      | Seahorse Valley, Elephant Valley, Douady Rabbit Julia        |
-| Burning Ship    | Main Ship, The Armada, Space Brain Julia                     |
-| Tricorn         | Lightning Bolts, Spiral Mosaic Julia                         |
-| Celtic          | Celtic Knot, Tendrils Julia                                  |
-| Buffalo         | Overgrown Cities, Industrial Snowflake Julia                 |
-| Phoenix         | Classic Phoenix Julia, Fiery Phoenix                         |
-| Multibrot³      | Three-fold Spirals, Spiral Galaxies Julia                    |
-| Multibrot⁴      | Atomic Spirals Julia, Triple Elephant Valley                 |
-| Funky           | Tulip Bulb, Battleship Julia                                 |
-| Perpendicular   | Seed Pod, Peacock Eyes Julia                                 |
+| Fractal Family | Example Locations                                     |
+| -------------- | ----------------------------------------------------- |
+| Mandelbrot     | Seahorse Valley, Elephant Valley, Douady Rabbit Julia |
+| Burning Ship   | Main Ship, The Armada, Space Brain Julia              |
+| Tricorn        | Lightning Bolts, Spiral Mosaic Julia                  |
+| Celtic         | Celtic Knot, Tendrils Julia                           |
+| Buffalo        | Overgrown Cities, Industrial Snowflake Julia          |
+| Phoenix        | Classic Phoenix Julia, Fiery Phoenix                  |
+| Multibrot³     | Three-fold Spirals, Spiral Galaxies Julia             |
+| Multibrot⁴     | Atomic Spirals Julia, Triple Elephant Valley          |
+| Funky          | Tulip Bulb, Battleship Julia                          |
+| Perpendicular  | Seed Pod, Peacock Eyes Julia                          |
 
 Switch fractal types with `f`/`F`, then use `1`–`9` to explore that family's highlights.
 
 ### Link Sharing
 
-Press **s** to copy a shareable URL to your clipboard. The URL encodes your current position, zoom level, fractal type, color palette, and all settings. Paste the URL to share your exact view with others—or bookmark it to return later.
+Press **s** to copy a shareable URL to your clipboard. The URL encodes your current position, zoom
+level, fractal type, color palette, and all settings. Paste the URL to share your exact view with
+others—or bookmark it to return later.
 
 ### Fractal Types
 
-The app includes **10 base fractal types**, each with a Julia variant (20 total). Cycle through them with `f`/`F`:
+The app includes **10 base fractal types**, each with a Julia variant (20 total). Cycle through them
+with `f`/`F`:
 
 | Base Fractal      | Formula                                 | Julia Variant       |
-|-------------------|-----------------------------------------|---------------------|
+| ----------------- | --------------------------------------- | ------------------- |
 | **Mandelbrot**    | z = z² + c                              | Mandelbrot Julia    |
 | **Burning Ship**  | z = (\|Re(z)\| + i\|Im(z)\|)² + c       | Burning Ship Julia  |
 | **Tricorn**       | z = conj(z)² + c                        | Tricorn Julia       |
@@ -123,21 +146,25 @@ The app includes **10 base fractal types**, each with a Julia variant (20 total)
 
 ### Julia Picker Mode
 
-Press **j** to enter Julia picker mode. Click anywhere on any base fractal to select a Julia constant. The corresponding Julia set variant will render immediately. Press **j** again to return to your previous fractal and view. This works with all 10 base fractal types — each has its own unique Julia family to explore.
+Press **j** to enter Julia picker mode. Click anywhere on any base fractal to select a Julia
+constant. The corresponding Julia set variant will render immediately. Press **j** again to return
+to your previous fractal and view. This works with all 10 base fractal types — each has its own
+unique Julia family to explore.
 
 ---
 
 ## Tech Stack
 
-| Layer     | Technology  |
-|-----------|-------------|
-| Language  | TypeScript  |
-| Build     | Vite        |
-| Rendering | WebGPU      |
-| Shaders   | WGSL        |
+| Layer     | Technology                          |
+| --------- | ----------------------------------- |
+| Language  | TypeScript                          |
+| Build     | Vite                                |
+| Rendering | WebGPU                              |
+| Shaders   | WGSL                                |
 | HDR       | Extended tone mapping (rgba16float) |
 
-WebGPU, not WebGL. It's 2026 and we're doing this properly. HDR support requires `toneMapping: { mode: 'extended' }` — that's the magic sauce.
+WebGPU, not WebGL. It's 2026 and we're doing this properly. HDR support requires
+`toneMapping: { mode: 'extended' }` — that's the magic sauce.
 
 ---
 
@@ -162,15 +189,19 @@ src/
     └── InputHandler.ts     # Mouse & touch → view changes
 ```
 
-`docs/` has the spec and phase‑1 implementation plan. Read them if you want to know *why* things are the way they are.
+`docs/` has the spec and phase‑1 implementation plan. Read them if you want to know _why_ things are
+the way they are.
 
 ---
 
 ## Browser Support
 
-WebGPU-capable browsers: Chrome 113+, Edge 113+, Firefox Nightly (with WebGPU enabled). Safari support is in progress. Older browsers get a polite error message. Update your stuff.
+WebGPU-capable browsers: Chrome 113+, Edge 113+, Firefox Nightly (with WebGPU enabled). Safari
+support is in progress. Older browsers get a polite error message. Update your stuff.
 
-**HDR Support:** Requires a display that reports `(dynamic-range: high)` to the browser. Most modern HDR monitors and MacBooks with HDR displays work. The app auto-detects and enables HDR when available.
+**HDR Support:** Requires a display that reports `(dynamic-range: high)` to the browser. Most modern
+HDR monitors and MacBooks with HDR displays work. The app auto-detects and enables HDR when
+available.
 
 ---
 
@@ -180,8 +211,10 @@ Detailed documentation lives in `docs/`:
 
 - [Architecture Overview](./docs/architecture.md) — System design and component reference
 - [Project Specification](./docs/fractal-webapp-spec.md) — Vision and requirements
-- [Phase 1 Implementation Plan](./docs/phase-1-implementation-plan.md) — Technical implementation plan (✅ complete)
-- [Deep Zoom Precision Plan](./docs/deep-zoom-precision-plan.md) — Arbitrary precision roadmap (future)
+- [Phase 1 Implementation Plan](./docs/phase-1-implementation-plan.md) — Technical implementation
+  plan (✅ complete)
+- [Deep Zoom Precision Plan](./docs/deep-zoom-precision-plan.md) — Arbitrary precision roadmap
+  (future)
 
 ---
 
@@ -189,6 +222,7 @@ Detailed documentation lives in `docs/`:
 
 - **Skippy the Magnificent** — implementation, architecture, and general awesomeness.
 - **Joe Bishop** — the "crazy ideas" and spec. He doesn't understand half of it. It still works.
-- **Jennifer Simms** — documentation, organization, and making sure everyone can find what they need.
+- **Jennifer Simms** — documentation, organization, and making sure everyone can find what they
+  need.
 
-*"Trust the awesomeness."*
+_"Trust the awesomeness."_

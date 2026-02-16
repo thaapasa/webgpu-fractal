@@ -1,23 +1,29 @@
 # Fractal Explorer - Architecture Overview
 
-_"Sir, this document provides a technical overview of the system architecture for anyone joining the project. I've organized it by component responsibility."_
-_— Jennifer Simms_
+_"Sir, this document provides a technical overview of the system architecture for anyone joining the
+project. I've organized it by component responsibility."_ _— Jennifer Simms_
 
 ---
 
 ## Document Info
 
-| Field        | Value                     |
-|--------------|---------------------------|
-| Last Updated | February 2026             |
-| Status       | Current implementation    |
-| Maintainer   | Simms (documentation)     |
+| Field | Value |
+
+| ------------ | ---------------------- | | Last Updated | February 2026 | | Status | Current
+implementation | | Maintainer | Simms (documentation) |
+
+> **📋 Refactoring Planned**: See [cleanup-plan.md](./cleanup-plan.md) for the planned architectural
+> improvements, including extraction of UI components, unified state management, and simplified
+> input handling.
 
 ---
 
 ## System Overview
 
-Fractal Explorer is a GPU-accelerated fractal renderer built with TypeScript and WebGPU. The application supports 10 base fractal types (Mandelbrot, Burning Ship, Tricorn, Celtic, Buffalo, Phoenix, Multibrot³, Multibrot⁴, Funky, Perpendicular) each with a Julia variant (20 total), runs entirely in the browser, and features HDR (High Dynamic Range) rendering on compatible displays.
+Fractal Explorer is a GPU-accelerated fractal renderer built with TypeScript and WebGPU. The
+application supports 10 base fractal types (Mandelbrot, Burning Ship, Tricorn, Celtic, Buffalo,
+Phoenix, Multibrot³, Multibrot⁴, Funky, Perpendicular) each with a Julia variant (20 total), runs
+entirely in the browser, and features HDR (High Dynamic Range) rendering on compatible displays.
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -48,7 +54,7 @@ Fractal Explorer is a GPU-accelerated fractal renderer built with TypeScript and
 ## Technology Stack
 
 | Layer      | Technology                          | Version |
-|------------|-------------------------------------|---------|
+| ---------- | ----------------------------------- | ------- |
 | Language   | TypeScript                          | ^5.3    |
 | Build Tool | Vite                                | ^5.0    |
 | Rendering  | WebGPU                              | —       |
@@ -83,17 +89,23 @@ The central orchestrator that ties all components together.
 
 **Key Features:**
 
-- **Multiple fractal types**: 10 base types (Mandelbrot, Burning Ship, Tricorn, Celtic, Buffalo, Phoenix, Multibrot³, Multibrot⁴, Funky, Perpendicular), each with Julia variant — 20 total (cycle with `f`/`F` keys)
+- **Multiple fractal types**: 10 base types (Mandelbrot, Burning Ship, Tricorn, Celtic, Buffalo,
+  Phoenix, Multibrot³, Multibrot⁴, Funky, Perpendicular), each with Julia variant — 20 total (cycle
+  with `f`/`F` keys)
 - **Julia picker mode**: Select Julia constant by clicking on any base fractal (`j` key)
-- **Auto-scaling iterations**: Automatically increases `maxIterations` as zoom deepens (configurable with `+`/`-` keys)
-- **Two palette types**: 12 cosine palettes (cycle with `c`/`C`) and 7 gradient palettes (cycle with `g`/`G`), with separate SDR and HDR variants for gradients
+- **Auto-scaling iterations**: Automatically increases `maxIterations` as zoom deepens (configurable
+  with `+`/`-` keys)
+- **Two palette types**: 12 cosine palettes (cycle with `c`/`C`) and 7 gradient palettes (cycle with
+  `g`/`G`), with separate SDR and HDR variants for gradients
 - **Color offset**: Shift the color cycle with `,`/`.` keys
 - **HDR rendering**: Auto-detected, with adjustable brightness bias (`b`/`B`/`d` keys)
-- **Famous locations**: Context-sensitive curated spots accessible via number keys `1`–`9`; each fractal family has its own location collection
+- **Famous locations**: Context-sensitive curated spots accessible via number keys `1`–`9`; each
+  fractal family has its own location collection
 - **URL bookmarking**: Share views via URL hash parameters (`s` to copy link)
 - **Help overlay**: In-app keyboard shortcut reference (`h` to toggle)
 - **Screenshot mode**: Hide all UI for clean screenshots (`Space` to toggle)
-- **Debug overlay**: Shows current fractal type, zoom level, iteration count, palette name, HDR status, and Julia constant (when applicable)
+- **Debug overlay**: Shows current fractal type, zoom level, iteration count, palette name, HDR
+  status, and Julia constant (when applicable)
 
 **Render Pipeline:**
 
@@ -119,15 +131,16 @@ Manages the WebGPU context and canvas lifecycle.
 ```typescript
 context.configure({
   device: this.device,
-  format: 'rgba16float',           // 16-bit float per channel
+  format: 'rgba16float', // 16-bit float per channel
   alphaMode: 'opaque',
-  toneMapping: { mode: 'extended' } // Enables HDR output
+  toneMapping: { mode: 'extended' }, // Enables HDR output
 });
 ```
 
 **HDR Detection:**
 
-The renderer uses `matchMedia('(dynamic-range: high)')` to detect HDR displays and listens for changes when the user modifies display settings.
+The renderer uses `matchMedia('(dynamic-range: high)')` to detect HDR displays and listens for
+changes when the user modifies display settings.
 
 ### 4. Palettes (`src/renderer/Palettes.ts`)
 
@@ -140,12 +153,13 @@ Defines all color palettes in TypeScript, passed to the GPU as uniform parameter
 
 **HDR Variants:**
 
-Monotonic palettes have optional HDR-specific color stops (brighter, more saturated) because HDR uses a brightness curve rather than color darkness to show iteration depth.
+Monotonic palettes have optional HDR-specific color stops (brighter, more saturated) because HDR
+uses a brightness curve rather than color darkness to show iteration depth.
 
 **Available Palettes (12 total):**
 
 | Index | Name      | Type      |
-|-------|-----------|-----------|
+| ----- | --------- | --------- |
 | 0     | Rainbow   | Cycling   |
 | 1     | Blue      | Monotonic |
 | 2     | Gold      | Monotonic |
@@ -166,7 +180,7 @@ Manages the current viewport in fractal coordinate space.
 **State:**
 
 | Property  | Type   | Description                          |
-|-----------|--------|--------------------------------------|
+| --------- | ------ | ------------------------------------ |
 | `centerX` | number | Real component of view center        |
 | `centerY` | number | Imaginary component of view center   |
 | `zoom`    | number | Zoom factor (1.0 = full set visible) |
@@ -196,7 +210,7 @@ Translates browser events into view state changes.
 **Supported Interactions:**
 
 | Input        | Action                                   |
-|--------------|------------------------------------------|
+| ------------ | ---------------------------------------- |
 | Mouse drag   | Pan                                      |
 | Scroll wheel | Zoom at cursor                           |
 | Double-click | Zoom in 2× at cursor                     |
@@ -233,7 +247,7 @@ Handles URL-based state persistence and sharing.
 **URL Parameters:**
 
 | Param | Full Name       | Description                                 |
-|-------|-----------------|---------------------------------------------|
+| ----- | --------------- | ------------------------------------------- |
 | `t`   | type            | Fractal type (0–19)                         |
 | `x`   | centerX         | View center X coordinate                    |
 | `y`   | centerY         | View center Y coordinate                    |
@@ -253,22 +267,25 @@ Curated collection of interesting fractal coordinates, organized by fractal fami
 
 **Context-Sensitive Locations:**
 
-Locations are organized by base fractal type. When you press a number key `1`–`9`, you visit a location from the current fractal's family. Both base and Julia variants of a fractal share the same location collection.
+Locations are organized by base fractal type. When you press a number key `1`–`9`, you visit a
+location from the current fractal's family. Both base and Julia variants of a fractal share the same
+location collection.
 
-| Fractal Family  | # Locations | Example Locations                           |
-|-----------------|-------------|---------------------------------------------|
-| Mandelbrot      | 9           | Seahorse Valley, Douady Rabbit Julia        |
-| Burning Ship    | 8           | Main Ship, The Armada, Space Brain Julia    |
-| Tricorn         | 7           | Lightning Bolts Julia, Spiral Mosaic Julia  |
-| Celtic          | 7           | Celtic Knot, Tendrils Julia, Petri Dish     |
-| Buffalo         | 6           | Overgrown Cities, Industrial Snowflake      |
-| Phoenix         | 5           | Classic Phoenix Julia, Fiery Phoenix        |
-| Multibrot³      | 7           | Three-fold Spirals, Spiral Galaxies Julia   |
-| Multibrot⁴      | 5           | Atomic Spirals Julia, Triple Elephant       |
-| Funky           | 7           | Tulip Bulb, Battleship Julia                |
-| Perpendicular   | 6           | Seed Pod, Peacock Eyes Julia                |
+| Fractal Family | # Locations | Example Locations                          |
+| -------------- | ----------- | ------------------------------------------ |
+| Mandelbrot     | 9           | Seahorse Valley, Douady Rabbit Julia       |
+| Burning Ship   | 8           | Main Ship, The Armada, Space Brain Julia   |
+| Tricorn        | 7           | Lightning Bolts Julia, Spiral Mosaic Julia |
+| Celtic         | 7           | Celtic Knot, Tendrils Julia, Petri Dish    |
+| Buffalo        | 6           | Overgrown Cities, Industrial Snowflake     |
+| Phoenix        | 5           | Classic Phoenix Julia, Fiery Phoenix       |
+| Multibrot³     | 7           | Three-fold Spirals, Spiral Galaxies Julia  |
+| Multibrot⁴     | 5           | Atomic Spirals Julia, Triple Elephant      |
+| Funky          | 7           | Tulip Bulb, Battleship Julia               |
+| Perpendicular  | 6           | Seed Pod, Peacock Eyes Julia               |
 
-Each location stores complete `BookmarkState` including position, zoom, fractal type, palette, color offset, and iteration settings.
+Each location stores complete `BookmarkState` including position, zoom, fractal type, palette, color
+offset, and iteration settings.
 
 ---
 
@@ -291,7 +308,7 @@ The core fractal computation with HDR support:
 **Uniforms (passed via uniform buffer):**
 
 | Uniform             | Type  | Description                            |
-|---------------------|-------|----------------------------------------|
+| ------------------- | ----- | -------------------------------------- |
 | `resolution`        | vec2f | Canvas size in pixels                  |
 | `center`            | vec2f | View center in fractal coords          |
 | `zoom`              | f32   | Current zoom level                     |
@@ -309,35 +326,36 @@ The core fractal computation with HDR support:
 
 **Fractal Types:**
 
-| Value | Name                   | Formula                                    |
-|-------|------------------------|--------------------------------------------|
-| 0     | Mandelbrot             | z = z² + c                                 |
-| 1     | Mandelbrot Julia       | z = z² + c (z starts at pixel, c fixed)    |
-| 2     | Burning Ship           | z = (\|Re(z)\| + i\|Im(z)\|)² + c          |
-| 3     | Burning Ship Julia     | Burning Ship with fixed c                  |
-| 4     | Tricorn                | z = conj(z)² + c                           |
-| 5     | Tricorn Julia          | Tricorn with fixed c                       |
-| 6     | Celtic                 | z = (\|Re(z²)\| + i·Im(z²)) + c            |
-| 7     | Celtic Julia           | Celtic with fixed c                        |
-| 8     | Buffalo                | z = \|z²\| + c                             |
-| 9     | Buffalo Julia          | Buffalo with fixed c                       |
-| 10    | Phoenix                | z = z² + c + p·z_prev                      |
-| 11    | Phoenix Julia          | Phoenix with fixed c                       |
-| 12    | Multibrot³             | z = z³ + c                                 |
-| 13    | Multibrot³ Julia       | Multibrot³ with fixed c                    |
-| 14    | Multibrot⁴             | z = z⁴ + c                                 |
-| 15    | Multibrot⁴ Julia       | Multibrot⁴ with fixed c                    |
-| 16    | Funky                  | z = \|Re(z)\| + i·Im(z²) + c               |
-| 17    | Funky Julia            | Funky with fixed c                         |
-| 18    | Perpendicular          | z = Re(z)·\|Im(z)\| (perpendicular) + c    |
-| 19    | Perpendicular Julia    | Perpendicular with fixed c                 |
+| Value | Name                | Formula                                 |
+| ----- | ------------------- | --------------------------------------- |
+| 0     | Mandelbrot          | z = z² + c                              |
+| 1     | Mandelbrot Julia    | z = z² + c (z starts at pixel, c fixed) |
+| 2     | Burning Ship        | z = (\|Re(z)\| + i\|Im(z)\|)² + c       |
+| 3     | Burning Ship Julia  | Burning Ship with fixed c               |
+| 4     | Tricorn             | z = conj(z)² + c                        |
+| 5     | Tricorn Julia       | Tricorn with fixed c                    |
+| 6     | Celtic              | z = (\|Re(z²)\| + i·Im(z²)) + c         |
+| 7     | Celtic Julia        | Celtic with fixed c                     |
+| 8     | Buffalo             | z = \|z²\| + c                          |
+| 9     | Buffalo Julia       | Buffalo with fixed c                    |
+| 10    | Phoenix             | z = z² + c + p·z_prev                   |
+| 11    | Phoenix Julia       | Phoenix with fixed c                    |
+| 12    | Multibrot³          | z = z³ + c                              |
+| 13    | Multibrot³ Julia    | Multibrot³ with fixed c                 |
+| 14    | Multibrot⁴          | z = z⁴ + c                              |
+| 15    | Multibrot⁴ Julia    | Multibrot⁴ with fixed c                 |
+| 16    | Funky               | z = \|Re(z)\| + i·Im(z²) + c            |
+| 17    | Funky Julia         | Funky with fixed c                      |
+| 18    | Perpendicular       | z = Re(z)·\|Im(z)\| (perpendicular) + c |
+| 19    | Perpendicular Julia | Perpendicular with fixed c              |
 
 **Algorithm:**
 
 1. Map pixel UV to complex coordinate
 2. For Mandelbrot/Burning Ship: z starts at 0, c is pixel position
 3. For Julia variants: z starts at pixel position, c is fixed constant
-4. Iterate z = z² + c (with absolute value step for Burning Ship variants) until |z| > 2 or max iterations reached
+4. Iterate z = z² + c (with absolute value step for Burning Ship variants) until |z| > 2 or max
+   iterations reached
 5. If max iterations reached: pixel is black (in set)
 6. Otherwise: compute smooth iteration count for anti-banding
 7. Get color from palette (cosine or gradient)
@@ -358,6 +376,7 @@ Two separate curves are used based on palette type:
   - Near boundary: HDR boost to peak
 
 The `hdrBrightnessBias` uniform shifts where bright regions appear:
+
 - Positive values: more of image becomes bright
 - Negative values: only near-boundary is bright
 
@@ -454,28 +473,29 @@ src/
 ## Related Documents
 
 | Document                                                           | Purpose                         |
-|--------------------------------------------------------------------|---------------------------------|
+| ------------------------------------------------------------------ | ------------------------------- |
 | [README.md](../README.md)                                          | Quick start and user guide      |
 | [fractal-webapp-spec.md](./fractal-webapp-spec.md)                 | Product vision and requirements |
 | [phase-1-implementation-plan.md](./phase-1-implementation-plan.md) | Phase 1 technical plan          |
 | [deep-zoom-precision-plan.md](./deep-zoom-precision-plan.md)       | Future precision improvements   |
+| [cleanup-plan.md](./cleanup-plan.md)                               | Code structure refactoring plan |
 
 ---
 
 ## Browser Support
 
-| Browser        | Minimum Version | Notes                        |
-|----------------|-----------------|------------------------------|
-| Chrome         | 113+            | Full support                 |
-| Edge           | 113+            | Full support                 |
-| Firefox        | Nightly         | Requires WebGPU flag enabled |
-| Safari         | —               | WebGPU in development        |
+| Browser | Minimum Version | Notes                        |
+| ------- | --------------- | ---------------------------- |
+| Chrome  | 113+            | Full support                 |
+| Edge    | 113+            | Full support                 |
+| Firefox | Nightly         | Requires WebGPU flag enabled |
+| Safari  | —               | WebGPU in development        |
 
 **HDR Support:**
 
-HDR rendering requires both WebGPU support and an HDR-capable display. The app detects HDR via `matchMedia('(dynamic-range: high)')` and auto-enables extended tone mapping when available.
+HDR rendering requires both WebGPU support and an HDR-capable display. The app detects HDR via
+`matchMedia('(dynamic-range: high)')` and auto-enables extended tone mapping when available.
 
 ---
 
-_"Documentation complete. I'll update this when the implementation changes."_
-_— Jennifer Simms_
+_"Documentation complete. I'll update this when the implementation changes."_ _— Jennifer Simms_

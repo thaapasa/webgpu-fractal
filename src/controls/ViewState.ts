@@ -35,7 +35,7 @@ export class ViewState implements IViewState {
     // Convert screen pixel delta to fractal coordinate delta
     const fractalDeltaX = -deltaX / (this.zoom * screenWidth);
     const fractalDeltaY = deltaY / (this.zoom * screenHeight);
-    
+
     this.centerX += fractalDeltaX;
     this.centerY += fractalDeltaY;
   }
@@ -58,17 +58,17 @@ export class ViewState implements IViewState {
     // Convert screen point to fractal coordinates before zoom
     const fractalX = this.centerX + (screenX / screenWidth - 0.5) / this.zoom;
     const fractalY = this.centerY - (screenY / screenHeight - 0.5) / this.zoom;
-    
+
     // Apply zoom
     this.zoom *= factor;
-    
+
     // Clamp zoom to reasonable limits
     this.zoom = Math.max(0.1, Math.min(this.zoom, 1e15));
-    
+
     // Adjust center so the point under cursor stays fixed
     const newFractalX = this.centerX + (screenX / screenWidth - 0.5) / this.zoom;
     const newFractalY = this.centerY - (screenY / screenHeight - 0.5) / this.zoom;
-    
+
     this.centerX += fractalX - newFractalX;
     this.centerY += fractalY - newFractalY;
   }
@@ -80,7 +80,12 @@ export class ViewState implements IViewState {
    * @param screenWidth Screen width in pixels
    * @param screenHeight Screen height in pixels
    */
-  toFractalCoords(screenX: number, screenY: number, screenWidth: number, screenHeight: number): [number, number] {
+  toFractalCoords(
+    screenX: number,
+    screenY: number,
+    screenWidth: number,
+    screenHeight: number
+  ): [number, number] {
     const aspect = screenWidth / screenHeight;
     const uvX = (screenX / screenWidth - 0.5) * aspect;
     const uvY = screenY / screenHeight - 0.5;
@@ -96,7 +101,12 @@ export class ViewState implements IViewState {
    * @param screenWidth Screen width in pixels
    * @param screenHeight Screen height in pixels
    */
-  toScreenCoords(fractalX: number, fractalY: number, screenWidth: number, screenHeight: number): [number, number] {
+  toScreenCoords(
+    fractalX: number,
+    fractalY: number,
+    screenWidth: number,
+    screenHeight: number
+  ): [number, number] {
     const aspect = screenWidth / screenHeight;
     const uvX = (fractalX - this.centerX) * this.zoom;
     const uvY = (fractalY - this.centerY) * this.zoom;

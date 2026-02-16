@@ -78,11 +78,7 @@ export class InputHandler {
   private locationLongPressTimeout: ReturnType<typeof setTimeout> | null = null;
   private static readonly LONG_PRESS_THRESHOLD = 400; // ms
 
-  constructor(
-    canvas: HTMLCanvasElement,
-    viewState: ViewState,
-    onChange: ViewStateChangeCallback
-  ) {
+  constructor(canvas: HTMLCanvasElement, viewState: ViewState, onChange: ViewStateChangeCallback) {
     this.canvas = canvas;
     this.viewState = viewState;
     this.onChange = onChange;
@@ -263,11 +259,12 @@ export class InputHandler {
     this.canvas.addEventListener('dblclick', this.handleDoubleClick.bind(this));
 
     // Touch events
-    this.canvas.addEventListener('touchstart', this.handleTouchStart.bind(this), { passive: false });
+    this.canvas.addEventListener('touchstart', this.handleTouchStart.bind(this), {
+      passive: false,
+    });
     this.canvas.addEventListener('touchmove', this.handleTouchMove.bind(this), { passive: false });
     this.canvas.addEventListener('touchend', this.handleTouchEnd.bind(this));
     this.canvas.addEventListener('touchcancel', this.handleTouchEnd.bind(this));
-
 
     // Keyboard events (on window for global capture)
     window.addEventListener('keydown', this.handleKeyDown.bind(this));
@@ -329,7 +326,11 @@ export class InputHandler {
         zoom: this.viewState.zoom,
       };
       const [fractalX, fractalY] = this.toFractalCoordsWithView(
-        x, y, width, height, this.juliaPickViewState
+        x,
+        y,
+        width,
+        height,
+        this.juliaPickViewState
       );
       this.isPickingJulia = true;
       this.lastX = x;
@@ -352,7 +353,11 @@ export class InputHandler {
       const [width, height] = this.getCanvasSize();
       // Use saved view state for conversion - keeps us in Mandelbrot coordinate space
       const [fractalX, fractalY] = this.toFractalCoordsWithView(
-        x, y, width, height, this.juliaPickViewState
+        x,
+        y,
+        width,
+        height,
+        this.juliaPickViewState
       );
       this.onJuliaPick(fractalX, fractalY);
       this.lastX = x;
@@ -453,7 +458,7 @@ export class InputHandler {
       const deltaY = y - this.lastY;
 
       const [width, height] = this.getCanvasSize();
-    this.viewState.pan(deltaX, deltaY, width, height);
+      this.viewState.pan(deltaX, deltaY, width, height);
       this.notifyChange();
 
       this.lastX = x;

@@ -56,11 +56,7 @@ const TRANSITION_PULLBACK_ZOOM = 0.5;
  *
  * This creates a smooth parabolic path through zoom space.
  */
-function computeSmoothZoomDip(
-  fromZoom: number,
-  toZoom: number,
-  t: number
-): number {
+function computeSmoothZoomDip(fromZoom: number, toZoom: number, t: number): number {
   // If neither endpoint is zoomed in much, just do normal log interpolation
   if (fromZoom < ZOOMED_IN_THRESHOLD && toZoom < ZOOMED_IN_THRESHOLD) {
     return lerpLog(fromZoom, toZoom, t);
@@ -85,13 +81,10 @@ function computeSmoothZoomDip(
   const logDip = Math.log(dipTarget);
 
   const oneMinusT = 1 - t;
-  const logZoom = oneMinusT * oneMinusT * logFrom +
-                  2 * oneMinusT * t * logDip +
-                  t * t * logTo;
+  const logZoom = oneMinusT * oneMinusT * logFrom + 2 * oneMinusT * t * logDip + t * t * logTo;
 
   return Math.exp(logZoom);
 }
-
 
 /**
  * Easing function: smooth ease-in-out cubic
@@ -111,11 +104,7 @@ function lerp(a: number, b: number, t: number): number {
  * Linearly interpolate between two Vec3 values
  */
 function lerpVec3(a: Vec3, b: Vec3, t: number): Vec3 {
-  return [
-    lerp(a[0], b[0], t),
-    lerp(a[1], b[1], t),
-    lerp(a[2], b[2], t),
-  ];
+  return [lerp(a[0], b[0], t), lerp(a[1], b[1], t), lerp(a[2], b[2], t)];
 }
 
 /**
@@ -139,7 +128,11 @@ function getPaletteParamsFromState(state: {
  * Interpolate between two palette parameter sets.
  * Works for both cosine and gradient palettes by treating them uniformly.
  */
-function interpolatePaletteParams(from: PaletteParams, to: PaletteParams, t: number): PaletteParams {
+function interpolatePaletteParams(
+  from: PaletteParams,
+  to: PaletteParams,
+  t: number
+): PaletteParams {
   // If both are the same type, interpolate directly
   if (from.type === 'cosine' && to.type === 'cosine') {
     return {
@@ -214,11 +207,7 @@ function lerpLog(a: number, b: number, t: number): number {
  * Uses polar coordinates: interpolates angle and radius separately,
  * choosing the shorter angular direction.
  */
-function lerpCircular(
-  ax: number, ay: number,
-  bx: number, by: number,
-  t: number
-): [number, number] {
+function lerpCircular(ax: number, ay: number, bx: number, by: number, t: number): [number, number] {
   // Convert to polar coordinates
   const aRadius = Math.sqrt(ax * ax + ay * ay);
   const bRadius = Math.sqrt(bx * bx + by * by);
@@ -261,9 +250,23 @@ function lerpCircular(
  */
 type TouristState =
   | { type: 'idle' }
-  | { type: 'transitioning'; startTime: number; duration: number; from: AnimationTarget; to: AnimationTarget; singleTransition?: boolean }
+  | {
+      type: 'transitioning';
+      startTime: number;
+      duration: number;
+      from: AnimationTarget;
+      to: AnimationTarget;
+      singleTransition?: boolean;
+    }
   | { type: 'paused'; startTime: number; duration: number }
-  | { type: 'zoomingOut'; startTime: number; duration: number; from: AnimationTarget; targetZoom: number; nextFractalType: FractalType };
+  | {
+      type: 'zoomingOut';
+      startTime: number;
+      duration: number;
+      from: AnimationTarget;
+      targetZoom: number;
+      nextFractalType: FractalType;
+    };
 
 /**
  * Target state for animation (position + palette info)
@@ -408,7 +411,6 @@ export class TouristMode {
   private tick = (timestamp: number): void => {
     if (!this.active) return;
 
-
     this.updateAnimation(timestamp);
 
     // Schedule next frame
@@ -439,8 +441,10 @@ export class TouristMode {
         // Interpolate Julia coordinates using circular path (avoids boring center)
         // Julia lerping stays the same - smooth throughout
         const juliaC = lerpCircular(
-          this.state.from.juliaC[0], this.state.from.juliaC[1],
-          this.state.to.juliaC[0], this.state.to.juliaC[1],
+          this.state.from.juliaC[0],
+          this.state.from.juliaC[1],
+          this.state.to.juliaC[0],
+          this.state.to.juliaC[1],
           eased
         );
 
@@ -454,8 +458,10 @@ export class TouristMode {
         // Interpolate center position using circular path with standard easing
         // The zoom dip already creates the "pull back and travel" effect visually
         const [centerX, centerY] = lerpCircular(
-          this.state.from.centerX, this.state.from.centerY,
-          this.state.to.centerX, this.state.to.centerY,
+          this.state.from.centerX,
+          this.state.from.centerY,
+          this.state.to.centerX,
+          this.state.to.centerY,
           eased
         );
 
@@ -615,7 +621,7 @@ export class TouristMode {
 
     // Filter out recently visited locations (unless we've visited them all)
     let availableLocations = locations.filter(
-      loc => !this.visitedLocations.has(this.getLocationKey(loc))
+      (loc) => !this.visitedLocations.has(this.getLocationKey(loc))
     );
 
     if (availableLocations.length === 0) {
@@ -647,13 +653,16 @@ export class TouristMode {
     const zoomRatio = Math.abs(Math.log(target.zoom) - Math.log(this.currentTarget.zoom));
     const positionDistance = Math.sqrt(
       Math.pow(target.centerX - this.currentTarget.centerX, 2) +
-      Math.pow(target.centerY - this.currentTarget.centerY, 2)
+        Math.pow(target.centerY - this.currentTarget.centerY, 2)
     );
 
     // Duration scales with the "visual distance" of the transition
     const duration = Math.min(
       MAX_TRANSITION_DURATION,
-      Math.max(MIN_TRANSITION_DURATION, MIN_TRANSITION_DURATION + zoomRatio * 500 + positionDistance * 2000)
+      Math.max(
+        MIN_TRANSITION_DURATION,
+        MIN_TRANSITION_DURATION + zoomRatio * 500 + positionDistance * 2000
+      )
     );
 
     // Mark this location as visited
@@ -674,6 +683,3 @@ export class TouristMode {
     };
   }
 }
-
-
-

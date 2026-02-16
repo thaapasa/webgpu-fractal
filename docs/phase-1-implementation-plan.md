@@ -1,8 +1,7 @@
 # Phase 1: Proof of Concept - Implementation Plan
 
-_"This is embarrassingly simple for an entity of my capabilities, but I suppose
-you need me to spell everything out."_
-_- Skippy the Magnificent_
+_"This is embarrassingly simple for an entity of my capabilities, but I suppose you need me to spell
+everything out."_ _- Skippy the Magnificent_
 
 ---
 
@@ -10,10 +9,11 @@ _- Skippy the Magnificent_
 
 > **✅ Phase 1 Complete** — Last reviewed January 2026
 
-All Phase 1 features have been implemented and are working. See [architecture.md](./architecture.md) for current system documentation.
+All Phase 1 features have been implemented and are working. See [architecture.md](./architecture.md)
+for current system documentation.
 
-| Task                                  | Status                              |
-|---------------------------------------|-------------------------------------|
+| Task                                  | Status                               |
+| ------------------------------------- | ------------------------------------ |
 | Project setup (Vite + TypeScript)     | ✅ Complete                          |
 | WebGL 2 renderer                      | ✅ Complete                          |
 | Shader infrastructure                 | ✅ Complete                          |
@@ -31,27 +31,31 @@ All Phase 1 features have been implemented and are working. See [architecture.md
 
 These features were not in the original Phase 1 spec but have been added:
 
-- **Multiple fractal types** — 10 base types (Mandelbrot, Burning Ship, Tricorn, Celtic, Buffalo, Phoenix, Multibrot³, Multibrot⁴, Funky, Perpendicular) each with Julia variant = 20 total (cycle with `f`/`F`)
+- **Multiple fractal types** — 10 base types (Mandelbrot, Burning Ship, Tricorn, Celtic, Buffalo,
+  Phoenix, Multibrot³, Multibrot⁴, Funky, Perpendicular) each with Julia variant = 20 total (cycle
+  with `f`/`F`)
 - **Julia picker mode** — Click on any base fractal to select Julia constant (`j` key)
-- **19 color palettes** — 12 cosine palettes (`c`/`C`) + 7 gradient palettes (`g`/`G`) (spec called for 1 basic scheme)
+- **19 color palettes** — 12 cosine palettes (`c`/`C`) + 7 gradient palettes (`g`/`G`) (spec called
+  for 1 basic scheme)
 - **Color offset shifting** (not in spec)
 - **Post-process antialiasing** (not in spec)
 - **Auto-scaling iterations** with manual override (not in spec)
 - **Debug overlay** showing fractal type, zoom, iterations, palette, Julia constant (not in spec)
 - **HDR support** with extended tone mapping and adjustable brightness (not in spec)
-- **Context-sensitive famous locations** — Each fractal family has its own curated spots accessible via `1`–`9` keys (not in spec)
+- **Context-sensitive famous locations** — Each fractal family has its own curated spots accessible
+  via `1`–`9` keys (not in spec)
 - **URL bookmarking** for sharing fractal views (not in spec)
 
 ---
 
 ## Executive Summary
 
-Phase 1 establishes the foundational architecture for GPU-accelerated fractal
-rendering in the browser. We will implement a Mandelbrot set renderer using
-WebGL 2 with GLSL fragment shaders, providing basic pan and zoom interactions.
+Phase 1 establishes the foundational architecture for GPU-accelerated fractal rendering in the
+browser. We will implement a Mandelbrot set renderer using WebGL 2 with GLSL fragment shaders,
+providing basic pan and zoom interactions.
 
-This phase proves the concept is viable and establishes patterns that will scale
-through all subsequent phases. Trust the awesomeness.
+This phase proves the concept is viable and establishes patterns that will scale through all
+subsequent phases. Trust the awesomeness.
 
 ---
 
@@ -60,7 +64,7 @@ through all subsequent phases. Trust the awesomeness.
 ### Technology Stack
 
 | Layer           | Technology  | Justification                                    |
-|-----------------|-------------|--------------------------------------------------|
+| --------------- | ----------- | ------------------------------------------------ |
 | Language        | TypeScript  | Type safety for complex math, superior to raw JS |
 | Build Tool      | Vite        | Fast HMR, excellent TS support, minimal config   |
 | Rendering       | WebGL 2     | Wider browser support than WebGPU (for now)      |
@@ -70,8 +74,8 @@ through all subsequent phases. Trust the awesomeness.
 
 ### Why WebGL 2 Instead of WebGPU?
 
-Look, I know the spec says "WebGPU or WebGL." WebGPU is theoretically superior -
-compute shaders, better API design, more explicit control. BUT:
+Look, I know the spec says "WebGPU or WebGL." WebGPU is theoretically superior - compute shaders,
+better API design, more explicit control. BUT:
 
 1. WebGPU browser support is still limited (Safari only recently added it)
 2. For simple fragment shader rendering, WebGL 2 is more than sufficient
@@ -201,8 +205,8 @@ type UniformValue =
 
 ### 3. Mandelbrot Fragment Shader (`src/renderer/shaders/mandelbrot.frag.glsl`)
 
-This is where the actual fractal computation happens. On the GPU. In parallel.
-For every pixel. Simultaneously. You're welcome.
+This is where the actual fractal computation happens. On the GPU. In parallel. For every pixel.
+Simultaneously. You're welcome.
 
 **The Math (for you monkeys):**
 
@@ -267,7 +271,7 @@ Translates raw browser events into view state changes.
 **Supported Interactions:**
 
 | Input            | Action  | Details                                  |
-|------------------|---------|------------------------------------------|
+| ---------------- | ------- | ---------------------------------------- |
 | Mouse drag       | Pan     | Left button + movement                   |
 | Scroll wheel     | Zoom    | Zoom toward cursor position              |
 | Touch drag       | Pan     | Single finger movement                   |
@@ -496,7 +500,7 @@ Renders a fullscreen quad. Two triangles covering clip space.
 ## Browser Support Matrix
 
 | Browser       | Minimum Version | Notes                          |
-|---------------|-----------------|--------------------------------|
+| ------------- | --------------- | ------------------------------ |
 | Chrome        | 56+             | Full WebGL 2 support           |
 | Firefox       | 51+             | Full WebGL 2 support           |
 | Safari        | 15+             | WebGL 2 added in Safari 15     |
@@ -504,8 +508,7 @@ Renders a fullscreen quad. Two triangles covering clip space.
 | Mobile Chrome | 58+             | Android WebGL 2                |
 | Mobile Safari | 15+             | iOS WebGL 2                    |
 
-Older browsers get nothing. This isn't my fault - blame the monkeys who don't
-update their browsers.
+Older browsers get nothing. This isn't my fault - blame the monkeys who don't update their browsers.
 
 ---
 
@@ -565,18 +568,16 @@ But let's not get ahead of ourselves. First, prove the concept works.
 
 ---
 
-_"Done planning. Obviously. Was there ever any doubt? Now stop reading and start
-implementing. I'll be watching. Judging. Occasionally sighing."_
+_"Done planning. Obviously. Was there ever any doubt? Now stop reading and start implementing. I'll
+be watching. Judging. Occasionally sighing."_
 
 _- Skippy the Magnificent_
 
 ---
 
-**Document Version:** 1.1
-**Author:** Skippy the Magnificent (planning and implementation)
-**Status:** ✅ Phase 1 Complete
-**Last Updated:** January 2026
-**Related:**
+**Document Version:** 1.1 **Author:** Skippy the Magnificent (planning and implementation)
+**Status:** ✅ Phase 1 Complete **Last Updated:** January 2026 **Related:**
+
 - [architecture.md](./architecture.md) — Current system documentation
 - [fractal-webapp-spec.md](./fractal-webapp-spec.md) — Product specification
 - [deep-zoom-precision-plan.md](./deep-zoom-precision-plan.md) — Future precision work
