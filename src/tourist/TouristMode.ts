@@ -12,6 +12,12 @@
 import { FractalType, getBaseFractalType, BASE_FRACTAL_COUNT } from '../types';
 import { BookmarkState } from '../bookmark/BookmarkManager';
 import { FamousLocation, getLocationsForFractal } from '../bookmark/famousLocations';
+import {
+  Vec3,
+  PaletteParams,
+  getCosinePaletteParams,
+  getGradientPaletteParams,
+} from '../renderer/Palettes';
 
 /** Duration of the pause at each destination (ms) */
 const PAUSE_DURATION = 3000;
@@ -31,6 +37,62 @@ const FRACTAL_SWITCH_ZOOM_LEVEL = 0.5;
 /** Probability of switching to a different fractal type (0-1) */
 const FRACTAL_SWITCH_PROBABILITY = 0.25;
 
+/** Zoom threshold for "zoomed in" - triggers zoom-out-travel-zoom-in behavior */
+const ZOOMED_IN_THRESHOLD = 2.0;
+
+/** How much to pull back relative to the endpoints (0 = no pullback, 1 = full pullback to TRANSITION_PULLBACK_ZOOM) */
+const PULLBACK_STRENGTH = 0.6;
+
+/** Minimum zoom level to pull back to during transitions */
+const TRANSITION_PULLBACK_ZOOM = 0.5;
+
+/**
+ * Compute smooth zoom with a gentle "dip" in the middle.
+ *
+ * Uses a quadratic Bezier-like curve:
+ * - Start: fromZoom
+ * - Middle control point: pulled back zoom (lower than both endpoints)
+ * - End: toZoom
+ *
+ * This creates a smooth parabolic path through zoom space.
+ */
+function computeSmoothZoomDip(
+  fromZoom: number,
+  toZoom: number,
+  t: number
+): number {
+  // If neither endpoint is zoomed in much, just do normal log interpolation
+  if (fromZoom < ZOOMED_IN_THRESHOLD && toZoom < ZOOMED_IN_THRESHOLD) {
+    return lerpLog(fromZoom, toZoom, t);
+  }
+
+  // Calculate the "dip" target - where we want to be at t=0.5
+  const minEndpointZoom = Math.min(fromZoom, toZoom);
+  const dipTarget = Math.max(
+    TRANSITION_PULLBACK_ZOOM,
+    minEndpointZoom * (1 - PULLBACK_STRENGTH) + TRANSITION_PULLBACK_ZOOM * PULLBACK_STRENGTH
+  );
+
+  // Only dip if it would actually zoom out
+  if (dipTarget >= minEndpointZoom) {
+    return lerpLog(fromZoom, toZoom, t);
+  }
+
+  // Use quadratic Bezier interpolation in log space for smooth curve
+  // B(t) = (1-t)²·P0 + 2(1-t)t·P1 + t²·P2
+  const logFrom = Math.log(fromZoom);
+  const logTo = Math.log(toZoom);
+  const logDip = Math.log(dipTarget);
+
+  const oneMinusT = 1 - t;
+  const logZoom = oneMinusT * oneMinusT * logFrom +
+                  2 * oneMinusT * t * logDip +
+                  t * t * logTo;
+
+  return Math.exp(logZoom);
+}
+
+
 /**
  * Easing function: smooth ease-in-out cubic
  */
@@ -43,6 +105,96 @@ function easeInOutCubic(t: number): number {
  */
 function lerp(a: number, b: number, t: number): number {
   return a + (b - a) * t;
+}
+
+/**
+ * Linearly interpolate between two Vec3 values
+ */
+function lerpVec3(a: Vec3, b: Vec3, t: number): Vec3 {
+  return [
+    lerp(a[0], b[0], t),
+    lerp(a[1], b[1], t),
+    lerp(a[2], b[2], t),
+  ];
+}
+
+/**
+ * Get palette parameters from a bookmark state.
+ * Converts palette type + index to actual params.
+ */
+function getPaletteParamsFromState(state: {
+  paletteType: 'cosine' | 'gradient';
+  cosinePaletteIndex: number;
+  gradientPaletteIndex: number;
+}): PaletteParams {
+  if (state.paletteType === 'cosine') {
+    return getCosinePaletteParams(state.cosinePaletteIndex);
+  } else {
+    // Use SDR params for interpolation (HDR is handled in renderer)
+    return getGradientPaletteParams(state.gradientPaletteIndex, false);
+  }
+}
+
+/**
+ * Interpolate between two palette parameter sets.
+ * Works for both cosine and gradient palettes by treating them uniformly.
+ */
+function interpolatePaletteParams(from: PaletteParams, to: PaletteParams, t: number): PaletteParams {
+  // If both are the same type, interpolate directly
+  if (from.type === 'cosine' && to.type === 'cosine') {
+    return {
+      type: 'cosine',
+      a: lerpVec3(from.a, to.a, t),
+      b: lerpVec3(from.b, to.b, t),
+      c: lerpVec3(from.c, to.c, t),
+      d: lerpVec3(from.d, to.d, t),
+    };
+  }
+
+  if (from.type === 'gradient' && to.type === 'gradient') {
+    return {
+      type: 'gradient',
+      c1: lerpVec3(from.c1, to.c1, t),
+      c2: lerpVec3(from.c2, to.c2, t),
+      c3: lerpVec3(from.c3, to.c3, t),
+      c4: lerpVec3(from.c4, to.c4, t),
+      c5: lerpVec3(from.c5, to.c5, t),
+    };
+  }
+
+  // Mixed types: cross-fade by using the target type
+  // At t < 0.5, favor 'from'; at t >= 0.5, switch to 'to' type
+  // This creates a smooth-ish transition even between different palette types
+  if (t < 0.5) {
+    // Keep 'from' type, but blend toward neutral
+    if (from.type === 'cosine') {
+      // Fade cosine toward a neutral state
+      const fadeT = t * 2; // 0 to 1 over first half
+      return {
+        type: 'cosine',
+        a: lerpVec3(from.a, [0.5, 0.5, 0.5], fadeT * 0.3),
+        b: lerpVec3(from.b, [0.3, 0.3, 0.3], fadeT * 0.3),
+        c: from.c,
+        d: from.d,
+      };
+    } else {
+      return from; // Keep gradient as-is in first half
+    }
+  } else {
+    // Use 'to' type
+    if (to.type === 'cosine') {
+      const fadeT = (t - 0.5) * 2; // 0 to 1 over second half
+      return {
+        type: 'cosine',
+        a: lerpVec3([0.5, 0.5, 0.5], to.a, fadeT),
+        b: lerpVec3([0.3, 0.3, 0.3], to.b, fadeT),
+        c: to.c,
+        d: to.d,
+      };
+    } else {
+      return to; // Use gradient as-is in second half
+    }
+  }
 }
 
 /**
@@ -124,6 +276,7 @@ interface AnimationTarget {
   paletteType: 'cosine' | 'gradient';
   cosinePaletteIndex: number;
   gradientPaletteIndex: number;
+  paletteParams: PaletteParams;
   colorOffset: number;
   juliaC: [number, number];
 }
@@ -133,7 +286,7 @@ interface AnimationTarget {
  */
 export interface TouristModeCallbacks {
   /** Called when the view state should be updated */
-  onUpdate: (state: Partial<BookmarkState>) => void;
+  onUpdate: (state: Partial<BookmarkState>, interpolatedPaletteParams?: PaletteParams) => void;
   /** Called to trigger a render */
   onRender: () => void;
   /** Called to show a location notification */
@@ -173,6 +326,7 @@ export class TouristMode {
       paletteType: state.paletteType,
       cosinePaletteIndex: state.cosinePaletteIndex,
       gradientPaletteIndex: state.gradientPaletteIndex,
+      paletteParams: getPaletteParamsFromState(state),
       colorOffset: state.colorOffset,
       juliaC: state.juliaC,
     };
@@ -283,24 +437,40 @@ export class TouristMode {
         const eased = easeInOutCubic(t);
 
         // Interpolate Julia coordinates using circular path (avoids boring center)
+        // Julia lerping stays the same - smooth throughout
         const juliaC = lerpCircular(
           this.state.from.juliaC[0], this.state.from.juliaC[1],
           this.state.to.juliaC[0], this.state.to.juliaC[1],
           eased
         );
 
-        // Interpolate center position using circular path as well
+        const fromZoom = this.state.from.zoom;
+        const toZoom = this.state.to.zoom;
+
+        // Compute zoom with smooth "dip" curve (zooms out in middle, back in at end)
+        // The dip uses the raw t value for a quadratic Bezier curve
+        const zoom = computeSmoothZoomDip(fromZoom, toZoom, t);
+
+        // Interpolate center position using circular path with standard easing
+        // The zoom dip already creates the "pull back and travel" effect visually
         const [centerX, centerY] = lerpCircular(
           this.state.from.centerX, this.state.from.centerY,
           this.state.to.centerX, this.state.to.centerY,
           eased
         );
 
-        // Interpolate position (logarithmic for zoom)
+        // Interpolate palette parameters for smooth color transitions
+        const interpolatedPaletteParams = interpolatePaletteParams(
+          this.state.from.paletteParams,
+          this.state.to.paletteParams,
+          eased
+        );
+
+        // Build the new state
         const newState: Partial<BookmarkState> = {
           centerX,
           centerY,
-          zoom: lerpLog(this.state.from.zoom, this.state.to.zoom, eased),
+          zoom,
           fractalType: this.state.to.fractalType,
           paletteType: this.state.to.paletteType,
           cosinePaletteIndex: this.state.to.cosinePaletteIndex,
@@ -314,12 +484,13 @@ export class TouristMode {
           ...this.state.to,
           centerX,
           centerY,
-          zoom: newState.zoom!,
+          zoom,
+          paletteParams: interpolatedPaletteParams,
           colorOffset: newState.colorOffset!,
           juliaC: juliaC,
         };
 
-        this.callbacks.onUpdate(newState);
+        this.callbacks.onUpdate(newState, interpolatedPaletteParams);
         this.callbacks.onRender();
 
         // Check if transition is complete

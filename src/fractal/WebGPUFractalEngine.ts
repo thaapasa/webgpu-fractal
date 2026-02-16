@@ -27,6 +27,7 @@ import {
   COSINE_PALETTE_COUNT,
   GRADIENT_PALETTE_COUNT,
   PaletteType,
+  PaletteParams,
 } from '../renderer/Palettes';
 
 import shaderSource from '../renderer/shaders/mandelbrot.wgsl?raw';
@@ -88,6 +89,9 @@ export class WebGPUFractalEngine {
   private notificationTimeoutId: ReturnType<typeof setTimeout> | null = null;
 
   private touristMode: TouristMode | null = null;
+
+  // Interpolated palette params override (used during tourist mode transitions)
+  private interpolatedPaletteParams: PaletteParams | null = null;
 
   // FPS tracking
   private fpsOverlay: HTMLElement | null = null;
@@ -371,13 +375,15 @@ export class WebGPUFractalEngine {
     const intView = new Int32Array(uniformData);
 
     // Get current palette info and params based on palette type
+    // Use interpolated params during tourist mode transitions, otherwise look up by index
     const isCosine = this.paletteType === 'cosine';
     const palette = isCosine
       ? getCosinePalette(this.cosinePaletteIndex)
       : getGradientPalette(this.gradientPaletteIndex);
-    const paletteParams = isCosine
-      ? getCosinePaletteParams(this.cosinePaletteIndex)
-      : getGradientPaletteParams(this.gradientPaletteIndex, this.renderer.hdrEnabled);
+    const paletteParams = this.interpolatedPaletteParams
+      ?? (isCosine
+        ? getCosinePaletteParams(this.cosinePaletteIndex)
+        : getGradientPaletteParams(this.gradientPaletteIndex, this.renderer.hdrEnabled));
 
     // Pack base uniforms (must match WGSL struct layout with padding)
     floatView[0] = canvas.width;                    // resolution.x
@@ -1042,7 +1048,7 @@ export class WebGPUFractalEngine {
     if (!this.touristMode) {
       this.touristMode = new TouristMode(
         {
-          onUpdate: (state) => this.applyTouristUpdate(state),
+          onUpdate: (state, interpolatedPaletteParams) => this.applyTouristUpdate(state, interpolatedPaletteParams),
           onRender: () => this.render(),
           onLocationNotification: (name, description) => this.showLocationNotification(name, description),
         },
@@ -1057,6 +1063,7 @@ export class WebGPUFractalEngine {
   private stopTouristMode(): void {
     if (this.touristMode) {
       this.touristMode.stop();
+      this.interpolatedPaletteParams = null; // Clear the override
       this.showTouristModeNotification(false);
       this.updateUrlBookmark();
     }
@@ -1069,7 +1076,7 @@ export class WebGPUFractalEngine {
     }
   }
 
-  private applyTouristUpdate(state: Partial<BookmarkState>): void {
+  private applyTouristUpdate(state: Partial<BookmarkState>, interpolatedPaletteParams?: PaletteParams): void {
     if (state.centerX !== undefined) this.viewState.centerX = state.centerX;
     if (state.centerY !== undefined) this.viewState.centerY = state.centerY;
     if (state.zoom !== undefined) this.viewState.zoom = state.zoom;
@@ -1078,6 +1085,9 @@ export class WebGPUFractalEngine {
     if (state.cosinePaletteIndex !== undefined) this.cosinePaletteIndex = state.cosinePaletteIndex;
     if (state.gradientPaletteIndex !== undefined) this.gradientPaletteIndex = state.gradientPaletteIndex;
     if (state.colorOffset !== undefined) this.colorOffset = state.colorOffset;
+
+    // Store interpolated palette params for use in render()
+    this.interpolatedPaletteParams = interpolatedPaletteParams ?? null;
     if (state.juliaC !== undefined) this.juliaC = state.juliaC;
   }
 

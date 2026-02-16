@@ -102,7 +102,7 @@ const COSINE_PALETTES: CosinePalette[] = [
       d: [0.3, 0.2, 0.2],
     },
   },
-  {
+    {
     name: 'Neon',
     isMonotonic: false,
     params: {
