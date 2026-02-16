@@ -19,6 +19,7 @@ export type JuliaPickCallback = (fractalX: number, fractalY: number) => void;
 export type JuliaPickEndCallback = () => void;
 export type ShareCallback = () => void;
 export type LocationCallback = (key: string) => void;
+export type LocationAnimateCallback = (key: string) => void;
 export type HelpToggleCallback = () => void;
 export type ScreenshotModeCallback = () => void;
 export type TouristModeCallback = () => void;
@@ -50,6 +51,7 @@ export class InputHandler {
   private onJuliaPickEnd: JuliaPickEndCallback | null = null;
   private onShare: ShareCallback | null = null;
   private onLocationSelect: LocationCallback | null = null;
+  private onLocationAnimate: LocationAnimateCallback | null = null;
   private onToggleHelp: HelpToggleCallback | null = null;
   private onToggleScreenshotMode: ScreenshotModeCallback | null = null;
   private onToggleTouristMode: TouristModeCallback | null = null;
@@ -70,6 +72,11 @@ export class InputHandler {
   private keyboardZoomDirection: 1 | -1 | null = null;
   private keyboardZoomStartTime: number = 0;
   private keyboardZoomAnimationId: number | null = null;
+
+  // Long-press location state
+  private locationKeyHeld: string | null = null;
+  private locationLongPressTimeout: ReturnType<typeof setTimeout> | null = null;
+  private static readonly LONG_PRESS_THRESHOLD = 400; // ms
 
   constructor(
     canvas: HTMLCanvasElement,
@@ -194,6 +201,13 @@ export class InputHandler {
    */
   setLocationSelectCallback(callback: LocationCallback): void {
     this.onLocationSelect = callback;
+  }
+
+  /**
+   * Set callback for animated location transition (long-press 1-9 keys)
+   */
+  setLocationAnimateCallback(callback: LocationAnimateCallback): void {
+    this.onLocationAnimate = callback;
   }
 
   /**
@@ -577,7 +591,18 @@ export class InputHandler {
       case '8':
       case '9':
         e.preventDefault();
-        this.onLocationSelect?.(e.key);
+        // Start long-press detection (unless already held or repeating)
+        if (!e.repeat && this.locationKeyHeld !== e.key) {
+          this.locationKeyHeld = e.key;
+          // Set timeout for long-press
+          this.locationLongPressTimeout = setTimeout(() => {
+            if (this.locationKeyHeld === e.key) {
+              // Long press - animate to location
+              this.onLocationAnimate?.(e.key);
+              this.locationKeyHeld = null; // Prevent short-press on key up
+            }
+          }, InputHandler.LONG_PRESS_THRESHOLD);
+        }
         break;
       case 'h':
       case 'H':
@@ -613,6 +638,20 @@ export class InputHandler {
     // Stop keyboard zoom when z or Z is released
     if (e.key === 'z' || e.key === 'Z') {
       this.stopKeyboardZoom();
+    }
+
+    // Handle number key release for short-press location selection
+    if (e.key >= '1' && e.key <= '9') {
+      if (this.locationKeyHeld === e.key) {
+        // Clear the long-press timeout
+        if (this.locationLongPressTimeout !== null) {
+          clearTimeout(this.locationLongPressTimeout);
+          this.locationLongPressTimeout = null;
+        }
+        // Short press - instant jump to location
+        this.onLocationSelect?.(e.key);
+        this.locationKeyHeld = null;
+      }
     }
   }
 

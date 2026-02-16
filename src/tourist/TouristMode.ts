@@ -109,7 +109,7 @@ function lerpCircular(
  */
 type TouristState =
   | { type: 'idle' }
-  | { type: 'transitioning'; startTime: number; duration: number; from: AnimationTarget; to: AnimationTarget }
+  | { type: 'transitioning'; startTime: number; duration: number; from: AnimationTarget; to: AnimationTarget; singleTransition?: boolean }
   | { type: 'paused'; startTime: number; duration: number }
   | { type: 'zoomingOut'; startTime: number; duration: number; from: AnimationTarget; targetZoom: number; nextFractalType: FractalType };
 
@@ -227,6 +227,28 @@ export class TouristMode {
   }
 
   /**
+   * Animate to a specific location (single transition, then stop)
+   * Used for long-press location selection.
+   */
+  animateToLocation(location: FamousLocation, currentState: BookmarkState): void {
+    // Stop any existing animation
+    if (this.animationFrameId !== null) {
+      cancelAnimationFrame(this.animationFrameId);
+      this.animationFrameId = null;
+    }
+
+    this.active = true;
+    this.currentTarget = this.bookmarkToTarget(currentState);
+
+    // Start transition to the location, but set state to stop after
+    this.transitionTo(location, true); // true = single transition mode
+
+    this.animationFrameId = requestAnimationFrame(this.tick);
+
+    console.log(`🎯 Animating to: ${location.name}`);
+  }
+
+  /**
    * Main animation tick
    */
   private tick = (timestamp: number): void => {
@@ -302,7 +324,19 @@ export class TouristMode {
 
         // Check if transition is complete
         if (t >= 1) {
-          this.state = { type: 'paused', startTime: timestamp, duration: PAUSE_DURATION };
+          if (this.state.singleTransition) {
+            // Single transition mode - stop here
+            this.active = false;
+            this.state = { type: 'idle' };
+            if (this.animationFrameId !== null) {
+              cancelAnimationFrame(this.animationFrameId);
+              this.animationFrameId = null;
+            }
+            console.log('🎯 Single transition complete');
+          } else {
+            // Continue touring - pause before next destination
+            this.state = { type: 'paused', startTime: timestamp, duration: PAUSE_DURATION };
+          }
         }
         break;
       }
@@ -433,8 +467,9 @@ export class TouristMode {
 
   /**
    * Start a transition to a new location
+   * @param singleTransition If true, stop after this transition (don't continue touring)
    */
-  private transitionTo(location: FamousLocation): void {
+  private transitionTo(location: FamousLocation, singleTransition: boolean = false): void {
     const target = this.bookmarkToTarget(location.state);
 
     // Calculate transition duration based on zoom distance
@@ -464,6 +499,7 @@ export class TouristMode {
       duration,
       from: { ...this.currentTarget },
       to: target,
+      singleTransition,
     };
   }
 }

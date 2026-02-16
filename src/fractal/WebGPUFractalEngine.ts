@@ -243,6 +243,9 @@ export class WebGPUFractalEngine {
     this.inputHandler.setLocationSelectCallback((key) => {
       this.goToLocation(key);
     });
+    this.inputHandler.setLocationAnimateCallback((key) => {
+      this.animateToLocation(key);
+    });
     this.inputHandler.setToggleHelpCallback(() => {
       this.toggleHelp();
     });
@@ -737,6 +740,29 @@ export class WebGPUFractalEngine {
     this.showLocationNotification(location.name, location.description);
     this.updateUrlBookmark();
     this.render();
+  }
+
+  /**
+   * Animate smoothly to a location (long-press on number key)
+   */
+  private animateToLocation(key: string): void {
+    const location = getLocationByKey(key, this.fractalType);
+    if (!location) return;
+
+    // Create tourist mode instance if it doesn't exist
+    if (!this.touristMode) {
+      this.touristMode = new TouristMode(
+        {
+          onUpdate: (state) => this.applyTouristUpdate(state),
+          onRender: () => this.render(),
+          onLocationNotification: (name, description) => this.showLocationNotification(name, description),
+        },
+        this.getBookmarkState()
+      );
+    }
+
+    // Do a single animated transition to the location
+    this.touristMode.animateToLocation(location, this.getBookmarkState());
   }
 
   /**
