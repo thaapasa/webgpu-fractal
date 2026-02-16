@@ -12,10 +12,9 @@ project. I've organized it by component responsibility."_ _— Jennifer Simms_
 | ------------ | ---------------------- | | Last Updated | February 2026 | | Status | Current
 implementation | | Maintainer | Simms (documentation) |
 
-> **📋 Refactoring Complete (Phases 1-5)**: UI extraction, state management, input handler
-> simplification, proper types, and palette splitting complete. See
-> [cleanup-plan.md](./cleanup-plan.md) for optional future improvements (render pipeline isolation,
-> famous locations refactor). improvements.
+> **📋 Refactoring Complete**: All planned cleanup phases (1-5, 7) complete. Only Phase 6 (render
+> pipeline isolation) remains as optional future work. See [cleanup-plan.md](./cleanup-plan.md).
+> improvements.
 
 ---
 
@@ -519,7 +518,21 @@ src/
 ├── types.ts                       # Re-exports all types
 ├── bookmark/
 │   ├── BookmarkManager.ts         # URL-based state sharing
-│   └── famousLocations.ts         # Curated famous fractal spots (keys 1-9)
+│   ├── famousLocations.ts         # Facade (re-exports from locations/)
+│   └── locations/
+│       ├── index.ts               # Re-exports and accessor functions
+│       ├── types.ts               # FamousLocation interface
+│       ├── helpers.ts             # createLocation factory
+│       ├── mandelbrot.ts          # Mandelbrot locations
+│       ├── burningShip.ts         # Burning Ship locations
+│       ├── tricorn.ts             # Tricorn locations
+│       ├── celtic.ts              # Celtic locations
+│       ├── buffalo.ts             # Buffalo locations
+│       ├── phoenix.ts             # Phoenix locations
+│       ├── multibrot3.ts          # Multibrot³ locations
+│       ├── multibrot4.ts          # Multibrot⁴ locations
+│       ├── funky.ts               # Funky locations
+│       └── perpendicular.ts       # Perpendicular locations
 ├── controls/
 │   ├── InputCallbacks.ts          # Input callback interface
 │   ├── InputHandler.ts            # Mouse, touch, keyboard events

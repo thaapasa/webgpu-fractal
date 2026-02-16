@@ -318,8 +318,8 @@ src/bookmark/locations/
 | 3. Input Handler    | Medium | Low    | Phase 2      | ✅ Complete |
 | 4. Proper Types     | Low    | Low    | None         | ✅ Complete |
 | 5. Split Palettes   | Low    | Low    | None         | ✅ Complete |
-| 6. Render Pipeline  | Medium | High   | Phase 2      | Later       |
-| 7. Famous Locations | Low    | Low    | None         | Anytime     |
+| 6. Render Pipeline  | Medium | High   | Phase 2      | Optional    |
+| 7. Famous Locations | Low    | Low    | None         | ✅ Complete |
 
 ---
 

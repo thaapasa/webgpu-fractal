@@ -8,6 +8,7 @@
     "build": "tsc && vite build",
     "build:examples": "tsc && vite build --outDir examples/webgpu --base ./",
     "preview": "vite preview",
+    "lint": "tsc --noEmit",
     "format": "prettier --write \"src/**/*.ts\" \"docs/**/*.md\" \"*.md\" \"*.json\"",
     "format:check": "prettier --check \"src/**/*.ts\" \"docs/**/*.md\" \"*.md\" \"*.json\""
   },
