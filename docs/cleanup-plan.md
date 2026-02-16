@@ -206,27 +206,39 @@ types.
 
 ---
 
-## Phase 5: Split Palettes Module (Low Impact, Low Effort)
+## Phase 5: Split Palettes Module ✅ COMPLETE
 
-### Problem
+**Status:** Completed February 2026
 
-`Palettes.ts` (384 lines) contains:
+### Results
 
-- Type definitions
-- Cosine palette data
-- Gradient palette data
-- Helper functions
+| File                  | Lines | Purpose                              |
+| --------------------- | ----- | ------------------------------------ |
+| `types.ts`            | 48    | Type definitions                     |
+| `cosinePalettes.ts`   | 148   | Cosine palette data                  |
+| `gradientPalettes.ts` | 155   | Gradient palette data + HDR          |
+| `helpers.ts`          | 62    | Accessor functions                   |
+| `index.ts`            | 32    | Re-exports                           |
+| `Palettes.ts`         | 9     | Facade (re-exports from module)      |
+| **Total**             | 454   | (vs 383 original, +71 for structure) |
 
-### Solution
+### Structure Created
 
 ```
 src/renderer/palettes/
 ├── index.ts              # Re-exports
 ├── types.ts              # PaletteParams, CosinePaletteParams, etc.
-├── cosinePalettes.ts     # COSINE_PALETTES array
-├── gradientPalettes.ts   # GRADIENT_PALETTES array
-└── helpers.ts            # getCosinePalette, interpolatePalette, etc.
+├── cosinePalettes.ts     # COSINE_PALETTES array (12 palettes)
+├── gradientPalettes.ts   # GRADIENT_PALETTES array (7 palettes + HDR)
+└── helpers.ts            # getCosinePalette, getGradientPaletteParams, etc.
 ```
+
+### Benefits Achieved
+
+- Clear separation: types, data, and helpers in separate files
+- Easier to add new palettes (just edit the appropriate data file)
+- Types are reusable across the codebase
+- Original `Palettes.ts` remains as facade for backward compatibility
 
 ---
 
@@ -305,7 +317,7 @@ src/bookmark/locations/
 | 2. State Management | High   | Medium | None         | ✅ Complete |
 | 3. Input Handler    | Medium | Low    | Phase 2      | ✅ Complete |
 | 4. Proper Types     | Low    | Low    | None         | ✅ Complete |
-| 5. Split Palettes   | Low    | Low    | None         | Anytime     |
+| 5. Split Palettes   | Low    | Low    | None         | ✅ Complete |
 | 6. Render Pipeline  | Medium | High   | Phase 2      | Later       |
 | 7. Famous Locations | Low    | Low    | None         | Anytime     |
 

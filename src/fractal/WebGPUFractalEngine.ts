@@ -33,7 +33,7 @@ import {
   COSINE_PALETTE_COUNT,
   GRADIENT_PALETTE_COUNT,
   PaletteParams,
-} from '../renderer/Palettes';
+} from '../renderer/Palette';
 import { OverlayManager, type DebugOverlayState } from '../ui';
 import { FractalState, maxIterationsForZoom } from '../state';
 

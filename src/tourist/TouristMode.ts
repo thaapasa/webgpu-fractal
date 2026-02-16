@@ -17,7 +17,7 @@ import {
   PaletteParams,
   getCosinePaletteParams,
   getGradientPaletteParams,
-} from '../renderer/Palettes';
+} from '../renderer/Palette';
 
 /** Duration of the pause at each destination (ms) */
 const PAUSE_DURATION = 3000;

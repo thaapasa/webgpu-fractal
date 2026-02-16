@@ -13,7 +13,7 @@ import {
   PaletteParams,
   COSINE_PALETTE_COUNT,
   GRADIENT_PALETTE_COUNT,
-} from '../renderer/Palettes';
+} from '../renderer/Palette';
 
 /** Base iterations at zoom 1 */
 const MAX_ITERATIONS_BASE = 256;

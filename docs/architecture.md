@@ -12,9 +12,10 @@ project. I've organized it by component responsibility."_ _— Jennifer Simms_
 | ------------ | ---------------------- | | Last Updated | February 2026 | | Status | Current
 implementation | | Maintainer | Simms (documentation) |
 
-> **📋 Refactoring Complete (Phases 1-4)**: UI extraction, state management, input handler
-> simplification, and proper types complete. See [cleanup-plan.md](./cleanup-plan.md) for optional
-> future improvements (palette splitting, render pipeline isolation). improvements.
+> **📋 Refactoring Complete (Phases 1-5)**: UI extraction, state management, input handler
+> simplification, proper types, and palette splitting complete. See
+> [cleanup-plan.md](./cleanup-plan.md) for optional future improvements (render pipeline isolation,
+> famous locations refactor). improvements.
 
 ---
 
@@ -527,7 +528,13 @@ src/
 │   └── WebGPUFractalEngine.ts     # Central orchestrator
 ├── renderer/
 │   ├── WebGPURenderer.ts          # WebGPU context and HDR config
-│   ├── Palettes.ts                # Color palette definitions
+│   ├── Palette.ts                 # Facade (re-exports from palettes/)
+│   ├── palettes/
+│   │   ├── index.ts               # Module exports
+│   │   ├── types.ts               # Palette type definitions
+│   │   ├── cosinePalettes.ts      # Cosine palette data (12 palettes)
+│   │   ├── gradientPalettes.ts    # Gradient palette data (7 + HDR)
+│   │   └── helpers.ts             # Accessor functions
 │   └── shaders/
 │       └── mandelbrot.wgsl        # WGSL shader (fractal + HDR)
 ├── state/
