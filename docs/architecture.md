@@ -12,8 +12,9 @@ project. I've organized it by component responsibility."_ _— Jennifer Simms_
 | ------------ | ---------------------- | | Last Updated | February 2026 | | Status | Current
 implementation | | Maintainer | Simms (documentation) |
 
-> **📋 Refactoring In Progress**: Phases 1-2 (UI extraction, state management) complete. See
-> [cleanup-plan.md](./cleanup-plan.md) for remaining phases: input handler simplification and more.
+> **📋 Refactoring Complete (Phases 1-3)**: UI extraction, state management, and input handler
+> simplification complete. See [cleanup-plan.md](./cleanup-plan.md) for optional future
+> improvements.
 
 ---
 
@@ -519,6 +520,7 @@ src/
 │   ├── BookmarkManager.ts         # URL-based state sharing
 │   └── famousLocations.ts         # Curated famous fractal spots (keys 1-9)
 ├── controls/
+│   ├── InputCallbacks.ts          # Input callback interface
 │   ├── InputHandler.ts            # Mouse, touch, keyboard events
 │   └── ViewState.ts               # Pan/zoom state management
 ├── fractal/

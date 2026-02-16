@@ -6,24 +6,9 @@
  */
 
 import { ViewState } from './ViewState';
+import { InputCallbacks } from './InputCallbacks';
 
 export type ViewStateChangeCallback = (viewState: ViewState) => void;
-export type IterationAdjustCallback = (direction: 1 | -1) => void;
-export type IterationResetCallback = () => void;
-export type CosinePaletteCycleCallback = (direction: 1 | -1) => void;
-export type GradientPaletteCycleCallback = (direction: 1 | -1) => void;
-export type ColorOffsetCallback = (delta: number) => void;
-export type ToggleCallback = () => void;
-export type FractalCycleCallback = (direction: 1 | -1) => void;
-export type JuliaPickCallback = (fractalX: number, fractalY: number) => void;
-export type JuliaPickEndCallback = () => void;
-export type ShareCallback = () => void;
-export type LocationCallback = (key: string) => void;
-export type LocationAnimateCallback = (key: string) => void;
-export type HelpToggleCallback = () => void;
-export type ScreenshotModeCallback = () => void;
-export type TouristModeCallback = () => void;
-export type UserInputCallback = () => void;
 
 /** Zoom sensitivity: 1 = full speed, 0.6 = 60% of current zoom deltas */
 const ZOOM_SENSITIVITY = 0.6;
@@ -36,26 +21,7 @@ export class InputHandler {
   private canvas: HTMLCanvasElement;
   private viewState: ViewState;
   private onChange: ViewStateChangeCallback;
-  private onIterationAdjust: IterationAdjustCallback | null = null;
-  private onIterationReset: IterationResetCallback | null = null;
-  private onCosinePaletteCycle: CosinePaletteCycleCallback | null = null;
-  private onGradientPaletteCycle: GradientPaletteCycleCallback | null = null;
-  private onColorOffset: ColorOffsetCallback | null = null;
-  private onColorOffsetReset: ToggleCallback | null = null;
-  private onToggleAA: ToggleCallback | null = null;
-  private onAdjustHdrBrightness: IterationAdjustCallback | null = null;
-  private onResetHdrBrightness: ToggleCallback | null = null;
-  private onFractalCycle: FractalCycleCallback | null = null;
-  private onToggleJuliaMode: ToggleCallback | null = null;
-  private onJuliaPick: JuliaPickCallback | null = null;
-  private onJuliaPickEnd: JuliaPickEndCallback | null = null;
-  private onShare: ShareCallback | null = null;
-  private onLocationSelect: LocationCallback | null = null;
-  private onLocationAnimate: LocationAnimateCallback | null = null;
-  private onToggleHelp: HelpToggleCallback | null = null;
-  private onToggleScreenshotMode: ScreenshotModeCallback | null = null;
-  private onToggleTouristMode: TouristModeCallback | null = null;
-  private onUserInput: UserInputCallback | null = null;
+  private callbacks: InputCallbacks;
 
   // Mouse/touch state
   private isDragging = false;
@@ -78,160 +44,25 @@ export class InputHandler {
   private locationLongPressTimeout: ReturnType<typeof setTimeout> | null = null;
   private static readonly LONG_PRESS_THRESHOLD = 400; // ms
 
-  constructor(canvas: HTMLCanvasElement, viewState: ViewState, onChange: ViewStateChangeCallback) {
+  constructor(
+    canvas: HTMLCanvasElement,
+    viewState: ViewState,
+    onChange: ViewStateChangeCallback,
+    callbacks: InputCallbacks = {}
+  ) {
     this.canvas = canvas;
     this.viewState = viewState;
     this.onChange = onChange;
+    this.callbacks = callbacks;
 
     this.setupEventListeners();
   }
 
   /**
-   * Set callback for iteration adjustment (+/- keys)
+   * Update callbacks (can be called after construction)
    */
-  setIterationAdjustCallback(callback: IterationAdjustCallback): void {
-    this.onIterationAdjust = callback;
-  }
-
-  /**
-   * Set callback for iteration reset (0 key)
-   */
-  setIterationResetCallback(callback: IterationResetCallback): void {
-    this.onIterationReset = callback;
-  }
-
-  /**
-   * Set callback for cosine palette cycling (c/C keys)
-   */
-  setCosinePaletteCycleCallback(callback: CosinePaletteCycleCallback): void {
-    this.onCosinePaletteCycle = callback;
-  }
-
-  /**
-   * Set callback for gradient palette cycling (g/G keys)
-   */
-  setGradientPaletteCycleCallback(callback: GradientPaletteCycleCallback): void {
-    this.onGradientPaletteCycle = callback;
-  }
-
-  /**
-   * Set callback for color offset adjustment ([/] keys)
-   */
-  setColorOffsetCallback(callback: ColorOffsetCallback): void {
-    this.onColorOffset = callback;
-  }
-
-  /**
-   * Set callback for color offset reset (r key)
-   */
-  setColorOffsetResetCallback(callback: ToggleCallback): void {
-    this.onColorOffsetReset = callback;
-  }
-
-  /**
-   * Set callback for AA toggle (a key)
-   */
-  setToggleAACallback(callback: ToggleCallback): void {
-    this.onToggleAA = callback;
-  }
-
-  /**
-   * Set callback for HDR toggle (no-op, HDR is auto-detected)
-   */
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  setToggleHDRCallback(_callback: ToggleCallback): void {
-    // HDR is now auto-detected based on display capabilities
-  }
-
-  /**
-   * Set callback for HDR brightness adjustment (b/B keys)
-   */
-  setAdjustHdrBrightnessCallback(callback: IterationAdjustCallback): void {
-    this.onAdjustHdrBrightness = callback;
-  }
-
-  /**
-   * Set callback for HDR brightness reset (Shift+R key)
-   */
-  setResetHdrBrightnessCallback(callback: ToggleCallback): void {
-    this.onResetHdrBrightness = callback;
-  }
-
-  /**
-   * Set callback for fractal type cycling (f/F keys)
-   */
-  setFractalCycleCallback(callback: FractalCycleCallback): void {
-    this.onFractalCycle = callback;
-  }
-
-  /**
-   * Set callback for Julia mode toggle (j key)
-   */
-  setToggleJuliaModeCallback(callback: ToggleCallback): void {
-    this.onToggleJuliaMode = callback;
-  }
-
-  /**
-   * Set callback for Julia constant selection (click in picker mode)
-   */
-  setJuliaPickCallback(callback: JuliaPickCallback): void {
-    this.onJuliaPick = callback;
-  }
-
-  /**
-   * Set callback for when Julia picking ends (mouse up in picker mode)
-   */
-  setJuliaPickEndCallback(callback: JuliaPickEndCallback): void {
-    this.onJuliaPickEnd = callback;
-  }
-
-  /**
-   * Set callback for share/bookmark (s key)
-   */
-  setShareCallback(callback: ShareCallback): void {
-    this.onShare = callback;
-  }
-
-  /**
-   * Set callback for famous location selection (1-9 keys)
-   */
-  setLocationSelectCallback(callback: LocationCallback): void {
-    this.onLocationSelect = callback;
-  }
-
-  /**
-   * Set callback for animated location transition (long-press 1-9 keys)
-   */
-  setLocationAnimateCallback(callback: LocationAnimateCallback): void {
-    this.onLocationAnimate = callback;
-  }
-
-  /**
-   * Set callback for help overlay toggle (h key)
-   */
-  setToggleHelpCallback(callback: HelpToggleCallback): void {
-    this.onToggleHelp = callback;
-  }
-
-  /**
-   * Set callback for screenshot mode toggle (space key)
-   */
-  setToggleScreenshotModeCallback(callback: ScreenshotModeCallback): void {
-    this.onToggleScreenshotMode = callback;
-  }
-
-  /**
-   * Set callback for tourist mode toggle (t key)
-   */
-  setToggleTouristModeCallback(callback: TouristModeCallback): void {
-    this.onToggleTouristMode = callback;
-  }
-
-  /**
-   * Set callback for any user input (used to cancel tourist mode)
-   */
-  setUserInputCallback(callback: UserInputCallback): void {
-    this.onUserInput = callback;
+  setCallbacks(callbacks: InputCallbacks): void {
+    this.callbacks = { ...this.callbacks, ...callbacks };
   }
 
   /**
@@ -316,7 +147,7 @@ export class InputHandler {
     const [x, y] = this.getScreenCoords(e.clientX, e.clientY);
 
     // Julia picker mode: start continuous picking while mouse is held
-    if (this.juliaPickerMode && this.onJuliaPick) {
+    if (this.juliaPickerMode && this.callbacks.onJuliaPick) {
       const [width, height] = this.getCanvasSize();
       // Save view state at pick start - we'll use this for ALL coordinate conversions
       // during this pick session, even after the view switches to Julia mode
@@ -335,7 +166,7 @@ export class InputHandler {
       this.isPickingJulia = true;
       this.lastX = x;
       this.lastY = y;
-      this.onJuliaPick(fractalX, fractalY);
+      this.callbacks.onJuliaPick(fractalX, fractalY);
       return;
     }
 
@@ -349,7 +180,7 @@ export class InputHandler {
     const [x, y] = this.getScreenCoords(e.clientX, e.clientY);
 
     // Julia picking mode: continuously update Julia constant while mouse is held
-    if (this.isPickingJulia && this.onJuliaPick && this.juliaPickViewState) {
+    if (this.isPickingJulia && this.callbacks.onJuliaPick && this.juliaPickViewState) {
       const [width, height] = this.getCanvasSize();
       // Use saved view state for conversion - keeps us in Mandelbrot coordinate space
       const [fractalX, fractalY] = this.toFractalCoordsWithView(
@@ -359,7 +190,7 @@ export class InputHandler {
         height,
         this.juliaPickViewState
       );
-      this.onJuliaPick(fractalX, fractalY);
+      this.callbacks.onJuliaPick(fractalX, fractalY);
       this.lastX = x;
       this.lastY = y;
       return;
@@ -382,7 +213,7 @@ export class InputHandler {
     if (this.isPickingJulia) {
       this.isPickingJulia = false;
       this.juliaPickViewState = null;
-      this.onJuliaPickEnd?.();
+      this.callbacks.onJuliaPickEnd?.();
       return;
     }
     if (this.isDragging) {
@@ -395,7 +226,7 @@ export class InputHandler {
     e.preventDefault();
 
     // Notify that user is interacting (cancels tourist mode)
-    this.onUserInput?.();
+    this.callbacks.onUserInput?.();
 
     const [x, y] = this.getScreenCoords(e.clientX, e.clientY);
     const raw = e.deltaY > 0 ? 0.9 : 1.1;
@@ -433,7 +264,7 @@ export class InputHandler {
 
   private handleTouchStart(e: TouchEvent): void {
     // Notify that user is interacting (cancels tourist mode)
-    this.onUserInput?.();
+    this.callbacks.onUserInput?.();
 
     if (e.touches.length === 1) {
       // Single touch - start pan
@@ -496,95 +327,91 @@ export class InputHandler {
       case '+':
       case '=': // Allow unshifted + key
         e.preventDefault();
-        this.onIterationAdjust?.(1);
+        this.callbacks.onIterationAdjust?.(1);
         break;
       case '-':
       case '_': // Allow shifted - key
         e.preventDefault();
-        this.onIterationAdjust?.(-1);
+        this.callbacks.onIterationAdjust?.(-1);
         break;
       case '0':
         e.preventDefault();
-        this.onIterationReset?.();
+        this.callbacks.onIterationReset?.();
         break;
       case 'c':
         e.preventDefault();
-        this.onCosinePaletteCycle?.(1);
+        this.callbacks.onCosinePaletteCycle?.(1);
         break;
       case 'C':
         e.preventDefault();
-        this.onCosinePaletteCycle?.(-1);
+        this.callbacks.onCosinePaletteCycle?.(-1);
         break;
       case 'g':
         e.preventDefault();
-        this.onGradientPaletteCycle?.(1);
+        this.callbacks.onGradientPaletteCycle?.(1);
         break;
       case 'G':
         e.preventDefault();
-        this.onGradientPaletteCycle?.(-1);
+        this.callbacks.onGradientPaletteCycle?.(-1);
         break;
       case '[':
       case ',':
         e.preventDefault();
-        this.onColorOffset?.(-0.05);
+        this.callbacks.onColorOffsetAdjust?.(-0.05);
         break;
       case ']':
       case '.':
         e.preventDefault();
-        this.onColorOffset?.(0.05);
+        this.callbacks.onColorOffsetAdjust?.(0.05);
         break;
       case '{':
       case '<':
         e.preventDefault();
-        this.onColorOffset?.(-0.15);
+        this.callbacks.onColorOffsetAdjust?.(-0.15);
         break;
       case '}':
       case '>':
         e.preventDefault();
-        this.onColorOffset?.(0.15);
+        this.callbacks.onColorOffsetAdjust?.(0.15);
         break;
       case 'r':
       case 'R':
         e.preventDefault();
-        this.onColorOffsetReset?.();
+        this.callbacks.onColorOffsetReset?.();
         break;
-      case 'a':
-      case 'A':
-        e.preventDefault();
-        this.onToggleAA?.();
-        break;
+      // Note: 'a'/'A' for AA toggle removed - not used in WebGPU version
       case 'b':
         // b: extend bright region (make more of image bright)
         e.preventDefault();
-        this.onAdjustHdrBrightness?.(1);
+        this.callbacks.onBrightnessAdjust?.(1);
         break;
       case 'B':
         // Shift+B: contract bright region (make less of image bright)
         e.preventDefault();
-        this.onAdjustHdrBrightness?.(-1);
+        this.callbacks.onBrightnessAdjust?.(-1);
         break;
       case 'd':
         // d: reset HDR brightness bias
         e.preventDefault();
-        this.onResetHdrBrightness?.();
+        this.callbacks.onBrightnessReset?.();
         break;
       case 'f':
         e.preventDefault();
-        this.onFractalCycle?.(1);
+        this.callbacks.onFractalCycle?.(1);
         break;
       case 'F':
         e.preventDefault();
-        this.onFractalCycle?.(-1);
+        this.callbacks.onFractalCycle?.(-1);
         break;
       case 'j':
       case 'J':
         e.preventDefault();
-        this.onToggleJuliaMode?.();
+        this.callbacks.onToggleJuliaMode?.();
         break;
       case 's':
       case 'S':
         e.preventDefault();
-        this.onShare?.();
+        this.callbacks.onShare?.();
         break;
       case '1':
       case '2':
@@ -603,7 +430,7 @@ export class InputHandler {
           this.locationLongPressTimeout = setTimeout(() => {
             if (this.locationKeyHeld === e.key) {
               // Long press - animate to location
-              this.onLocationAnimate?.(e.key);
+              this.callbacks.onLocationAnimate?.(e.key);
               this.locationKeyHeld = null; // Prevent short-press on key up
             }
           }, InputHandler.LONG_PRESS_THRESHOLD);
@@ -612,16 +439,16 @@ export class InputHandler {
       case 'h':
       case 'H':
         e.preventDefault();
-        this.onToggleHelp?.();
+        this.callbacks.onToggleHelp?.();
         break;
       case ' ':
         e.preventDefault();
-        this.onToggleScreenshotMode?.();
+        this.callbacks.onToggleScreenshotMode?.();
         break;
       case 't':
       case 'T':
         e.preventDefault();
-        this.onToggleTouristMode?.();
+        this.callbacks.onToggleTouristMode?.();
         break;
       case 'z':
         e.preventDefault();
@@ -654,7 +481,7 @@ export class InputHandler {
           this.locationLongPressTimeout = null;
         }
         // Short press - instant jump to location
-        this.onLocationSelect?.(e.key);
+        this.callbacks.onLocationSelect?.(e.key);
         this.locationKeyHeld = null;
       }
     }

@@ -64,11 +64,13 @@ export class WebGPUFractalEngine {
     this.renderer = renderer;
     this.state = new FractalState();
 
-    this.inputHandler = new InputHandler(canvas, this.state.view, () => {
-      this.render();
-    });
+    this.inputHandler = new InputHandler(
+      canvas,
+      this.state.view,
+      () => this.render(),
+      this.createInputCallbacks()
+    );
 
-    this.setupInputCallbacks();
     this.setupOverlays(canvas);
   }
 
@@ -163,71 +165,28 @@ export class WebGPUFractalEngine {
     console.log('WebGPU pipeline initialized');
   }
 
-  private setupInputCallbacks(): void {
-    this.inputHandler.setIterationAdjustCallback((direction) => {
-      this.adjustMaxIterations(direction);
-    });
-    this.inputHandler.setIterationResetCallback(() => {
-      this.clearMaxIterationsOverride();
-    });
-    this.inputHandler.setCosinePaletteCycleCallback((direction) => {
-      this.cycleCosinePalette(direction);
-    });
-    this.inputHandler.setGradientPaletteCycleCallback((direction) => {
-      this.cycleGradientPalette(direction);
-    });
-    this.inputHandler.setColorOffsetCallback((delta) => {
-      this.adjustColorOffset(delta);
-    });
-    this.inputHandler.setColorOffsetResetCallback(() => {
-      this.resetColorOffset();
-    });
-    this.inputHandler.setToggleAACallback(() => {
-      // AA not supported in WebGPU version (HDR is always on)
-      console.log('AA not available in WebGPU HDR mode');
-    });
-    this.inputHandler.setToggleHDRCallback(() => {
-      this.toggleHDR();
-    });
-    this.inputHandler.setAdjustHdrBrightnessCallback((direction) => {
-      this.adjustHdrBrightness(direction);
-    });
-    this.inputHandler.setResetHdrBrightnessCallback(() => {
-      this.resetHdrBrightness();
-    });
-    this.inputHandler.setFractalCycleCallback((direction) => {
-      this.cycleFractalType(direction);
-    });
-    this.inputHandler.setToggleJuliaModeCallback(() => {
-      this.toggleJuliaPickerMode();
-    });
-    this.inputHandler.setJuliaPickCallback((x, y) => {
-      this.pickJuliaConstant(x, y);
-    });
-    this.inputHandler.setJuliaPickEndCallback(() => {
-      this.endJuliaPicking();
-    });
-    this.inputHandler.setShareCallback(() => {
-      this.shareBookmark();
-    });
-    this.inputHandler.setLocationSelectCallback((key) => {
-      this.goToLocation(key);
-    });
-    this.inputHandler.setLocationAnimateCallback((key) => {
-      this.animateToLocation(key);
-    });
-    this.inputHandler.setToggleHelpCallback(() => {
-      this.toggleHelp();
-    });
-    this.inputHandler.setToggleScreenshotModeCallback(() => {
-      this.toggleScreenshotMode();
-    });
-    this.inputHandler.setToggleTouristModeCallback(() => {
-      this.toggleTouristMode();
-    });
-    this.inputHandler.setUserInputCallback(() => {
-      this.handleUserInput();
-    });
+  private createInputCallbacks(): import('../controls/InputCallbacks').InputCallbacks {
+    return {
+      onIterationAdjust: (direction) => this.adjustMaxIterations(direction),
+      onIterationReset: () => this.clearMaxIterationsOverride(),
+      onCosinePaletteCycle: (direction) => this.cycleCosinePalette(direction),
+      onGradientPaletteCycle: (direction) => this.cycleGradientPalette(direction),
+      onColorOffsetAdjust: (delta) => this.adjustColorOffset(delta),
+      onColorOffsetReset: () => this.resetColorOffset(),
+      onBrightnessAdjust: (direction) => this.adjustHdrBrightness(direction),
+      onBrightnessReset: () => this.resetHdrBrightness(),
+      onFractalCycle: (direction) => this.cycleFractalType(direction),
+      onToggleJuliaMode: () => this.toggleJuliaPickerMode(),
+      onJuliaPick: (x, y) => this.pickJuliaConstant(x, y),
+      onJuliaPickEnd: () => this.endJuliaPicking(),
+      onShare: () => this.shareBookmark(),
+      onLocationSelect: (key) => this.goToLocation(key),
+      onLocationAnimate: (key) => this.animateToLocation(key),
+      onToggleHelp: () => this.toggleHelp(),
+      onToggleScreenshotMode: () => this.toggleScreenshotMode(),
+      onToggleTouristMode: () => this.toggleTouristMode(),
+      onUserInput: () => this.handleUserInput(),
+    };
   }
 
   private setupOverlays(canvas: HTMLCanvasElement): void {
@@ -424,12 +383,6 @@ export class WebGPUFractalEngine {
   }
 
   // --- HDR controls ---
-
-  private toggleHDR(): void {
-    // HDR is controlled by the renderer, we just adjust brightness bias
-    console.log(`HDR is ${this.renderer.hdrEnabled ? 'enabled' : 'not available'}`);
-    this.render();
-  }
 
   /**
    * Adjust brightness.
