@@ -98,3 +98,6 @@ export interface ViewState {
   centerY: number; // Imaginary component of center (-1.5 to 1.5 typical)
   zoom: number; // Zoom factor (1.0 = full set visible)
 }
+
+// Re-export common types from the types module
+export * from './types/index';

@@ -148,68 +148,61 @@ export interface InputCallbacks {
 
 ---
 
-## Phase 4: Create Proper Types (Low Impact, Low Effort)
+## Phase 4: Create Proper Types ✅ COMPLETE
 
-### Problem
+**Status:** Completed February 2026
 
-Primitive obsession with tuples:
+### Results
 
-- `juliaC: [number, number]` throughout
-- `Vec3: [number, number, number]` for colors
-- Screen coordinates as `[number, number]`
+Created `src/types/` directory with dedicated type modules:
 
-### Solution
+```
+src/types/
+├── index.ts      # Re-exports all types
+├── Complex.ts    # Complex number type and operations
+├── Point.ts      # Screen and fractal coordinate points
+└── Color.ts      # RGB colors and Vec3/Vec4 types
+```
 
-Create proper types in `src/types/`:
+### What Was Created
+
+**`Complex.ts` (82 lines):**
+
+- `Complex` interface with `real` and `imag` fields
+- Factory functions: `complex()`, `complexFromTuple()`, `complexToTuple()`
+- Operations: `complexAdd()`, `complexSub()`, `complexMul()`, `complexMag()`, `complexMagSq()`
+- Formatting: `complexToString()`
+
+**`Point.ts` (50 lines):**
+
+- `ScreenPoint` — pixel coordinates with `x`, `y`
+- `FractalPoint` — complex plane coordinates with `real`, `imag`
+- `ScreenSize` — dimensions with `width`, `height`
+
+**`Color.ts` (72 lines):**
+
+- `Vec3`, `Vec4` — tuple types for shader compatibility
+- `RGBColor`, `RGBAColor` — structured color types
+- `rgb()`, `rgba()`, `rgbFromVec3()`, `rgbToVec3()`
+- `lerpColor()`, `lerpVec3()` — interpolation helpers
+
+### Integration
+
+The main `src/types.ts` now re-exports all types from the new module:
 
 ```typescript
-// src/types/Complex.ts
-export class Complex {
-  constructor(
-    public real: number,
-    public imag: number
-  ) {}
-
-  static from(tuple: [number, number]): Complex {
-    return new Complex(tuple[0], tuple[1]);
-  }
-
-  toTuple(): [number, number] {
-    return [this.real, this.imag];
-  }
-
-  toString(): string {
-    return `${this.real.toFixed(4)} + ${this.imag.toFixed(4)}i`;
-  }
-}
-
-// src/types/Color.ts
-export class Color {
-  constructor(
-    public r: number,
-    public g: number,
-    public b: number
-  ) {}
-
-  static fromVec3(v: Vec3): Color {
-    return new Color(v[0], v[1], v[2]);
-  }
-
-  toVec3(): Vec3 {
-    return [this.r, this.g, this.b];
-  }
-}
-
-// src/types/Point.ts
-export interface ScreenPoint {
-  x: number;
-  y: number;
-}
-export interface FractalPoint {
-  real: number;
-  imag: number;
-}
+export * from './types/index';
 ```
+
+This allows gradual migration — existing code continues to work while new code can use the proper
+types.
+
+### Benefits
+
+- Type-safe complex number operations
+- Self-documenting coordinate types
+- Reusable interpolation helpers
+- Foundation for future refactoring (replace tuples incrementally)
 
 ---
 
@@ -311,7 +304,7 @@ src/bookmark/locations/
 | 1. UI Layer         | High   | Medium | None         | ✅ Complete |
 | 2. State Management | High   | Medium | None         | ✅ Complete |
 | 3. Input Handler    | Medium | Low    | Phase 2      | ✅ Complete |
-| 4. Proper Types     | Low    | Low    | None         | Anytime     |
+| 4. Proper Types     | Low    | Low    | None         | ✅ Complete |
 | 5. Split Palettes   | Low    | Low    | None         | Anytime     |
 | 6. Render Pipeline  | Medium | High   | Phase 2      | Later       |
 | 7. Famous Locations | Low    | Low    | None         | Anytime     |
@@ -396,13 +389,13 @@ main.ts
 
 ## Quick Wins
 
-Most quick wins are now complete:
+All quick wins are now complete:
 
 1. ~~**Extract `createHelpContent()`**~~ ✅ Done (now in `HelpOverlay.ts`)
 2. ~~**Extract iteration helpers**~~ ✅ Done (`maxIterationsForZoom()` now in
    `state/FractalState.ts`)
 3. ~~**Group notification methods**~~ ✅ Done (now in `NotificationOverlay.ts`)
-4. **Type alias cleanup** — Replace `[number, number]` with `Complex` or `Point2D` type
+4. ~~**Type alias cleanup**~~ ✅ Done (`Complex`, `ScreenPoint`, `FractalPoint` in `src/types/`)
 
 ---
 

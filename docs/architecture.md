@@ -12,9 +12,9 @@ project. I've organized it by component responsibility."_ _— Jennifer Simms_
 | ------------ | ---------------------- | | Last Updated | February 2026 | | Status | Current
 implementation | | Maintainer | Simms (documentation) |
 
-> **📋 Refactoring Complete (Phases 1-3)**: UI extraction, state management, and input handler
-> simplification complete. See [cleanup-plan.md](./cleanup-plan.md) for optional future
-> improvements.
+> **📋 Refactoring Complete (Phases 1-4)**: UI extraction, state management, input handler
+> simplification, and proper types complete. See [cleanup-plan.md](./cleanup-plan.md) for optional
+> future improvements (palette splitting, render pipeline isolation). improvements.
 
 ---
 
@@ -29,10 +29,10 @@ entirely in the browser, and features HDR (High Dynamic Range) rendering on comp
 ┌─────────────────────────────────────────────────────────────┐
 │                         Browser                             │
 ├─────────────────────────────────────────────────────────────┤
-│  ┌─────────────┐    ┌───────────────────┐  ┌─────────────┐  │
+│  ┌─────────────┐    ┌───────────────────┐  ┌───────────-──┐ │
 │  │   main.ts   │───▶│WebGPUFractalEngine│─▶│WebGPURenderer│ │
-│  │  (entry)    │    │  (orchestrator)   │  │  (context)  │  │
-│  └─────────────┘    └─────────┬─────────┘  └──────┬──────┘  │
+│  │  (entry)    │    │  (orchestrator)   │  │  (context)   │ │
+│  └─────────────┘    └─────────┬─────────┘  └──────┬─────-─┘ │
 │                               │                   │         │
 │                        ┌──────┴──────┐      ┌─────┴─────┐   │
 │                        │             │      │           │   │
@@ -515,7 +515,7 @@ maxIter = BASE + SCALE × log₁₀(zoom)^POWER
 ```
 src/
 ├── main.ts                        # Application entry point
-├── types.ts                       # TypeScript type definitions
+├── types.ts                       # Re-exports all types
 ├── bookmark/
 │   ├── BookmarkManager.ts         # URL-based state sharing
 │   └── famousLocations.ts         # Curated famous fractal spots (keys 1-9)
@@ -535,6 +535,11 @@ src/
 │   └── FractalState.ts            # Centralized state management
 ├── tourist/
 │   └── TouristMode.ts             # Automated fractal exploration
+├── types/
+│   ├── index.ts                   # Re-exports all types
+│   ├── Complex.ts                 # Complex number type and operations
+│   ├── Point.ts                   # Screen and fractal coordinate points
+│   └── Color.ts                   # RGB colors and Vec3/Vec4 types
 └── ui/
     ├── index.ts                   # Module exports
     ├── OverlayManager.ts          # Coordinates all UI overlays
