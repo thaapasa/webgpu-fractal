@@ -19,7 +19,7 @@ _- Colonel Joe Bishop_
 | Multiple fractal types              | ✅ Done (10 base types + Julia variants = 20 total)                         |
 | Julia sets                          | ✅ Done (with interactive picker mode!)                                     |
 | URL bookmarking                     | ✅ Done (shareable links + context-sensitive famous locations per fractal) |
-| Tourist mode                        | 🔲 Not yet                                                                 |
+| Tourist mode                        | ✅ Done (Option A: Famous Locations Tour)                              |
 | Offline support                     | 🔲 Not yet                                                                 |
 
 ---
@@ -206,8 +206,8 @@ How do we know if we've succeeded?
 
 ### Phase 3: Polish and Expand
 
-- Multiple fractal types (Julia sets, Burning Ship) ✅ (all 4 types done)
-- Tourist mode auto-exploration 🔲
+- Multiple fractal types (Julia sets, Burning Ship) ✅ (all 10 types done)
+- Tourist mode auto-exploration ✅ (Famous Locations Tour)
 - Advanced settings for power users ✅ (help overlay, iteration controls)
 - Offline support 🔲
 

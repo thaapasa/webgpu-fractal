@@ -21,6 +21,8 @@ export type ShareCallback = () => void;
 export type LocationCallback = (key: string) => void;
 export type HelpToggleCallback = () => void;
 export type ScreenshotModeCallback = () => void;
+export type TouristModeCallback = () => void;
+export type UserInputCallback = () => void;
 
 /** Zoom sensitivity: 1 = full speed, 0.6 = 60% of current zoom deltas */
 const ZOOM_SENSITIVITY = 0.6;
@@ -50,6 +52,8 @@ export class InputHandler {
   private onLocationSelect: LocationCallback | null = null;
   private onToggleHelp: HelpToggleCallback | null = null;
   private onToggleScreenshotMode: ScreenshotModeCallback | null = null;
+  private onToggleTouristMode: TouristModeCallback | null = null;
+  private onUserInput: UserInputCallback | null = null;
 
   // Mouse/touch state
   private isDragging = false;
@@ -207,6 +211,20 @@ export class InputHandler {
   }
 
   /**
+   * Set callback for tourist mode toggle (t key)
+   */
+  setToggleTouristModeCallback(callback: TouristModeCallback): void {
+    this.onToggleTouristMode = callback;
+  }
+
+  /**
+   * Set callback for any user input (used to cancel tourist mode)
+   */
+  setUserInputCallback(callback: UserInputCallback): void {
+    this.onUserInput = callback;
+  }
+
+  /**
    * Enable or disable Julia picker mode
    */
   setJuliaPickerMode(enabled: boolean): void {
@@ -357,6 +375,9 @@ export class InputHandler {
   private handleWheel(e: WheelEvent): void {
     e.preventDefault();
 
+    // Notify that user is interacting (cancels tourist mode)
+    this.onUserInput?.();
+
     const [x, y] = this.getScreenCoords(e.clientX, e.clientY);
     const raw = e.deltaY > 0 ? 0.9 : 1.1;
     const zoomFactor = scaleZoomFactor(raw);
@@ -392,6 +413,9 @@ export class InputHandler {
   }
 
   private handleTouchStart(e: TouchEvent): void {
+    // Notify that user is interacting (cancels tourist mode)
+    this.onUserInput?.();
+
     if (e.touches.length === 1) {
       // Single touch - start pan
       this.isDragging = true;
@@ -563,6 +587,11 @@ export class InputHandler {
       case ' ':
         e.preventDefault();
         this.onToggleScreenshotMode?.();
+        break;
+      case 't':
+      case 'T':
+        e.preventDefault();
+        this.onToggleTouristMode?.();
         break;
       case 'z':
         e.preventDefault();

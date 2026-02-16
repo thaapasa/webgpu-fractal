@@ -16,6 +16,7 @@ import {
   copyShareableUrl,
 } from '../bookmark/BookmarkManager';
 import { getLocationByKey } from '../bookmark/famousLocations';
+import { TouristMode } from '../tourist/TouristMode';
 import {
   getCosinePalette,
   getGradientPalette,
@@ -85,6 +86,8 @@ export class WebGPUFractalEngine {
   private helpVisible = false;
   private screenshotMode = false;
   private notificationTimeoutId: ReturnType<typeof setTimeout> | null = null;
+
+  private touristMode: TouristMode | null = null;
 
   private constructor(renderer: WebGPURenderer, canvas: HTMLCanvasElement) {
     this.renderer = renderer;
@@ -238,6 +241,12 @@ export class WebGPUFractalEngine {
     });
     this.inputHandler.setToggleScreenshotModeCallback(() => {
       this.toggleScreenshotMode();
+    });
+    this.inputHandler.setToggleTouristModeCallback(() => {
+      this.toggleTouristMode();
+    });
+    this.inputHandler.setUserInputCallback(() => {
+      this.handleUserInput();
     });
   }
 
@@ -931,6 +940,7 @@ export class WebGPUFractalEngine {
         <div style="margin-bottom: 12px;">
           <h3 style="margin: 0 0 8px 0; color: #a78bfa; font-size: 13px; text-transform: uppercase;">UI</h3>
           <div style="display: grid; gap: 4px;">
+            ${this.helpRow('T', 'Tourist mode (auto-tour)')}
             ${this.helpRow('H', 'Toggle this help')}
             ${this.helpRow('Space', 'Screenshot mode')}
           </div>
@@ -957,7 +967,83 @@ export class WebGPUFractalEngine {
     `;
   }
 
+  // --- Tourist Mode ---
+
+  private toggleTouristMode(): void {
+    if (this.touristMode?.isActive()) {
+      this.stopTouristMode();
+    } else {
+      this.startTouristMode();
+    }
+  }
+
+  private startTouristMode(): void {
+    // Create tourist mode instance if it doesn't exist
+    if (!this.touristMode) {
+      this.touristMode = new TouristMode(
+        {
+          onUpdate: (state) => this.applyTouristUpdate(state),
+          onRender: () => this.render(),
+          onLocationNotification: (name, description) => this.showLocationNotification(name, description),
+        },
+        this.getBookmarkState()
+      );
+    }
+
+    this.touristMode.start(this.getBookmarkState());
+    this.showTouristModeNotification(true);
+  }
+
+  private stopTouristMode(): void {
+    if (this.touristMode) {
+      this.touristMode.stop();
+      this.showTouristModeNotification(false);
+      this.updateUrlBookmark();
+    }
+  }
+
+  private handleUserInput(): void {
+    // Stop tourist mode on any user interaction
+    if (this.touristMode?.isActive()) {
+      this.stopTouristMode();
+    }
+  }
+
+  private applyTouristUpdate(state: Partial<BookmarkState>): void {
+    if (state.centerX !== undefined) this.viewState.centerX = state.centerX;
+    if (state.centerY !== undefined) this.viewState.centerY = state.centerY;
+    if (state.zoom !== undefined) this.viewState.zoom = state.zoom;
+    if (state.fractalType !== undefined) this.fractalType = state.fractalType;
+    if (state.paletteType !== undefined) this.paletteType = state.paletteType;
+    if (state.cosinePaletteIndex !== undefined) this.cosinePaletteIndex = state.cosinePaletteIndex;
+    if (state.gradientPaletteIndex !== undefined) this.gradientPaletteIndex = state.gradientPaletteIndex;
+    if (state.colorOffset !== undefined) this.colorOffset = state.colorOffset;
+    if (state.juliaC !== undefined) this.juliaC = state.juliaC;
+  }
+
+  private showTouristModeNotification(started: boolean): void {
+    if (!this.shareNotification) return;
+
+    // Clear any existing timeout
+    if (this.notificationTimeoutId !== null) {
+      clearTimeout(this.notificationTimeoutId);
+    }
+
+    this.shareNotification.innerHTML = started
+      ? '🚀 <strong>Tourist Mode</strong> — Sit back and enjoy the ride!<br><span style="color: #aaa; font-size: 12px;">Click or press T to take control</span>'
+      : '🎮 <strong>Manual Control</strong> — You\'re driving now';
+    this.shareNotification.style.color = started ? '#60a5fa' : '#4ade80';
+    this.shareNotification.style.opacity = '1';
+    this.notificationTimeoutId = setTimeout(() => {
+      if (this.shareNotification) {
+        this.shareNotification.style.opacity = '0';
+      }
+      this.notificationTimeoutId = null;
+    }, started ? 3000 : 1500);
+  }
+
   destroy(): void {
+    this.touristMode?.stop();
     this.stop();
     window.removeEventListener('resize', this.handleResize);
     window.removeEventListener('hashchange', this.handleHashChange);
