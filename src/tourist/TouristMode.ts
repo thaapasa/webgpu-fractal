@@ -55,6 +55,56 @@ function lerpLog(a: number, b: number, t: number): number {
 }
 
 /**
+ * Circular/arc interpolation for 2D coordinates.
+ * Instead of going straight from A to B (which passes through the center),
+ * this takes a curved path that arcs around the origin.
+ *
+ * Uses polar coordinates: interpolates angle and radius separately,
+ * choosing the shorter angular direction.
+ */
+function lerpCircular(
+  ax: number, ay: number,
+  bx: number, by: number,
+  t: number
+): [number, number] {
+  // Convert to polar coordinates
+  const aRadius = Math.sqrt(ax * ax + ay * ay);
+  const bRadius = Math.sqrt(bx * bx + by * by);
+  let aAngle = Math.atan2(ay, ax);
+  let bAngle = Math.atan2(by, bx);
+
+  // Handle edge cases where points are very close to origin
+  const minRadius = 0.01;
+  if (aRadius < minRadius && bRadius < minRadius) {
+    // Both near origin, just lerp linearly
+    return [lerp(ax, bx, t), lerp(ay, by, t)];
+  }
+  if (aRadius < minRadius) {
+    // Start near origin, lerp from origin toward B
+    return [lerp(0, bx, t), lerp(0, by, t)];
+  }
+  if (bRadius < minRadius) {
+    // End near origin, lerp from A toward origin
+    return [lerp(ax, 0, t), lerp(ay, 0, t)];
+  }
+
+  // Choose the shorter angular direction
+  let angleDiff = bAngle - aAngle;
+  if (angleDiff > Math.PI) {
+    angleDiff -= 2 * Math.PI;
+  } else if (angleDiff < -Math.PI) {
+    angleDiff += 2 * Math.PI;
+  }
+
+  // Interpolate angle (shorter direction) and radius
+  const angle = aAngle + angleDiff * t;
+  const radius = lerp(aRadius, bRadius, t);
+
+  // Convert back to Cartesian
+  return [radius * Math.cos(angle), radius * Math.sin(angle)];
+}
+
+/**
  * Current state of the tourist mode animation
  */
 type TouristState =
@@ -210,26 +260,41 @@ export class TouristMode {
         const t = Math.min(1, elapsed / this.state.duration);
         const eased = easeInOutCubic(t);
 
+        // Interpolate Julia coordinates using circular path (avoids boring center)
+        const juliaC = lerpCircular(
+          this.state.from.juliaC[0], this.state.from.juliaC[1],
+          this.state.to.juliaC[0], this.state.to.juliaC[1],
+          eased
+        );
+
+        // Interpolate center position using circular path as well
+        const [centerX, centerY] = lerpCircular(
+          this.state.from.centerX, this.state.from.centerY,
+          this.state.to.centerX, this.state.to.centerY,
+          eased
+        );
+
         // Interpolate position (logarithmic for zoom)
         const newState: Partial<BookmarkState> = {
-          centerX: lerp(this.state.from.centerX, this.state.to.centerX, eased),
-          centerY: lerp(this.state.from.centerY, this.state.to.centerY, eased),
+          centerX,
+          centerY,
           zoom: lerpLog(this.state.from.zoom, this.state.to.zoom, eased),
           fractalType: this.state.to.fractalType,
           paletteType: this.state.to.paletteType,
           cosinePaletteIndex: this.state.to.cosinePaletteIndex,
           gradientPaletteIndex: this.state.to.gradientPaletteIndex,
           colorOffset: lerp(this.state.from.colorOffset, this.state.to.colorOffset, eased),
-          juliaC: this.state.to.juliaC,
+          juliaC: juliaC,
         };
 
         // Update current target for next animation
         this.currentTarget = {
           ...this.state.to,
-          centerX: newState.centerX!,
-          centerY: newState.centerY!,
+          centerX,
+          centerY,
           zoom: newState.zoom!,
           colorOffset: newState.colorOffset!,
+          juliaC: juliaC,
         };
 
         this.callbacks.onUpdate(newState);
