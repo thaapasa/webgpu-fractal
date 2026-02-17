@@ -261,6 +261,15 @@ export class FractalState {
     // No emit - this is for smooth animation, render loop handles it
   }
 
+  /**
+   * Clear all interpolation state (palette and blend params).
+   * Call this when making a "hard" state change (not an animated transition).
+   */
+  clearInterpolationState(): void {
+    this._interpolatedPaletteParams = null;
+    this._interpolatedBlendParams = null;
+  }
+
   // --- State conversion ---
 
   /**

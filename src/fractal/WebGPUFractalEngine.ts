@@ -483,15 +483,12 @@ export class WebGPUFractalEngine {
     const location = getLocationByKey('1', newFractalType);
     if (location) {
       this.applyLocationState(location.state);
-      // Clear any lingering blend state from tourist mode
-      this.state.interpolatedBlendParams = null;
-      this.state.interpolatedPaletteParams = null;
+      this.state.clearInterpolationState();
       this.showLocationNotification(location.name, location.description);
     } else {
       // Fallback if no location defined
       this.state.fractalType = newFractalType;
-      this.state.interpolatedBlendParams = null;
-      this.state.interpolatedPaletteParams = null;
+      this.state.clearInterpolationState();
     }
 
     this.render();
@@ -601,9 +598,7 @@ export class WebGPUFractalEngine {
     if (!location) return;
 
     this.applyLocationState(location.state);
-    // Clear any lingering blend state from tourist mode
-    this.state.interpolatedBlendParams = null;
-    this.state.interpolatedPaletteParams = null;
+    this.state.clearInterpolationState();
     this.showLocationNotification(location.name, location.description);
     this.updateUrlBookmark();
     this.render();
@@ -622,6 +617,7 @@ export class WebGPUFractalEngine {
         {
           onUpdate: (state, interpolatedPaletteParams, interpolatedBlendParams) =>
             this.applyTouristUpdate(state, interpolatedPaletteParams, interpolatedBlendParams),
+          onClearInterpolation: () => this.state.clearInterpolationState(),
           onRender: () => this.render(),
           onLocationNotification: (name, description) =>
             this.showLocationNotification(name, description),
@@ -760,6 +756,7 @@ export class WebGPUFractalEngine {
         {
           onUpdate: (state, interpolatedPaletteParams, interpolatedBlendParams) =>
             this.applyTouristUpdate(state, interpolatedPaletteParams, interpolatedBlendParams),
+          onClearInterpolation: () => this.state.clearInterpolationState(),
           onRender: () => this.render(),
           onLocationNotification: (name, description) =>
             this.showLocationNotification(name, description),
@@ -775,8 +772,7 @@ export class WebGPUFractalEngine {
   private stopTouristMode(): void {
     if (this.touristMode) {
       this.touristMode.stop();
-      this.state.interpolatedPaletteParams = null; // Clear the override
-      this.state.interpolatedBlendParams = null; // Clear blend override
+      this.state.clearInterpolationState();
       this.showTouristModeNotification(false);
       this.updateUrlBookmark();
     }

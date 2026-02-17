@@ -294,12 +294,14 @@ interface AnimationTarget {
  * Callbacks for tourist mode to communicate with the engine
  */
 export interface TouristModeCallbacks {
-  /** Called when the view state should be updated */
+  /** Called when the view state should be updated during animation */
   onUpdate: (
     state: Partial<BookmarkState>,
     interpolatedPaletteParams?: PaletteParams,
     interpolatedBlendParams?: FractalBlendParams | null
   ) => void;
+  /** Called to clear interpolation state when a transition completes */
+  onClearInterpolation: () => void;
   /** Called to trigger a render */
   onRender: () => void;
   /** Called to show a location notification */
@@ -530,8 +532,8 @@ export class TouristMode {
 
         // Check if transition is complete
         if (t >= 1) {
-          // Clear blend params - transition is done, use actual fractal type
-          this.callbacks.onUpdate({}, undefined, null);
+          // Clear interpolation state - transition is done, use actual fractal type
+          this.callbacks.onClearInterpolation();
 
           if (this.state.singleTransition) {
             // Single transition mode - stop here
@@ -569,7 +571,8 @@ export class TouristMode {
           zoom: newZoom,
         };
 
-        this.callbacks.onUpdate(newState, undefined, null);
+        this.callbacks.onUpdate(newState);
+        this.callbacks.onClearInterpolation();
         this.callbacks.onRender();
 
         // When zoom out is complete, switch fractal and pick destination
@@ -577,7 +580,8 @@ export class TouristMode {
           // Switch to the new fractal type
           this.currentTarget.fractalType = this.state.nextFractalType;
           this.currentTarget.blendParams = getFractalBlendParams(this.state.nextFractalType);
-          this.callbacks.onUpdate({ fractalType: this.state.nextFractalType }, undefined, null);
+          this.callbacks.onUpdate({ fractalType: this.state.nextFractalType });
+          this.callbacks.onClearInterpolation();
 
           // Clear visited locations for the new fractal type
           this.visitedLocations.clear();
