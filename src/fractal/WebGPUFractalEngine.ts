@@ -178,6 +178,7 @@ export class WebGPUFractalEngine {
       onBrightnessAdjust: (direction) => this.adjustHdrBrightness(direction),
       onBrightnessReset: () => this.resetHdrBrightness(),
       onFractalCycle: (direction) => this.cycleFractalType(direction),
+      onFractalCycleAnimate: (direction) => this.animateFractalCycle(direction),
       onToggleJuliaMode: () => this.toggleJuliaPickerMode(),
       onJuliaPick: (x, y) => this.pickJuliaConstant(x, y),
       onJuliaPickEnd: () => this.endJuliaPicking(),
@@ -465,6 +466,8 @@ export class WebGPUFractalEngine {
   // --- Fractal type controls ---
 
   private cycleFractalType(direction: 1 | -1 = 1): void {
+    this.cancelOngoingAnimation();
+
     // Get the base fractal type (non-Julia) using bitwise: base = type & ~1
     const baseType = getBaseFractalType(this.state.fractalType);
     // Base types are even: 0, 2, 4, 6, 8, 10, 12, 14, 16
@@ -492,6 +495,48 @@ export class WebGPUFractalEngine {
     }
 
     this.render();
+  }
+
+  /**
+   * Animate smoothly to the next/previous fractal type (long-press on f/F)
+   */
+  private animateFractalCycle(direction: 1 | -1 = 1): void {
+    // Get the base fractal type (non-Julia) using bitwise: base = type & ~1
+    const baseType = getBaseFractalType(this.state.fractalType);
+    const currentIndex = baseType >> 1;
+    const nextIndex = (currentIndex + direction + BASE_FRACTAL_COUNT) % BASE_FRACTAL_COUNT;
+    const newFractalType = (nextIndex << 1) as FractalType;
+
+    if (this.state.juliaPickerMode) {
+      this.state.juliaPickerMode = false;
+      this.inputHandler.setJuliaPickerMode(false);
+    }
+
+    // Get the target location (location 1 of the new fractal type)
+    const location = getLocationByKey('1', newFractalType);
+    if (!location) {
+      // Fallback to instant switch if no location defined
+      this.cycleFractalType(direction);
+      return;
+    }
+
+    // Create tourist mode instance if it doesn't exist
+    if (!this.touristMode) {
+      this.touristMode = new TouristMode(
+        {
+          onUpdate: (state, interpolatedPaletteParams, interpolatedBlendParams) =>
+            this.applyTouristUpdate(state, interpolatedPaletteParams, interpolatedBlendParams),
+          onClearInterpolation: () => this.state.clearInterpolationState(),
+          onRender: () => this.render(),
+          onLocationNotification: (name, description) =>
+            this.showLocationNotification(name, description),
+        },
+        this.getBookmarkState()
+      );
+    }
+
+    // Do a single animated transition to the new fractal's location
+    this.touristMode.animateToLocation(location, this.getBookmarkState());
   }
 
   private toggleJuliaPickerMode(): void {
@@ -597,6 +642,7 @@ export class WebGPUFractalEngine {
     const location = getLocationByKey(key, this.state.fractalType);
     if (!location) return;
 
+    this.cancelOngoingAnimation();
     this.applyLocationState(location.state);
     this.state.clearInterpolationState();
     this.showLocationNotification(location.name, location.description);
@@ -770,11 +816,22 @@ export class WebGPUFractalEngine {
   }
 
   private stopTouristMode(): void {
-    if (this.touristMode) {
+    if (this.touristMode?.isActive()) {
       this.touristMode.stop();
       this.state.clearInterpolationState();
       this.showTouristModeNotification(false);
       this.updateUrlBookmark();
+    }
+  }
+
+  /**
+   * Cancel any ongoing animation (tourist mode or single transition) without notification.
+   * Use this when the user explicitly navigates somewhere else.
+   */
+  private cancelOngoingAnimation(): void {
+    if (this.touristMode?.isActive()) {
+      this.touristMode.stop();
+      this.state.clearInterpolationState();
     }
   }
 

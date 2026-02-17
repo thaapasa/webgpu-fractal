@@ -28,6 +28,7 @@ export interface InputCallbacks {
 
   // Fractal type controls
   onFractalCycle?(direction: 1 | -1): void;
+  onFractalCycleAnimate?(direction: 1 | -1): void;
   onToggleJuliaMode?(): void;
   onJuliaPick?(fractalX: number, fractalY: number): void;
   onJuliaPickEnd?(): void;

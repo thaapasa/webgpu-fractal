@@ -44,6 +44,10 @@ export class InputHandler {
   private locationLongPressTimeout: ReturnType<typeof setTimeout> | null = null;
   private static readonly LONG_PRESS_THRESHOLD = 400; // ms
 
+  // Long-press fractal cycle state
+  private fractalKeyHeld: 'f' | 'F' | null = null;
+  private fractalLongPressTimeout: ReturnType<typeof setTimeout> | null = null;
+
   constructor(
     canvas: HTMLCanvasElement,
     viewState: ViewState,
@@ -397,11 +401,31 @@ export class InputHandler {
         break;
       case 'f':
         e.preventDefault();
-        this.callbacks.onFractalCycle?.(1);
+        // Start long-press detection (unless already held or repeating)
+        if (!e.repeat && this.fractalKeyHeld !== 'f') {
+          this.fractalKeyHeld = 'f';
+          this.fractalLongPressTimeout = setTimeout(() => {
+            if (this.fractalKeyHeld === 'f') {
+              // Long press - animate fractal transition
+              this.callbacks.onFractalCycleAnimate?.(1);
+              this.fractalKeyHeld = null; // Prevent short-press on key up
+            }
+          }, InputHandler.LONG_PRESS_THRESHOLD);
+        }
         break;
       case 'F':
         e.preventDefault();
-        this.callbacks.onFractalCycle?.(-1);
+        // Start long-press detection (unless already held or repeating)
+        if (!e.repeat && this.fractalKeyHeld !== 'F') {
+          this.fractalKeyHeld = 'F';
+          this.fractalLongPressTimeout = setTimeout(() => {
+            if (this.fractalKeyHeld === 'F') {
+              // Long press - animate fractal transition (reverse)
+              this.callbacks.onFractalCycleAnimate?.(-1);
+              this.fractalKeyHeld = null; // Prevent short-press on key up
+            }
+          }, InputHandler.LONG_PRESS_THRESHOLD);
+        }
         break;
       case 'j':
       case 'J':
@@ -483,6 +507,21 @@ export class InputHandler {
         // Short press - instant jump to location
         this.callbacks.onLocationSelect?.(e.key);
         this.locationKeyHeld = null;
+      }
+    }
+
+    // Handle f/F key release for short-press fractal cycle
+    if (e.key === 'f' || e.key === 'F') {
+      if (this.fractalKeyHeld === e.key) {
+        // Clear the long-press timeout
+        if (this.fractalLongPressTimeout !== null) {
+          clearTimeout(this.fractalLongPressTimeout);
+          this.fractalLongPressTimeout = null;
+        }
+        // Short press - instant fractal cycle
+        const direction = e.key === 'f' ? 1 : -1;
+        this.callbacks.onFractalCycle?.(direction as 1 | -1);
+        this.fractalKeyHeld = null;
       }
     }
   }
