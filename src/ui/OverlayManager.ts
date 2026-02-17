@@ -19,6 +19,7 @@ export class OverlayManager {
   readonly notification: NotificationOverlay;
 
   private screenshotMode = false;
+  private screenshotModeAutoEnabled = false; // Track if screenshot mode was auto-enabled by tourist mode
 
   constructor(parent: HTMLElement) {
     this.debug = new DebugOverlay(parent);
@@ -31,7 +32,21 @@ export class OverlayManager {
    * Toggle screenshot mode - hides all overlays except notifications
    */
   toggleScreenshotMode(): boolean {
-    this.screenshotMode = !this.screenshotMode;
+    this.setScreenshotMode(!this.screenshotMode, false);
+    this.notification.showScreenshotMode(this.screenshotMode);
+    return this.screenshotMode;
+  }
+
+  /**
+   * Set screenshot mode programmatically
+   * @param enabled Whether to enable screenshot mode
+   * @param auto If true, this was auto-enabled (e.g., by tourist mode) and can be auto-disabled
+   */
+  setScreenshotMode(enabled: boolean, auto: boolean = false): void {
+    if (enabled === this.screenshotMode) return;
+
+    this.screenshotMode = enabled;
+    this.screenshotModeAutoEnabled = auto && enabled;
 
     if (this.screenshotMode) {
       // Hide help if visible
@@ -44,9 +59,15 @@ export class OverlayManager {
       this.debug.show();
       this.fps.show();
     }
+  }
 
-    this.notification.showScreenshotMode(this.screenshotMode);
-    return this.screenshotMode;
+  /**
+   * Disable screenshot mode if it was auto-enabled
+   */
+  disableAutoScreenshotMode(): void {
+    if (this.screenshotModeAutoEnabled) {
+      this.setScreenshotMode(false, false);
+    }
   }
 
   /**

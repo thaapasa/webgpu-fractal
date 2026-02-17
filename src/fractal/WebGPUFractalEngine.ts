@@ -62,6 +62,11 @@ export class WebGPUFractalEngine {
 
   private touristMode: TouristMode | null = null;
 
+  // Auto-start tourist mode after inactivity
+  private autoTouristTimeout: ReturnType<typeof setTimeout> | null = null;
+  private userHasInteracted = false;
+  private static readonly AUTO_TOURIST_DELAY = 20000; // 20 seconds
+
   private constructor(renderer: WebGPURenderer, canvas: HTMLCanvasElement) {
     this.renderer = renderer;
     this.state = new FractalState();
@@ -92,6 +97,9 @@ export class WebGPUFractalEngine {
 
     engine.loadBookmark();
     engine.handleResize();
+
+    // Start auto-tourist mode timer
+    engine.startAutoTouristTimer();
 
     return engine;
   }
@@ -466,6 +474,10 @@ export class WebGPUFractalEngine {
   // --- Fractal type controls ---
 
   private cycleFractalType(direction: 1 | -1 = 1): void {
+    // User changed fractal - cancel auto-tourist
+    this.userHasInteracted = true;
+    this.cancelAutoTouristTimer();
+
     this.cancelOngoingAnimation();
 
     // Get the base fractal type (non-Julia) using bitwise: base = type & ~1
@@ -501,6 +513,10 @@ export class WebGPUFractalEngine {
    * Animate smoothly to the next/previous fractal type (long-press on f/F)
    */
   private animateFractalCycle(direction: 1 | -1 = 1): void {
+    // User changed fractal - cancel auto-tourist
+    this.userHasInteracted = true;
+    this.cancelAutoTouristTimer();
+
     // Get the base fractal type (non-Julia) using bitwise: base = type & ~1
     const baseType = getBaseFractalType(this.state.fractalType);
     const currentIndex = baseType >> 1;
@@ -642,6 +658,10 @@ export class WebGPUFractalEngine {
     const location = getLocationByKey(key, this.state.fractalType);
     if (!location) return;
 
+    // User navigated - cancel auto-tourist
+    this.userHasInteracted = true;
+    this.cancelAutoTouristTimer();
+
     this.cancelOngoingAnimation();
     this.applyLocationState(location.state);
     this.state.clearInterpolationState();
@@ -656,6 +676,10 @@ export class WebGPUFractalEngine {
   private animateToLocation(key: string): void {
     const location = getLocationByKey(key, this.state.fractalType);
     if (!location) return;
+
+    // User navigated - cancel auto-tourist
+    this.userHasInteracted = true;
+    this.cancelAutoTouristTimer();
 
     // Create tourist mode instance if it doesn't exist
     if (!this.touristMode) {
@@ -685,6 +709,8 @@ export class WebGPUFractalEngine {
   }
 
   private showLocationNotification(name: string, description: string): void {
+    // Don't show location notifications in screenshot mode (cleaner tourist experience)
+    if (this.overlays.isScreenshotMode()) return;
     this.overlays.notification.showLocation(name, description);
   }
 
@@ -819,6 +845,8 @@ export class WebGPUFractalEngine {
     if (this.touristMode?.isActive()) {
       this.touristMode.stop();
       this.state.clearInterpolationState();
+      // Disable screenshot mode if it was auto-enabled
+      this.overlays.disableAutoScreenshotMode();
       this.showTouristModeNotification(false);
       this.updateUrlBookmark();
     }
@@ -836,10 +864,66 @@ export class WebGPUFractalEngine {
   }
 
   private handleUserInput(): void {
+    // Mark that user has interacted - disable auto-start forever
+    this.userHasInteracted = true;
+    this.cancelAutoTouristTimer();
+
     // Stop tourist mode on any user interaction
     if (this.touristMode?.isActive()) {
       this.stopTouristMode();
     }
+  }
+
+  /**
+   * Start the auto-tourist timer. Tourist mode will start after inactivity.
+   */
+  private startAutoTouristTimer(): void {
+    // Don't auto-start if user has already interacted
+    if (this.userHasInteracted) return;
+
+    this.cancelAutoTouristTimer();
+    this.autoTouristTimeout = setTimeout(() => {
+      if (!this.userHasInteracted && !this.touristMode?.isActive()) {
+        this.startTouristModeAuto();
+      }
+    }, WebGPUFractalEngine.AUTO_TOURIST_DELAY);
+  }
+
+  /**
+   * Cancel the auto-tourist timer.
+   */
+  private cancelAutoTouristTimer(): void {
+    if (this.autoTouristTimeout !== null) {
+      clearTimeout(this.autoTouristTimeout);
+      this.autoTouristTimeout = null;
+    }
+  }
+
+  /**
+   * Start tourist mode automatically (shows different notification with help text).
+   */
+  private startTouristModeAuto(): void {
+    // Enable screenshot mode (hide debug overlay) for cleaner auto-tour experience
+    this.overlays.setScreenshotMode(true, true);
+
+    // Create tourist mode instance if it doesn't exist
+    if (!this.touristMode) {
+      this.touristMode = new TouristMode(
+        {
+          onUpdate: (state, interpolatedPaletteParams, interpolatedBlendParams) =>
+            this.applyTouristUpdate(state, interpolatedPaletteParams, interpolatedBlendParams),
+          onClearInterpolation: () => this.state.clearInterpolationState(),
+          onRender: () => this.render(),
+          onLocationNotification: (name, description) =>
+            this.showLocationNotification(name, description),
+        },
+        this.getBookmarkState()
+      );
+    }
+
+    this.touristMode.start(this.getBookmarkState());
+    // Show special auto-start notification with help text
+    this.overlays.notification.showAutoTouristMode();
   }
 
   private applyTouristUpdate(
@@ -857,6 +941,7 @@ export class WebGPUFractalEngine {
   }
 
   destroy(): void {
+    this.cancelAutoTouristTimer();
     this.touristMode?.stop();
     this.stop();
     window.removeEventListener('resize', this.handleResize);

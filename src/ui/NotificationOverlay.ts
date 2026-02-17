@@ -100,6 +100,16 @@ export class NotificationOverlay {
   }
 
   /**
+   * Show auto-started tourist mode notification with help text
+   */
+  showAutoTouristMode(): void {
+    this.show(
+      '🚀 <strong>Tourist Mode</strong> — Exploring fractal landscapes<br><span style="color: #aaa; font-size: 12px;">Press <strong>T</strong> to stop · Press <strong>H</strong> for help</span>',
+      { color: '#60a5fa', duration: 5000, html: true }
+    );
+  }
+
+  /**
    * Show screenshot mode notification
    */
   showScreenshotMode(enabled: boolean): void {
