@@ -14,6 +14,7 @@ import {
   COSINE_PALETTE_COUNT,
   GRADIENT_PALETTE_COUNT,
 } from '../renderer/Palette';
+import { FractalBlendParams } from '../fractal/FractalBlend';
 
 /** Base iterations at zoom 1 */
 const MAX_ITERATIONS_BASE = 256;
@@ -92,6 +93,9 @@ export class FractalState {
   // Tourist mode palette interpolation
   private _interpolatedPaletteParams: PaletteParams | null = null;
 
+  // Tourist mode fractal type interpolation
+  private _interpolatedBlendParams: FractalBlendParams | null = null;
+
   // Change listeners
   private listeners: Set<FractalStateListener> = new Set();
 
@@ -155,6 +159,10 @@ export class FractalState {
 
   get interpolatedPaletteParams(): PaletteParams | null {
     return this._interpolatedPaletteParams;
+  }
+
+  get interpolatedBlendParams(): FractalBlendParams | null {
+    return this._interpolatedBlendParams;
   }
 
   get isJulia(): boolean {
@@ -245,6 +253,11 @@ export class FractalState {
 
   set interpolatedPaletteParams(value: PaletteParams | null) {
     this._interpolatedPaletteParams = value;
+    // No emit - this is for smooth animation, render loop handles it
+  }
+
+  set interpolatedBlendParams(value: FractalBlendParams | null) {
+    this._interpolatedBlendParams = value;
     // No emit - this is for smooth animation, render loop handles it
   }
 

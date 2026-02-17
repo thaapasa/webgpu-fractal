@@ -36,15 +36,17 @@ import {
 } from '../renderer/Palette';
 import { OverlayManager, type DebugOverlayState } from '../ui';
 import { FractalState, maxIterationsForZoom } from '../state';
+import { FractalBlendParams } from './FractalBlend';
 
 import shaderSource from '../renderer/shaders/mandelbrot.wgsl?raw';
 
 const ITERATION_ADJUST_RATIO = 1.5;
 
 // Uniform buffer structure (must match WGSL)
-// Base uniforms: 64 bytes
-// Palette params: ~160 bytes (vec3s with padding)
-// Total: 256 bytes (nice round number)
+// Base uniforms: 68 bytes
+// Palette params: ~144 bytes (vec3s with padding)
+// Blend params: ~32 bytes
+// Total: 256 bytes (nice round number, 16-byte aligned)
 const UNIFORM_BUFFER_SIZE = 256;
 
 export class WebGPUFractalEngine {
@@ -277,7 +279,12 @@ export class WebGPUFractalEngine {
     intView[14] = paletteParams.type === 'cosine' ? 0 : 1; // paletteType
     intView[15] = palette.isMonotonic ? 1 : 0; // isMonotonic
     floatView[16] = this.state.sdrGradientBrightness; // sdrGradientBrightness
-    // padding at 17, 18, 19 (_pad0, _pad1, _pad2)
+
+    // Blend parameters (offsets 17-19)
+    const blendParams = this.state.interpolatedBlendParams;
+    floatView[17] = blendParams?.juliaBlend ?? 0; // blendJulia
+    floatView[18] = blendParams?.preAbsRe ?? 0; // blendPreAbsRe
+    floatView[19] = blendParams?.preAbsIm ?? 0; // blendPreAbsIm
 
     // Pack palette parameters (offset 20 = 80 bytes, 16-byte aligned for vec3f)
     if (paletteParams.type === 'cosine') {
@@ -331,6 +338,14 @@ export class WebGPUFractalEngine {
       floatView[54] = paletteParams.c5[2];
       // padding at 55
     }
+
+    // More blend parameters (offset 56 = 224 bytes)
+    floatView[56] = blendParams?.preNegIm ?? 0; // blendPreNegIm
+    floatView[57] = blendParams?.postAbsRe ?? 0; // blendPostAbsRe
+    floatView[58] = blendParams?.postAbsIm ?? 0; // blendPostAbsIm
+    floatView[59] = blendParams?.postNegIm ?? 0; // blendPostNegIm
+    intView[60] = blendParams !== null ? 1 : 0; // blendEnabled
+    // padding at 61, 62, 63 (_padBlend)
 
     device.queue.writeBuffer(this.uniformBuffer, 0, uniformData);
 
@@ -468,10 +483,15 @@ export class WebGPUFractalEngine {
     const location = getLocationByKey('1', newFractalType);
     if (location) {
       this.applyLocationState(location.state);
+      // Clear any lingering blend state from tourist mode
+      this.state.interpolatedBlendParams = null;
+      this.state.interpolatedPaletteParams = null;
       this.showLocationNotification(location.name, location.description);
     } else {
       // Fallback if no location defined
       this.state.fractalType = newFractalType;
+      this.state.interpolatedBlendParams = null;
+      this.state.interpolatedPaletteParams = null;
     }
 
     this.render();
@@ -581,6 +601,9 @@ export class WebGPUFractalEngine {
     if (!location) return;
 
     this.applyLocationState(location.state);
+    // Clear any lingering blend state from tourist mode
+    this.state.interpolatedBlendParams = null;
+    this.state.interpolatedPaletteParams = null;
     this.showLocationNotification(location.name, location.description);
     this.updateUrlBookmark();
     this.render();
@@ -597,7 +620,8 @@ export class WebGPUFractalEngine {
     if (!this.touristMode) {
       this.touristMode = new TouristMode(
         {
-          onUpdate: (state) => this.applyTouristUpdate(state),
+          onUpdate: (state, interpolatedPaletteParams, interpolatedBlendParams) =>
+            this.applyTouristUpdate(state, interpolatedPaletteParams, interpolatedBlendParams),
           onRender: () => this.render(),
           onLocationNotification: (name, description) =>
             this.showLocationNotification(name, description),
@@ -734,8 +758,8 @@ export class WebGPUFractalEngine {
     if (!this.touristMode) {
       this.touristMode = new TouristMode(
         {
-          onUpdate: (state, interpolatedPaletteParams) =>
-            this.applyTouristUpdate(state, interpolatedPaletteParams),
+          onUpdate: (state, interpolatedPaletteParams, interpolatedBlendParams) =>
+            this.applyTouristUpdate(state, interpolatedPaletteParams, interpolatedBlendParams),
           onRender: () => this.render(),
           onLocationNotification: (name, description) =>
             this.showLocationNotification(name, description),
@@ -752,6 +776,7 @@ export class WebGPUFractalEngine {
     if (this.touristMode) {
       this.touristMode.stop();
       this.state.interpolatedPaletteParams = null; // Clear the override
+      this.state.interpolatedBlendParams = null; // Clear blend override
       this.showTouristModeNotification(false);
       this.updateUrlBookmark();
     }
@@ -766,10 +791,12 @@ export class WebGPUFractalEngine {
 
   private applyTouristUpdate(
     state: Partial<BookmarkState>,
-    interpolatedPaletteParams?: PaletteParams
+    interpolatedPaletteParams?: PaletteParams,
+    interpolatedBlendParams?: FractalBlendParams | null
   ): void {
     this.state.applyPartial(state);
     this.state.interpolatedPaletteParams = interpolatedPaletteParams ?? null;
+    this.state.interpolatedBlendParams = interpolatedBlendParams ?? null;
   }
 
   private showTouristModeNotification(started: boolean): void {

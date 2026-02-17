@@ -1,5 +1,5 @@
 // WebGPU Shader for Mandelbrot Set with HDR support
-// Version 2: Palette parameters passed from TypeScript (no branching)
+// Version 3: Fractal type interpolation support for smooth Tourist Mode transitions
 
 struct Uniforms {
   resolution: vec2f,         // offset 0, size 8
@@ -16,9 +16,10 @@ struct Uniforms {
   paletteType: i32,          // offset 56, size 4
   isMonotonic: i32,          // offset 60, size 4
   sdrGradientBrightness: f32, // offset 64, size 4
-  _pad0: f32,                // offset 68, size 4
-  _pad1: f32,                // offset 72, size 4
-  _pad2: f32,                // offset 76, size 4
+  // Fractal blend parameters (offset 68)
+  blendJulia: f32,           // offset 68, size 4 - 0=Mandelbrot-style, 1=Julia-style
+  blendPreAbsRe: f32,        // offset 72, size 4 - abs(Re(z)) before squaring
+  blendPreAbsIm: f32,        // offset 76, size 4 - abs(Im(z)) before squaring
   // Now at offset 80 = 16-byte aligned for vec3f
   // Cosine palette: color = a + b * cos(2π * (c * t + d))
   paletteA: vec3f,           // offset 80, size 12
@@ -40,6 +41,15 @@ struct Uniforms {
   _padG4: f32,               // offset 204, size 4
   gradientC5: vec3f,         // offset 208, size 12
   _padG5: f32,               // offset 220, size 4
+  // More blend parameters (offset 224)
+  blendPreNegIm: f32,        // offset 224, size 4 - negate Im after abs
+  blendPostAbsRe: f32,       // offset 228, size 4 - abs(Re(z²)) after squaring
+  blendPostAbsIm: f32,       // offset 232, size 4 - abs(Im(z²)) after squaring
+  blendPostNegIm: f32,       // offset 236, size 4 - negate Im(z²)
+  blendEnabled: i32,         // offset 240, size 4 - 1 if blending active, 0 for legacy path
+  _padBlend1: f32,           // offset 244, size 4 - padding
+  _padBlend2: f32,           // offset 248, size 4 - padding
+  _padBlend3: f32,           // offset 252, size 4 - padding to 256 bytes
 }
 
 @group(0) @binding(0) var<uniform> u: Uniforms;
@@ -144,6 +154,40 @@ fn hdrBrightnessCurveCycling(normalized: f32, bias: f32) -> f32 {
   }
 }
 
+// ============================================================================
+// BLENDED FRACTAL ITERATION
+// Enables smooth morphing between z² fractal variants during transitions
+// ============================================================================
+
+// Blended z² iteration - parameterizes all z² variants into a unified formula
+fn iterateBlended(z: vec2f, c: vec2f) -> vec2f {
+  // Pre-square transforms: optionally apply abs() to components
+  var zp = z;
+
+  // Blend between z.x and abs(z.x)
+  zp.x = mix(z.x, abs(z.x), u.blendPreAbsRe);
+
+  // Blend between z.y and abs(z.y)
+  zp.y = mix(z.y, abs(z.y), u.blendPreAbsIm);
+
+  // Optionally negate Im after abs (for Burning Ship's downward orientation)
+  zp.y = mix(zp.y, -abs(z.y), u.blendPreNegIm);
+
+  // Compute z² = (x² - y²) + 2xy·i
+  let zSqRe = zp.x * zp.x - zp.y * zp.y;
+  let zSqIm = 2.0 * zp.x * zp.y;
+
+  // Post-square transforms: optionally apply abs() to components of z²
+  var resultRe = mix(zSqRe, abs(zSqRe), u.blendPostAbsRe);
+  var resultIm = mix(zSqIm, abs(zSqIm), u.blendPostAbsIm);
+
+  // Optionally negate Im (for Tricorn conjugate, Buffalo, Perpendicular)
+  resultIm = mix(resultIm, -resultIm, u.blendPostNegIm);
+
+  // Add c and return
+  return vec2f(resultRe + c.x, resultIm + c.y);
+}
+
 @fragment
 fn fragmentMain(input: VertexOutput) -> @location(0) vec4f {
   let aspect = u.resolution.x / u.resolution.y;
@@ -163,7 +207,16 @@ fn fragmentMain(input: VertexOutput) -> @location(0) vec4f {
   // Phoenix is naturally Julia-style - always start z at pixel position
   let isPhoenix = baseType == 5;
 
-  if (isJulia) {
+  // Check if we're using blended mode (for smooth fractal type transitions)
+  let useBlendedMode = u.blendEnabled != 0;
+
+  if (useBlendedMode) {
+    // BLENDED MODE: Use interpolated initial conditions
+    // This enables smooth Mandelbrot ↔ Julia transitions
+    z = mix(vec2f(0.0), pos, u.blendJulia);
+    c = mix(pos, u.juliaC, u.blendJulia);
+  } else if (isJulia) {
+    // LEGACY MODE: Julia variant
     // For Phoenix Julia, swap and negate to match conventional orientation
     // (feathers extending horizontally, correct vertical orientation)
     if (isPhoenix) {
@@ -173,6 +226,7 @@ fn fragmentMain(input: VertexOutput) -> @location(0) vec4f {
     }
     c = u.juliaC;
   } else {
+    // LEGACY MODE: Mandelbrot-style
     z = vec2f(0.0);
     c = pos;
   }
@@ -187,11 +241,14 @@ fn fragmentMain(input: VertexOutput) -> @location(0) vec4f {
 
     let zTemp = z;
 
-    // Fractal type dispatch using base type (fType >> 1 clears Julia bit)
+    // BLENDED MODE: Use parameterized iteration for smooth morphing
+    if (useBlendedMode) {
+      z = iterateBlended(z, c);
+    }
+    // LEGACY MODE: Fractal type dispatch using base type
     // 0: Mandelbrot/Julia, 1: Burning Ship, 2: Tricorn, 3: Celtic,
-    // 4: Buffalo, 5: Phoenix, 6: Multibrot3, 7: Multibrot4, 8: Perpendicular
-
-    if (baseType == 0) {
+    // 4: Buffalo, 5: Phoenix, 6: Multibrot3, 7: Multibrot4, 8: Funky, 9: Perpendicular
+    else if (baseType == 0) {
       // Mandelbrot / Julia: z² + c
       z = vec2f(z.x * z.x - z.y * z.y + c.x, 2.0 * z.x * z.y + c.y);
     }

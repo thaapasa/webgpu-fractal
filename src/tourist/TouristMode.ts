@@ -18,6 +18,11 @@ import {
   getCosinePaletteParams,
   getGradientPaletteParams,
 } from '../renderer/Palette';
+import {
+  FractalBlendParams,
+  getFractalBlendParams,
+  interpolateBlendParams,
+} from '../fractal/FractalBlend';
 
 /** Duration of the pause at each destination (ms) */
 const PAUSE_DURATION = 3000;
@@ -282,6 +287,7 @@ interface AnimationTarget {
   paletteParams: PaletteParams;
   colorOffset: number;
   juliaC: [number, number];
+  blendParams: FractalBlendParams | null;
 }
 
 /**
@@ -289,7 +295,11 @@ interface AnimationTarget {
  */
 export interface TouristModeCallbacks {
   /** Called when the view state should be updated */
-  onUpdate: (state: Partial<BookmarkState>, interpolatedPaletteParams?: PaletteParams) => void;
+  onUpdate: (
+    state: Partial<BookmarkState>,
+    interpolatedPaletteParams?: PaletteParams,
+    interpolatedBlendParams?: FractalBlendParams | null
+  ) => void;
   /** Called to trigger a render */
   onRender: () => void;
   /** Called to show a location notification */
@@ -332,6 +342,7 @@ export class TouristMode {
       paletteParams: getPaletteParamsFromState(state),
       colorOffset: state.colorOffset,
       juliaC: state.juliaC,
+      blendParams: getFractalBlendParams(state.fractalType),
     };
   }
 
@@ -472,6 +483,23 @@ export class TouristMode {
           eased
         );
 
+        // Interpolate fractal blend parameters for smooth fractal type transitions
+        let interpolatedBlendParams: FractalBlendParams | null = null;
+        const fromBlend = this.state.from.blendParams;
+        const toBlend = this.state.to.blendParams;
+
+        if (fromBlend && toBlend) {
+          // Both types are blendable - smooth interpolation!
+          interpolatedBlendParams = interpolateBlendParams(fromBlend, toBlend, eased);
+        } else if (t >= 0.5 && toBlend) {
+          // Transitioning TO a blendable type - use target params in second half
+          interpolatedBlendParams = toBlend;
+        } else if (t < 0.5 && fromBlend) {
+          // Transitioning FROM a blendable type - use source params in first half
+          interpolatedBlendParams = fromBlend;
+        }
+        // else: both non-blendable, leave as null (legacy path)
+
         // Build the new state
         const newState: Partial<BookmarkState> = {
           centerX,
@@ -494,13 +522,17 @@ export class TouristMode {
           paletteParams: interpolatedPaletteParams,
           colorOffset: newState.colorOffset!,
           juliaC: juliaC,
+          blendParams: interpolatedBlendParams,
         };
 
-        this.callbacks.onUpdate(newState, interpolatedPaletteParams);
+        this.callbacks.onUpdate(newState, interpolatedPaletteParams, interpolatedBlendParams);
         this.callbacks.onRender();
 
         // Check if transition is complete
         if (t >= 1) {
+          // Clear blend params - transition is done, use actual fractal type
+          this.callbacks.onUpdate({}, undefined, null);
+
           if (this.state.singleTransition) {
             // Single transition mode - stop here
             this.active = false;
@@ -537,14 +569,15 @@ export class TouristMode {
           zoom: newZoom,
         };
 
-        this.callbacks.onUpdate(newState);
+        this.callbacks.onUpdate(newState, undefined, null);
         this.callbacks.onRender();
 
         // When zoom out is complete, switch fractal and pick destination
         if (t >= 1) {
           // Switch to the new fractal type
           this.currentTarget.fractalType = this.state.nextFractalType;
-          this.callbacks.onUpdate({ fractalType: this.state.nextFractalType });
+          this.currentTarget.blendParams = getFractalBlendParams(this.state.nextFractalType);
+          this.callbacks.onUpdate({ fractalType: this.state.nextFractalType }, undefined, null);
 
           // Clear visited locations for the new fractal type
           this.visitedLocations.clear();
