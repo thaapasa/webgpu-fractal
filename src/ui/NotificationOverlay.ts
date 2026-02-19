@@ -18,12 +18,6 @@ export class NotificationOverlay {
   constructor(parent: HTMLElement) {
     this.element = document.createElement('div');
     this.element.id = 'share-notification';
-    this.element.style.cssText = `
-      position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-      background: rgba(0, 0, 0, 0.85); color: #4ade80; padding: 16px 32px;
-      border-radius: 8px; font-family: system-ui, sans-serif; font-size: 16px;
-      z-index: 1000; opacity: 0; transition: opacity 0.3s ease; pointer-events: none;
-    `;
     parent.appendChild(this.element);
   }
 
@@ -77,7 +71,7 @@ export class NotificationOverlay {
    * Show a location notification with name and description
    */
   showLocation(name: string, description: string, duration = 2500): void {
-    const html = `<strong style="font-size: 18px;">📍 ${name}</strong><br><span style="color: #aaa; font-size: 14px;">${description}</span>`;
+    const html = `<strong class="notification-title">📍 ${name}</strong><br><span class="notification-subtitle">${description}</span>`;
     this.show(html, { color: '#60a5fa', duration, html: true });
   }
 
@@ -87,7 +81,7 @@ export class NotificationOverlay {
   showTouristMode(started: boolean): void {
     if (started) {
       this.show(
-        '🚀 <strong>Tourist Mode</strong> — Sit back and enjoy the ride!<br><span style="color: #aaa; font-size: 12px;">Click or press T to take control</span>',
+        '🚀 <strong>Tourist Mode</strong> — Sit back and enjoy the ride!<br><span class="notification-hint">Click or press T to take control</span>',
         { color: '#60a5fa', duration: 3000, html: true }
       );
     } else {
@@ -104,7 +98,7 @@ export class NotificationOverlay {
    */
   showAutoTouristMode(): void {
     this.show(
-      '🚀 <strong>Tourist Mode</strong> — Exploring fractal landscapes<br><span style="color: #aaa; font-size: 12px;">Press <strong>T</strong> to stop · Press <strong>H</strong> for help</span>',
+      '🚀 <strong>Tourist Mode</strong> — Exploring fractal landscapes<br><span class="notification-hint">Press <strong>T</strong> to stop · Press <strong>H</strong> for help</span>',
       { color: '#60a5fa', duration: 5000, html: true }
     );
   }

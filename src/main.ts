@@ -7,6 +7,7 @@
 
 import { WebGPUFractalEngine } from './fractal/WebGPUFractalEngine';
 import { WebGPURenderer } from './renderer/WebGPURenderer';
+import './styles/overlays.css';
 
 console.log('Fractal Explorer - Initializing...');
 

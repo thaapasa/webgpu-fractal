@@ -1,0 +1,208 @@
+/**
+ * Overlay Styles - UI overlay components
+ *
+ * "Proper CSS, like civilized beings use."
+ * - Skippy the Magnificent
+ */
+
+/* ========================================
+   Debug Overlay (Status Bar)
+   ======================================== */
+
+#zoom-debug {
+  position: absolute;
+  bottom: 12px;
+  left: 12px;
+  padding: 6px 10px;
+  font: 14px/1.4 ui-monospace, monospace;
+  color: rgba(255, 255, 255, 0.9);
+  background: rgba(0, 0, 0, 0.5);
+  border-radius: 6px;
+  pointer-events: none;
+  user-select: none;
+}
+
+/* ========================================
+   Notification Overlay (Toast Messages)
+   ======================================== */
+
+#share-notification {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(0, 0, 0, 0.85);
+  color: #4ade80;
+  padding: 16px 32px;
+  border-radius: 8px;
+  font-family: system-ui, sans-serif;
+  font-size: 16px;
+  z-index: 1000;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+  text-align: center;
+}
+
+#share-notification .notification-title {
+  font-size: 18px;
+  font-weight: bold;
+}
+
+#share-notification .notification-subtitle {
+  color: #aaa;
+  font-size: 14px;
+}
+
+#share-notification .notification-hint {
+  color: #aaa;
+  font-size: 12px;
+}
+
+/* ========================================
+   FPS Overlay
+   ======================================== */
+
+#fps-overlay {
+  position: fixed;
+  bottom: 12px;
+  right: 12px;
+  background: rgba(0, 0, 0, 0.6);
+  color: #888;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-family: ui-monospace, monospace;
+  font-size: 12px;
+  pointer-events: none;
+  z-index: 100;
+}
+
+/* ========================================
+   Help Overlay
+   ======================================== */
+
+#help-overlay {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(0, 0, 0, 0.92);
+  color: #e5e5e5;
+  padding: 24px 32px;
+  border-radius: 12px;
+  font-family: system-ui, -apple-system, sans-serif;
+  font-size: 14px;
+  z-index: 1001;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  pointer-events: none;
+  max-width: 90vw;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+#help-overlay.visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+#help-overlay .help-title {
+  margin: 0 0 16px 0;
+  color: #60a5fa;
+  font-size: 20px;
+  font-weight: 600;
+}
+
+#help-overlay .help-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px 32px;
+}
+
+#help-overlay .help-section {
+  margin-bottom: 12px;
+}
+
+#help-overlay .help-section-title {
+  margin: 0 0 8px 0;
+  color: #a78bfa;
+  font-size: 13px;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+#help-overlay .help-section-content {
+  display: grid;
+  gap: 4px;
+}
+
+#help-overlay .help-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+#help-overlay .help-key {
+  background: rgba(255, 255, 255, 0.1);
+  color: #f0f0f0;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-family: ui-monospace, monospace;
+  font-size: 12px;
+  min-width: 60px;
+  text-align: center;
+}
+
+#help-overlay .help-description {
+  color: #ccc;
+}
+
+#help-overlay .help-note {
+  color: #888;
+  font-size: 10px;
+  margin-top: 4px;
+}
+
+#help-overlay .help-footer {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  color: #888;
+  font-size: 12px;
+  text-align: center;
+}
+
+#help-overlay kbd {
+  background: rgba(255, 255, 255, 0.1);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+/* ========================================
+   Responsive adjustments
+   ======================================== */
+
+@media (max-width: 600px) {
+  #help-overlay {
+    padding: 16px 20px;
+    font-size: 13px;
+  }
+
+  #help-overlay .help-grid {
+    grid-template-columns: 1fr;
+    gap: 4px 16px;
+  }
+
+  #help-overlay .help-title {
+    font-size: 18px;
+  }
+
+  #share-notification {
+    padding: 12px 24px;
+    font-size: 14px;
+    max-width: 90vw;
+  }
+}
+
