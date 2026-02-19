@@ -192,6 +192,7 @@ src/
 │   ├── InputHandler.ts        # Mouse, touch, keyboard events
 │   └── ViewState.ts           # Pan/zoom state management
 ├── fractal/
+│   ├── FractalBlend.ts        # Fractal type interpolation
 │   └── WebGPUFractalEngine.ts # Central orchestrator
 ├── renderer/
 │   ├── WebGPURenderer.ts      # WebGPU context, canvas, HDR
@@ -238,6 +239,9 @@ Detailed documentation lives in `docs/`:
 - [Project Specification](./docs/fractal-webapp-spec.md) — Vision and requirements
 - [Phase 1 Implementation Plan](./docs/phase-1-implementation-plan.md) — Technical implementation
   plan (✅ complete)
+- [Tourist Mode Plan](./docs/tourist-mode-plan.md) — Automated exploration feature (✅ complete)
+- [Fractal Interpolation Design](./docs/fractal-interpolation-design.md) — Smooth fractal morphing
+  (✅ complete)
 - [Deep Zoom Precision Plan](./docs/deep-zoom-precision-plan.md) — Arbitrary precision roadmap
   (future)
 

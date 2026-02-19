@@ -34,7 +34,8 @@ up-to-date. She ensures all personas can find the documentation they need.
 - `docs/phase-1-implementation-plan.md` - Technical implementation plan, ✅ complete (Skippy's
   domain)
 - `docs/cleanup-plan.md` - Code refactoring plan, phases 1-5 and 7 ✅ complete
-- `docs/tourist-mode-plan.md` - Tourist mode implementation plan
+- `docs/tourist-mode-plan.md` - Tourist mode implementation plan, ✅ complete
+- `docs/fractal-interpolation-design.md` - Fractal type interpolation design, ✅ complete
 - `docs/deep-zoom-precision-plan.md` - Arbitrary precision roadmap (future work)
 
 ## Project Structure

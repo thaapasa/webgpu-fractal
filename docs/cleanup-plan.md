@@ -242,9 +242,13 @@ src/renderer/palettes/
 
 ---
 
-## Phase 6: Isolate Rendering Pipeline (Medium Impact, High Effort)
+## Phase 6: Isolate Rendering Pipeline (Low Impact, High Effort)
 
-### Problem
+> **Status:** Optional / Low Priority
+>
+> _"Technically valid, but the juice isn't worth the squeeze anymore."_ — Skippy, February 2026
+
+### Original Problem
 
 `WebGPUFractalEngine.ts` mixes:
 
@@ -253,7 +257,41 @@ src/renderer/palettes/
 - Render loop
 - State management
 
-### Solution
+### Current Assessment (February 2026)
+
+After completing Phases 1-5, 7 and adding Tourist Mode + Fractal Interpolation:
+
+| Metric                   | Before Cleanup | After Cleanup | Current    |
+| ------------------------ | -------------- | ------------- | ---------- |
+| `WebGPUFractalEngine.ts` | 1,174 lines    | 788 lines     | ~950 lines |
+
+The engine grew back due to:
+
+- Tourist mode integration (~100 lines)
+- Fractal interpolation blend params (~30 lines)
+- Auto-tourist timer logic (~50 lines)
+- Animation helpers (`animateToLocation`, `animateFractalCycle`)
+
+**However**, the growth is in _business logic_, not GPU pipeline code. The actual pipeline code is:
+
+- Pipeline initialization: ~75 lines (stable, rarely changes)
+- Uniform packing: ~100 lines (tightly coupled to state)
+- Render execution: ~25 lines (trivial)
+
+### Why Low Priority
+
+1. **Tight coupling**: Uniform packing reads `state.interpolatedBlendParams`,
+   `state.interpolatedPaletteParams`, etc. Extracting it requires passing significant context.
+
+2. **Stable code**: The pipeline structure hasn't changed since initial implementation. No
+   maintenance pain.
+
+3. **Better alternatives**: If we want to reduce engine size, consider:
+   - `BookmarkController` — URL handling, share functionality (~100 lines)
+   - `JuliaPickerController` — Julia picker state machine (~80 lines)
+   - `TouristModeController` — Auto-tourist timer, start/stop logic (~100 lines)
+
+### Original Solution (Still Valid If Needed)
 
 Create `src/renderer/FractalPipeline.ts`:
 
@@ -278,10 +316,22 @@ interface RenderState {
   palette: PaletteParams;
   colorOffset: number;
   hdr: { enabled: boolean; bias: number };
+  blendParams: FractalBlendParams | null;
 }
 ```
 
-This isolates all the uniform buffer packing logic (lines 357-420) into a dedicated class.
+This would extract ~200 lines, dropping the engine to ~750 lines.
+
+### Recommendation
+
+**Skip this phase** unless:
+
+- We add a second render pipeline (e.g., WebGL fallback)
+- We need to support multiple shader variants
+- The uniform packing logic becomes significantly more complex
+
+The current 950-line engine is acceptable. The code is organized, the responsibilities are clear,
+and the size is manageable.
 
 ---
 
@@ -311,91 +361,95 @@ src/bookmark/locations/
 
 ## Priority Matrix
 
-| Phase               | Impact | Effort | Dependencies | Status      |
-| ------------------- | ------ | ------ | ------------ | ----------- |
-| 1. UI Layer         | High   | Medium | None         | ✅ Complete |
-| 2. State Management | High   | Medium | None         | ✅ Complete |
-| 3. Input Handler    | Medium | Low    | Phase 2      | ✅ Complete |
-| 4. Proper Types     | Low    | Low    | None         | ✅ Complete |
-| 5. Split Palettes   | Low    | Low    | None         | ✅ Complete |
-| 6. Render Pipeline  | Medium | High   | Phase 2      | Optional    |
-| 7. Famous Locations | Low    | Low    | None         | ✅ Complete |
+| Phase               | Impact | Effort | Dependencies | Status             |
+| ------------------- | ------ | ------ | ------------ | ------------------ |
+| 1. UI Layer         | High   | Medium | None         | ✅ Complete        |
+| 2. State Management | High   | Medium | None         | ✅ Complete        |
+| 3. Input Handler    | Medium | Low    | Phase 2      | ✅ Complete        |
+| 4. Proper Types     | Low    | Low    | None         | ✅ Complete        |
+| 5. Split Palettes   | Low    | Low    | None         | ✅ Complete        |
+| 6. Render Pipeline  | Low    | High   | Phase 2      | ⏭️ Skip (optional) |
+| 7. Famous Locations | Low    | Low    | None         | ✅ Complete        |
 
 ---
 
-## Target Architecture
+## Current Architecture
 
-After cleanup, the dependency graph should look like:
+After completing phases 1-5, 7, the dependency graph looks like:
 
 ```
 main.ts
-    └── FractalApp (new orchestrator, ~100 lines)
+    └── WebGPUFractalEngine (orchestrator, ~950 lines)
             ├── FractalState (state management)
             ├── InputHandler (events only)
             ├── WebGPURenderer (context/canvas)
-            ├── FractalPipeline (GPU pipeline)
             ├── OverlayManager (all UI)
             ├── BookmarkManager (URL state)
-            └── TouristMode (auto-tour)
+            ├── TouristMode (auto-tour + interpolation)
+            └── FractalBlend (type interpolation params)
 ```
 
-**`WebGPUFractalEngine.ts` becomes `FractalApp.ts`:**
+**`WebGPUFractalEngine.ts` responsibilities:**
 
-- ~100-150 lines
-- Only orchestration, no implementation details
-- Easy to understand at a glance
+- Pipeline initialization (~75 lines)
+- Uniform buffer packing (~100 lines)
+- Input callback setup (~40 lines)
+- Control methods (iterations, palettes, fractals) (~150 lines)
+- Julia picker state machine (~80 lines)
+- Location/bookmark handling (~100 lines)
+- Tourist mode integration (~100 lines)
+- Auto-tourist timer (~50 lines)
+
+The engine is larger than ideal but each section is cohesive. Further extraction is possible but not
+urgent.
 
 ---
 
 ## Metrics
 
-### Before (original)
+### Before (original, January 2026)
 
 | File                   | Lines     |
 | ---------------------- | --------- |
 | WebGPUFractalEngine.ts | 1,174     |
 | InputHandler.ts        | 722       |
 | famousLocations.ts     | 711       |
-| TouristMode.ts         | 680       |
 | Palettes.ts            | 384       |
-| **Total (main files)** | **3,671** |
+| **Total (main files)** | **2,991** |
 
-### Current (after Phase 3)
+### Current (February 2026, after all phases + new features)
 
-| File                   | Lines     |
-| ---------------------- | --------- |
-| WebGPUFractalEngine.ts | 788       |
-| InputHandler.ts        | 548       |
-| InputCallbacks.ts      | 49        |
-| famousLocations.ts     | 711       |
-| TouristMode.ts         | 680       |
-| Palettes.ts            | 384       |
-| ui/ (6 files)          | 523       |
-| state/ (2 files)       | 368       |
-| **Total**              | **4,051** |
+| File                   | Lines  |
+| ---------------------- | ------ |
+| WebGPUFractalEngine.ts | 953    |
+| InputHandler.ts        | 587    |
+| InputCallbacks.ts      | 50     |
+| TouristMode.ts         | 722    |
+| FractalBlend.ts        | 193    |
+| ui/ (6 files)          | 530    |
+| state/ (2 files)       | 389    |
+| locations/ (split)     | ~700   |
+| palettes/ (split)      | ~450   |
+| **Total**              | ~4,574 |
 
-**Progress summary:**
+**Analysis:**
 
-- Engine: 1,174 → 788 lines (**-386 lines, -33%**)
-- InputHandler: 722 → 548 lines (**-174 lines, -24%**)
-- Total reduction from key files: **560 lines**
+- Engine: 1,174 → 953 lines (**-221 lines, -19%**) despite adding tourist mode integration
+- InputHandler: 722 → 587 lines (**-135 lines, -19%**)
+- Total codebase grew due to new features (TouristMode, FractalBlend), but each file has clearer
+  responsibility
+- No single file over 1000 lines
+- The "growth" is healthy — new capabilities, not complexity
 
-### Target (after all phases)
+### Target (if Phase 6 were implemented)
 
-| File                         | Lines      |
-| ---------------------------- | ---------- |
-| FractalApp.ts                | ~150       |
-| FractalState.ts              | ~150       |
-| FractalStateController.ts    | ~200       |
-| FractalPipeline.ts           | ~150       |
-| InputHandler.ts              | ~400       |
-| OverlayManager.ts + overlays | ~250       |
-| TouristMode.ts               | ~500       |
-| Palettes (split)             | ~400       |
-| locations (split)            | ~700       |
-| **Total**                    | **~2,900** |
+| File                   | Lines |
+| ---------------------- | ----- |
+| WebGPUFractalEngine.ts | ~750  |
+| FractalPipeline.ts     | ~200  |
 
-**Key improvement:** No single file over 500 lines, clear single responsibilities.
+**Not recommended** — the 200-line reduction isn't worth the abstraction overhead given current
+stability.
 
 ---
 

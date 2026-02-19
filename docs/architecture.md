@@ -414,9 +414,46 @@ Automated fractal exploration that navigates between famous locations.
 
 - Smooth animated transitions between locations
 - Automatic palette interpolation during transitions
+- Fractal type interpolation for z² family (Mandelbrot, Burning Ship, etc.)
 - Random selection of next destination (avoids immediate repeats)
 - Can switch between fractal types during the tour
 - User interaction immediately stops the tour
+
+**See also:** [fractal-interpolation-design.md](./fractal-interpolation-design.md) for interpolation
+implementation details.
+
+### 10a. Fractal Blending (`src/fractal/FractalBlend.ts`)
+
+Parameters and utilities for smooth interpolation between fractal types.
+
+**Key Concepts:**
+
+- **z² family blending**: Mandelbrot, Burning Ship, Tricorn, Celtic, Buffalo, Funky, Perpendicular
+  can morph between each other
+- **Julia/Mandelbrot blending**: Smooth transition between c-space and z-space exploration
+- **Non-blendable types**: Phoenix, Multibrot³, Multibrot⁴ require fade transitions (different
+  iteration formulas)
+
+**Exports:**
+
+| Function                 | Purpose                                          |
+| ------------------------ | ------------------------------------------------ |
+| `getFractalBlendParams`  | Get blend parameters for a fractal type          |
+| `interpolateBlendParams` | Interpolate between two blend parameter sets     |
+| `isBlendable`            | Check if a fractal type supports smooth blending |
+| `canBlendBetween`        | Check if two types can be smoothly blended       |
+
+**`FractalBlendParams` Interface:**
+
+| Property     | Description                             |
+| ------------ | --------------------------------------- |
+| `juliaBlend` | 0 = Mandelbrot-style, 1 = Julia-style   |
+| `preAbsRe`   | Apply abs to Re(z) before squaring      |
+| `preAbsIm`   | Apply abs to Im(z) before squaring      |
+| `preNegIm`   | Negate Im(z) after abs                  |
+| `postAbsRe`  | Apply abs to Re(z²) after squaring      |
+| `postAbsIm`  | Apply abs to Im(z²) after squaring      |
+| `postNegIm`  | Negate Im(z²) (Tricorn-style conjugate) |
 
 ### 11. State Management (`src/state/`)
 
@@ -424,19 +461,20 @@ Centralized state management for all fractal-related state.
 
 **`FractalState` Class:**
 
-| Property                | Type                   | Description                         |
-| ----------------------- | ---------------------- | ----------------------------------- |
-| `view`                  | `ViewState`            | Pan/zoom state (owned)              |
-| `fractalType`           | `FractalType`          | Current fractal type (0-19)         |
-| `juliaC`                | `[number, number]`     | Julia set constant                  |
-| `juliaPickerMode`       | `boolean`              | Whether Julia picker is active      |
-| `paletteType`           | `'cosine'\|'gradient'` | Current palette type                |
-| `cosinePaletteIndex`    | `number`               | Selected cosine palette (0-11)      |
-| `gradientPaletteIndex`  | `number`               | Selected gradient palette (0-6)     |
-| `colorOffset`           | `number`               | Color cycle offset                  |
-| `maxIterationsOverride` | `number \| null`       | Manual iteration override           |
-| `hdrBrightnessBias`     | `number`               | HDR brightness adjustment (-1 to 1) |
-| `sdrGradientBrightness` | `number`               | SDR gradient brightness (0.1 to 10) |
+| Property                  | Type                       | Description                         |
+| ------------------------- | -------------------------- | ----------------------------------- |
+| `view`                    | `ViewState`                | Pan/zoom state (owned)              |
+| `fractalType`             | `FractalType`              | Current fractal type (0-19)         |
+| `juliaC`                  | `[number, number]`         | Julia set constant                  |
+| `juliaPickerMode`         | `boolean`                  | Whether Julia picker is active      |
+| `paletteType`             | `'cosine'\|'gradient'`     | Current palette type                |
+| `cosinePaletteIndex`      | `number`                   | Selected cosine palette (0-11)      |
+| `gradientPaletteIndex`    | `number`                   | Selected gradient palette (0-6)     |
+| `colorOffset`             | `number`                   | Color cycle offset                  |
+| `maxIterationsOverride`   | `number \| null`           | Manual iteration override           |
+| `hdrBrightnessBias`       | `number`                   | HDR brightness adjustment (-1 to 1) |
+| `sdrGradientBrightness`   | `number`                   | SDR gradient brightness (0.1 to 10) |
+| `interpolatedBlendParams` | `FractalBlendParams\|null` | Blend params during tourist mode    |
 
 **Key Methods:**
 
@@ -514,6 +552,13 @@ The core fractal computation with HDR support:
 | `isMonotonic`       | i32   | Whether palette is monotonic           |
 | `paletteA/B/C/D`    | vec3f | Cosine palette parameters              |
 | `gradientC1–C5`     | vec3f | Gradient color stops                   |
+| `blendPreAbsRe`     | f32   | Blend: abs(Re(z)) before squaring      |
+| `blendPreAbsIm`     | f32   | Blend: abs(Im(z)) before squaring      |
+| `blendPreNegIm`     | f32   | Blend: negate Im(z) after abs          |
+| `blendPostAbsRe`    | f32   | Blend: abs(Re(z²)) after squaring      |
+| `blendPostAbsIm`    | f32   | Blend: abs(Im(z²)) after squaring      |
+| `blendPostNegIm`    | f32   | Blend: negate Im(z²) (conjugate)       |
+| `blendJulia`        | f32   | Blend: 0=Mandelbrot-style, 1=Julia     |
 
 **Fractal Types:**
 
@@ -666,6 +711,7 @@ src/
 │   ├── InputHandler.ts            # Mouse, touch, keyboard events
 │   └── ViewState.ts               # Pan/zoom state management
 ├── fractal/
+│   ├── FractalBlend.ts            # Fractal type interpolation
 │   └── WebGPUFractalEngine.ts     # Central orchestrator
 ├── renderer/
 │   ├── WebGPURenderer.ts          # WebGPU context and HDR config
@@ -701,13 +747,15 @@ src/
 
 ## Related Documents
 
-| Document                                                           | Purpose                         |
-| ------------------------------------------------------------------ | ------------------------------- |
-| [README.md](../README.md)                                          | Quick start and user guide      |
-| [fractal-webapp-spec.md](./fractal-webapp-spec.md)                 | Product vision and requirements |
-| [phase-1-implementation-plan.md](./phase-1-implementation-plan.md) | Phase 1 technical plan          |
-| [deep-zoom-precision-plan.md](./deep-zoom-precision-plan.md)       | Future precision improvements   |
-| [cleanup-plan.md](./cleanup-plan.md)                               | Code structure refactoring plan |
+| Document                                                             | Purpose                                     |
+| -------------------------------------------------------------------- | ------------------------------------------- |
+| [README.md](../README.md)                                            | Quick start and user guide                  |
+| [fractal-webapp-spec.md](./fractal-webapp-spec.md)                   | Product vision and requirements             |
+| [phase-1-implementation-plan.md](./phase-1-implementation-plan.md)   | Phase 1 technical plan                      |
+| [deep-zoom-precision-plan.md](./deep-zoom-precision-plan.md)         | Future precision improvements               |
+| [cleanup-plan.md](./cleanup-plan.md)                                 | Code structure refactoring plan             |
+| [tourist-mode-plan.md](./tourist-mode-plan.md)                       | Tourist mode spec (✅ implemented)          |
+| [fractal-interpolation-design.md](./fractal-interpolation-design.md) | Fractal type interpolation (✅ implemented) |
 
 ---
 
