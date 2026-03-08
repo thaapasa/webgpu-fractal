@@ -9,7 +9,7 @@ project. I've organized it by component responsibility."_ _— Jennifer Simms_
 
 | Field        | Value                  |
 | ------------ | ---------------------- |
-| Last Updated | February 2026          |
+| Last Updated | June 2026              |
 | Status       | Current implementation |
 | Maintainer   | Simms (documentation)  |
 
@@ -26,27 +26,29 @@ Phoenix, Multibrot³, Multibrot⁴, Funky, Perpendicular) each with a Julia vari
 entirely in the browser, and features HDR (High Dynamic Range) rendering on compatible displays.
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                         Browser                             │
-├─────────────────────────────────────────────────────────────┤
-│  ┌─────────────┐    ┌───────────────────┐  ┌───────────-──┐ │
-│  │   main.ts   │───▶│WebGPUFractalEngine│─▶│WebGPURenderer│ │
-│  │  (entry)    │    │  (orchestrator)   │  │  (context)   │ │
-│  └─────────────┘    └─────────┬─────────┘  └──────┬─────-─┘ │
-│                               │                   │         │
-│                        ┌──────┴──────┐      ┌─────┴─────┐   │
-│                        │             │      │           │   │
-│                 ┌──────▼─────┐ ┌─────▼────┐ │ Palettes  │   │
-│                 │InputHandler│ │ViewState │ │ (colors)  │   │
-│                 │  (events)  │ │(viewport)│ └───────────┘   │
-│                 └────────────┘ └──────────┘                 │
-│                                                             │
-│  GPU ═══════════════════════════════════════════════════    │
-│  ║ mandelbrot.wgsl (WGSL)                               ║   │
-│  ║ - Vertex shader (fullscreen triangle)                ║   │
-│  ║ - Fragment shader (fractal computation + HDR)        ║   │
-│  ═══════════════════════════════════════════════════════    │
-└─────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────┐
+│                            Browser                               │
+├──────────────────────────────────────────────────────────────────┤
+│  ┌─────────────┐    ┌───────────────────┐  ┌────────────────┐    │
+│  │   main.ts   │───▶│WebGPUFractalEngine│─▶│ WebGPURenderer │    │
+│  │  (entry)    │    │  (orchestrator)   │  │   (context)    │    │
+│  └─────────────┘    └─────────┬─────────┘  └───────┬────────┘    │
+│                               │                    │             │
+│                        ┌──────┴──────┐      ┌──────┴──────┐      │
+│                        │             │      │             │      │
+│                 ┌──────▼─────┐ ┌─────▼────┐ │  Palettes   │      │
+│                 │InputHandler│ │ViewState │ │  (colors)   │      │
+│                 │  (events)  │ │(viewport)│ └─────────────┘      │
+│                 └────────────┘ └──────────┘                      │
+│                                                                  │
+│  GPU ═══════════════════════════════════════════════════════════  │
+│  ║ mandelbrot.wgsl        → Fractal computation + HDR         ║  │
+│  ║                              ↓                             ║  │
+│  ║ PostProcessingPipeline → bloom-extract.wgsl                ║  │
+│  ║ (when effects enabled)   blur.wgsl (horiz + vert)         ║  │
+│  ║                          composite.wgsl → Canvas           ║  │
+│  ═══════════════════════════════════════════════════════════════  │
+└──────────────────────────────────────────────────────────────────┘
 ```
 
 ---
@@ -72,7 +74,7 @@ src/
 ├── bookmark/      → URL sharing and famous locations
 ├── controls/      → User input handling
 ├── fractal/       → Core engine orchestration
-├── renderer/      → WebGPU rendering and palettes
+├── renderer/      → WebGPU rendering, palettes, and post-processing
 ├── state/         → Centralized state management
 ├── tourist/       → Automated exploration mode
 ├── types/         → Shared type definitions
@@ -148,13 +150,15 @@ The central orchestrator that ties all components together.
 - **Help overlay**: In-app keyboard shortcut reference (`h` to toggle)
 - **Screenshot mode**: Hide all UI for clean screenshots (`Space` to toggle)
 - **Debug overlay**: Shows current fractal type, zoom level, iteration count, palette name, HDR
-  status, and Julia constant (when applicable)
+  status, Julia constant (when applicable), and active post-processing preset
 
 **Render Pipeline:**
 
 1. Update uniform buffer with current state and palette parameters
 2. Execute render pass with fullscreen triangle
 3. Fragment shader computes fractal + applies HDR brightness curve
+4. If post-processing enabled: apply bloom extraction, blur, and composite passes
+5. If post-processing disabled (Clean preset): render directly to canvas
 
 ### 3. WebGPU Renderer (`src/renderer/WebGPURenderer.ts`)
 
@@ -314,6 +318,7 @@ new InputHandler(canvas, viewState, onChange, callbacks);
 | `t`          | Toggle tourist mode (auto-exploration)   |
 | `s`          | Copy shareable URL to clipboard          |
 | `h`          | Toggle help overlay                      |
+| `p` / `P`    | Cycle post-processing presets fwd/back   |
 | `Space`      | Toggle screenshot mode                   |
 
 ### 7. Bookmark Manager (`src/bookmark/BookmarkManager.ts`)
@@ -455,6 +460,62 @@ Parameters and utilities for smooth interpolation between fractal types.
 | `postAbsIm`  | Apply abs to Im(z²) after squaring      |
 | `postNegIm`  | Negate Im(z²) (Tricorn-style conjugate) |
 
+### 10b. Post-Processing Pipeline (`src/renderer/postprocess/`)
+
+Multi-pass GPU post-processing effects applied after fractal rendering.
+
+**Architecture:**
+
+When effects are enabled, the fractal renders to an intermediate `rgba16float` texture instead of
+directly to the canvas. The `PostProcessingPipeline` then applies GPU shader passes before
+compositing the final result to the canvas. When disabled (Clean preset), the fractal renders
+directly to the canvas with zero overhead.
+
+```
+Fractal Shader → HDR Texture → Bloom Extract (half-res)
+                                     ↓
+                               Gaussian Blur (H + V)
+                                     ↓
+                               Composite Pass → Canvas
+                               (bloom + vignette + sharpen +
+                                chromatic aberration + ACES)
+```
+
+**Files:**
+
+| File                        | Responsibility                                |
+| --------------------------- | --------------------------------------------- |
+| `PostProcessState.ts`       | Settings, presets, and defaults                |
+| `PostProcessingPipeline.ts` | Multi-pass GPU pipeline manager               |
+| `index.ts`                  | Re-exports                                    |
+
+**Shaders** (`src/renderer/shaders/`):
+
+| Shader             | Purpose                                                                  |
+| ------------------ | ------------------------------------------------------------------------ |
+| `bloom-extract.wgsl` | Brightness extraction — isolates pixels above a threshold for bloom    |
+| `blur.wgsl`        | Separable Gaussian blur — horizontal and vertical passes at half-res     |
+| `composite.wgsl`   | Final composite — bloom blend, vignette, sharpen, chromatic aberration, ACES tone mapping |
+
+**Presets:**
+
+| Preset       | Effects                                               |
+| ------------ | ----------------------------------------------------- |
+| **Clean**    | No effects (default) — direct-to-canvas rendering     |
+| **Cinematic** | Bloom + vignette + ACES tone mapping                 |
+| **Vivid**    | Bloom + adaptive sharpening + high saturation          |
+| **Dreamy**   | Heavy bloom + chromatic aberration + vignette           |
+
+Cycle presets with `p` / `P` (forward / backward). The active preset name is shown in the debug
+overlay.
+
+**Performance Notes:**
+
+- Bloom uses half-resolution textures for performance and wider blur spread
+- Clean preset incurs zero overhead (no intermediate textures, no extra passes)
+- Each post-processing pass costs one fullscreen texture sample + write, which is negligible
+  compared to fractal iteration cost
+
 ### 11. State Management (`src/state/`)
 
 Centralized state management for all fractal-related state.
@@ -518,9 +579,11 @@ types/
 
 ---
 
-## Shader (`src/renderer/shaders/mandelbrot.wgsl`)
+## Shaders (`src/renderer/shaders/`)
 
-A single WGSL shader file containing both vertex and fragment stages.
+### Fractal Shader (`mandelbrot.wgsl`)
+
+The core fractal computation shader containing both vertex and fragment stages.
 
 ### Vertex Stage
 
@@ -616,6 +679,19 @@ The `hdrBrightnessBias` uniform shifts where bright regions appear:
 - Positive values: more of image becomes bright
 - Negative values: only near-boundary is bright
 
+### Post-Processing Shaders
+
+Three additional WGSL shader files support the post-processing pipeline:
+
+| Shader               | Stage    | Purpose                                                            |
+| -------------------- | -------- | ------------------------------------------------------------------ |
+| `bloom-extract.wgsl` | Pass 1   | Extracts bright pixels above a threshold for bloom (half-res)      |
+| `blur.wgsl`          | Pass 2-3 | Separable Gaussian blur — run twice (horizontal, then vertical)    |
+| `composite.wgsl`     | Pass 4   | Final composite: blends bloom, applies vignette, sharpen, chromatic aberration, ACES tone mapping |
+
+All post-processing shaders use a fullscreen triangle vertex stage (same approach as the fractal
+shader). Each pass reads from the previous pass's output texture via a sampler bind group.
+
 ---
 
 ## Data Flow
@@ -649,10 +725,22 @@ WebGPUFractalEngine.render()
 └────────────────────────────────┘
        ↓
 ┌────────────────────────────────┐
-│ Execute render pass            │
+│ Execute fractal render pass    │
 │ - Draw fullscreen triangle     │
 │ - Fragment shader computes     │
 │   fractal + color + HDR        │
+│ - Target: canvas (Clean) or   │
+│   intermediate texture (fx)    │
+└────────────────────────────────┘
+       ↓ (when post-processing enabled)
+┌────────────────────────────────┐
+│ PostProcessingPipeline         │
+│ 1. Bloom extract (half-res)    │
+│ 2. Gaussian blur H (half-res)  │
+│ 3. Gaussian blur V (half-res)  │
+│ 4. Composite → canvas          │
+│    (bloom + vignette + sharpen │
+│     + chrom. aberration + ACES)│
 └────────────────────────────────┘
 ```
 
@@ -668,6 +756,10 @@ WebGPUFractalEngine.render()
 - **High-DPI support**: Canvas resolution matches device pixel ratio
 - **Discrete GPU preference**: Requests high-performance GPU when available
 - **HDR via extended tone mapping**: No post-process pass needed for HDR
+- **Zero-overhead post-processing bypass**: Clean preset renders directly to canvas with no
+  intermediate textures or extra passes
+- **Half-resolution bloom**: Bloom extraction and blur operate at half resolution for performance
+  and wider blur spread
 
 ### Auto-Scaling Iterations
 
@@ -722,8 +814,15 @@ src/
 │   │   ├── cosinePalettes.ts      # Cosine palette data (12 palettes)
 │   │   ├── gradientPalettes.ts    # Gradient palette data (7 + HDR)
 │   │   └── helpers.ts             # Accessor functions
+│   ├── postprocess/
+│   │   ├── index.ts               # Re-exports
+│   │   ├── PostProcessState.ts    # Settings, presets, and defaults
+│   │   └── PostProcessingPipeline.ts # Multi-pass GPU pipeline manager
 │   └── shaders/
-│       └── mandelbrot.wgsl        # WGSL shader (fractal + HDR)
+│       ├── mandelbrot.wgsl        # WGSL shader (fractal + HDR)
+│       ├── bloom-extract.wgsl     # Brightness extraction for bloom
+│       ├── blur.wgsl              # Separable Gaussian blur
+│       └── composite.wgsl        # Final composite (bloom + effects + ACES)
 ├── state/
 │   ├── index.ts                   # Module exports
 │   └── FractalState.ts            # Centralized state management
@@ -756,6 +855,7 @@ src/
 | [cleanup-plan.md](./cleanup-plan.md)                                 | Code structure refactoring plan             |
 | [tourist-mode-plan.md](./tourist-mode-plan.md)                       | Tourist mode spec (✅ implemented)          |
 | [fractal-interpolation-design.md](./fractal-interpolation-design.md) | Fractal type interpolation (✅ implemented) |
+| [post-processing-plan.md](./post-processing-plan.md)                 | Post-processing effects (✅ implemented)    |
 
 ---
 

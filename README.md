@@ -96,6 +96,7 @@ then `npx serve examples` to preview locally.
 | **t**            | Toggle tourist mode (auto-exploration)     |
 | **s**            | Copy shareable link to clipboard           |
 | **h**            | Toggle help overlay                        |
+| **p** / **P**    | Cycle post-processing presets fwd / back   |
 | **Space**        | Toggle screenshot mode (hides UI)          |
 
 Zoom centers on where you're pointing. Not the center of the screen. Because that would be stupid.
@@ -160,6 +161,21 @@ locations across all fractal types. The palette interpolates during transitions 
 effect. Any user interaction (mouse, keyboard, or touch) immediately stops the tour and returns
 control to you.
 
+### Post-Processing Presets
+
+Press **p** / **P** to cycle through GPU post-processing presets:
+
+| Preset       | Effects                                                  |
+| ------------ | -------------------------------------------------------- |
+| **Clean**    | No effects (default) — zero overhead                     |
+| **Cinematic** | Bloom + vignette + ACES filmic tone mapping             |
+| **Vivid**    | Bloom + adaptive sharpening + high saturation            |
+| **Dreamy**   | Heavy bloom + chromatic aberration + vignette             |
+
+Effects include bloom (bright glow around fractal boundaries), vignette (edge darkening), adaptive
+sharpening, chromatic aberration (color fringing), and ACES filmic tone mapping. When disabled (Clean
+preset), the fractal renders directly to the canvas with zero overhead.
+
 ---
 
 ## Tech Stack
@@ -198,8 +214,14 @@ src/
 │   ├── WebGPURenderer.ts      # WebGPU context, canvas, HDR
 │   ├── Palette.ts             # Facade for palettes module
 │   ├── palettes/              # Color palette definitions
+│   ├── postprocess/           # Post-processing pipeline
+│   │   ├── PostProcessState.ts      # Settings, presets, defaults
+│   │   └── PostProcessingPipeline.ts # Multi-pass GPU pipeline
 │   └── shaders/
-│       └── mandelbrot.wgsl    # Fractal computation (WGSL)
+│       ├── mandelbrot.wgsl    # Fractal computation (WGSL)
+│       ├── bloom-extract.wgsl # Brightness extraction for bloom
+│       ├── blur.wgsl          # Separable Gaussian blur
+│       └── composite.wgsl     # Final composite (effects + ACES)
 ├── state/
 │   └── FractalState.ts        # Centralized state management
 ├── tourist/
@@ -242,6 +264,8 @@ Detailed documentation lives in `docs/`:
 - [Tourist Mode Plan](./docs/tourist-mode-plan.md) — Automated exploration feature (✅ complete)
 - [Fractal Interpolation Design](./docs/fractal-interpolation-design.md) — Smooth fractal morphing
   (✅ complete)
+- [Post-Processing Plan](./docs/post-processing-plan.md) — GPU post-processing effects (✅
+  complete)
 - [Deep Zoom Precision Plan](./docs/deep-zoom-precision-plan.md) — Arbitrary precision roadmap
   (future)
 

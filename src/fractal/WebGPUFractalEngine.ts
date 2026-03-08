@@ -37,6 +37,11 @@ import {
 import { OverlayManager, type DebugOverlayState } from '../ui';
 import { FractalState, maxIterationsForZoom } from '../state';
 import { FractalBlendParams } from './FractalBlend';
+import {
+  PostProcessingPipeline,
+  POST_PROCESS_PRESETS,
+  POST_PROCESS_PRESET_NAMES,
+} from '../renderer/postprocess';
 
 import shaderSource from '../renderer/shaders/mandelbrot.wgsl?raw';
 
@@ -58,6 +63,9 @@ export class WebGPUFractalEngine {
   private uniformBuffer!: GPUBuffer;
   private bindGroup!: GPUBindGroup;
 
+  private postProcessing: PostProcessingPipeline;
+  private postProcessPresetIndex = 0;
+
   private overlays!: OverlayManager;
 
   private touristMode: TouristMode | null = null;
@@ -70,6 +78,7 @@ export class WebGPUFractalEngine {
   private constructor(renderer: WebGPURenderer, canvas: HTMLCanvasElement) {
     this.renderer = renderer;
     this.state = new FractalState();
+    this.postProcessing = new PostProcessingPipeline(renderer.device, renderer.format);
 
     this.inputHandler = new InputHandler(
       canvas,
@@ -196,6 +205,7 @@ export class WebGPUFractalEngine {
       onToggleHelp: () => this.toggleHelp(),
       onToggleScreenshotMode: () => this.toggleScreenshotMode(),
       onToggleTouristMode: () => this.toggleTouristMode(),
+      onPostProcessPresetCycle: (direction) => this.cyclePostProcessPreset(direction),
       onUserInput: () => this.handleUserInput(),
     };
   }
@@ -210,6 +220,8 @@ export class WebGPUFractalEngine {
 
   private handleResize = (): void => {
     this.renderer.resize(window.innerWidth, window.innerHeight);
+    const canvas = this.renderer.canvas;
+    this.postProcessing.resize(canvas.width, canvas.height);
     this.render();
   };
 
@@ -250,6 +262,9 @@ export class WebGPUFractalEngine {
       sdrGradientBrightness: this.state.sdrGradientBrightness,
       paletteType: this.state.paletteType,
       juliaPickerMode: this.state.juliaPickerMode,
+      postProcessPreset: this.postProcessing.isEnabled()
+        ? POST_PROCESS_PRESET_NAMES[POST_PROCESS_PRESETS[this.postProcessPresetIndex]]
+        : null,
     };
     this.overlays.updateDebug(debugState);
 
@@ -360,12 +375,17 @@ export class WebGPUFractalEngine {
 
     // Render
     const commandEncoder = device.createCommandEncoder();
-    const textureView = this.renderer.getCurrentTexture().createView();
+    const usePostProcessing = this.postProcessing.isEnabled();
+
+    // Determine render target: intermediate texture (for post-processing) or canvas (direct)
+    const targetView = usePostProcessing
+      ? this.postProcessing.getIntermediateTextureView()
+      : this.renderer.getCurrentTexture().createView();
 
     const renderPass = commandEncoder.beginRenderPass({
       colorAttachments: [
         {
-          view: textureView,
+          view: targetView,
           clearValue: { r: 0, g: 0, b: 0, a: 1 },
           loadOp: 'clear',
           storeOp: 'store',
@@ -377,6 +397,12 @@ export class WebGPUFractalEngine {
     renderPass.setBindGroup(0, this.bindGroup);
     renderPass.draw(3); // Fullscreen triangle
     renderPass.end();
+
+    // Post-processing passes (bloom, vignette, sharpen, etc.)
+    if (usePostProcessing) {
+      const canvasView = this.renderer.getCurrentTexture().createView();
+      this.postProcessing.encodePostProcessPasses(commandEncoder, canvasView);
+    }
 
     device.queue.submit([commandEncoder.finish()]);
   }
@@ -811,6 +837,19 @@ export class WebGPUFractalEngine {
     this.overlays.toggleScreenshotMode();
   }
 
+  // --- Post-Processing ---
+
+  private cyclePostProcessPreset(direction: 1 | -1): void {
+    this.postProcessPresetIndex =
+      (this.postProcessPresetIndex + direction + POST_PROCESS_PRESETS.length) %
+      POST_PROCESS_PRESETS.length;
+    const preset = POST_PROCESS_PRESETS[this.postProcessPresetIndex];
+    this.postProcessing.setPreset(preset);
+    const name = POST_PROCESS_PRESET_NAMES[preset];
+    this.overlays.notification.info(`✨ Post-Processing: ${name}`, 1500);
+    this.render();
+  }
+
   // --- Tourist Mode ---
 
   private toggleTouristMode(): void {
@@ -948,6 +987,7 @@ export class WebGPUFractalEngine {
     window.removeEventListener('hashchange', this.handleHashChange);
     this.overlays.destroy();
     this.inputHandler.destroy();
+    this.postProcessing.destroy();
     this.renderer.destroy();
   }
 }

@@ -20,6 +20,7 @@ export interface DebugOverlayState {
   sdrGradientBrightness: number;
   paletteType: 'cosine' | 'gradient';
   juliaPickerMode: boolean;
+  postProcessPreset: string | null;
 }
 
 export class DebugOverlay {
@@ -74,6 +75,7 @@ export class DebugOverlay {
     if (juliaCoords) statusParts.push(juliaCoords);
     statusParts.push(hdrStatus);
     if (juliaStatus) statusParts.push(juliaStatus);
+    if (state.postProcessPreset) statusParts.push(`FX: ${state.postProcessPreset}`);
     statusParts.push('H = help');
 
     this.element.textContent = statusParts.join('  ·  ');

@@ -474,6 +474,14 @@ export class InputHandler {
         e.preventDefault();
         this.callbacks.onToggleTouristMode?.();
         break;
+      case 'p':
+        e.preventDefault();
+        this.callbacks.onPostProcessPresetCycle?.(1);
+        break;
+      case 'P':
+        e.preventDefault();
+        this.callbacks.onPostProcessPresetCycle?.(-1);
+        break;
       case 'z':
         e.preventDefault();
         if (!e.repeat) {

@@ -85,6 +85,13 @@ export class HelpOverlay {
           <div class="help-note">*HDR bias or SDR gradient brightness</div>
         </div>
         <div class="help-section">
+          <h3 class="help-section-title">Effects</h3>
+          <div class="help-section-content">
+            ${this.helpRow('P / Shift+P', 'Cycle post-process presets')}
+          </div>
+          <div class="help-note">Clean · Cinematic · Vivid · Dreamy</div>
+        </div>
+        <div class="help-section">
           <h3 class="help-section-title">UI</h3>
           <div class="help-section-content">
             ${this.helpRow('T', 'Tourist mode (auto-tour)')}

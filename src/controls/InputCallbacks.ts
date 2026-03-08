@@ -45,6 +45,9 @@ export interface InputCallbacks {
   onToggleScreenshotMode?(): void;
   onToggleTouristMode?(): void;
 
+  // Post-processing
+  onPostProcessPresetCycle?(direction: 1 | -1): void;
+
   // User interaction (used to cancel tourist mode)
   onUserInput?(): void;
 }
