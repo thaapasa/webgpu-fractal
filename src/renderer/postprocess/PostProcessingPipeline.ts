@@ -22,7 +22,7 @@ import blurSource from '../shaders/blur.wgsl?raw';
 import compositeSource from '../shaders/composite.wgsl?raw';
 
 // 20 f32/i32 values × 4 bytes = 80 bytes (matches PostProcessUniforms in WGSL)
-const POST_PROCESS_UNIFORM_SIZE = 80;
+const POST_PROCESS_UNIFORM_SIZE = 112;
 // 4 f32 values × 4 bytes = 16 bytes (matches BlurUniforms in WGSL)
 const BLUR_UNIFORM_SIZE = 16;
 
@@ -414,7 +414,18 @@ export class PostProcessingPipeline {
     ints[15] = this.settings.sharpenEnabled ? 1 : 0;
     ints[16] = this.settings.chromaticAberrationEnabled ? 1 : 0;
     ints[17] = this.settings.toneMappingEnabled ? 1 : 0;
-    // padding at 18, 19
+    // Ghost Mirrors
+    ints[18] = this.settings.ghostMirrorEnabled ? 1 : 0;
+    floats[19] = this.settings.ghostMirrorOpacity;
+    ints[20] = this.settings.ghostMirrorMode;
+    // Kaleidoscope
+    ints[21] = this.settings.kaleidoscopeEnabled ? 1 : 0;
+    floats[22] = this.settings.kaleidoscopeSegments;
+    // Wave Distortion
+    ints[23] = this.settings.waveEnabled ? 1 : 0;
+    floats[24] = this.settings.waveAmplitude;
+    floats[25] = this.settings.waveFrequency;
+    floats[26] = performance.now() * 0.001; // time in seconds
 
     this.device.queue.writeBuffer(this.uniformBuffer, 0, data);
   }

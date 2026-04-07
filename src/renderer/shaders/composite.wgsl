@@ -19,8 +19,19 @@ struct PostProcessUniforms {
   sharpenEnabled: i32,                   // offset 60
   chromaticAberrationEnabled: i32,       // offset 64
   toneMappingEnabled: i32,               // offset 68
-  _pad1: f32,                            // offset 72
-  _pad2: f32,                            // offset 76
+  // Ghost Mirrors
+  ghostMirrorEnabled: i32,               // offset 72
+  ghostMirrorOpacity: f32,               // offset 76
+  ghostMirrorMode: i32,                  // offset 80
+  // Kaleidoscope
+  kaleidoscopeEnabled: i32,              // offset 84
+  kaleidoscopeSegments: f32,             // offset 88
+  // Wave Distortion
+  waveEnabled: i32,                      // offset 92
+  waveAmplitude: f32,                    // offset 96
+  waveFrequency: f32,                    // offset 100
+  time: f32,                             // offset 104
+  _pad1: f32,                            // offset 108 (pad to 16-byte alignment)
 }
 
 struct VertexOutput {
@@ -57,10 +68,36 @@ fn acesToneMap(x: vec3f) -> vec3f {
   return clamp((x * (a * x + b)) / (x * (c * x + d) + e), vec3f(0.0), vec3f(1.0));
 }
 
+const PI: f32 = 3.14159265359;
+
 @fragment
 fn fragmentMain(input: VertexOutput) -> @location(0) vec4f {
   var color: vec3f;
-  let uv = input.uv;
+  var uv = input.uv;
+
+  // --- Kaleidoscope (UV transform, applied first) ---
+  if (u.kaleidoscopeEnabled != 0) {
+    let centered = uv - 0.5;
+    let angle = atan2(centered.y, centered.x);
+    let radius = length(centered);
+    let segAngle = 2.0 * PI / u.kaleidoscopeSegments;
+    // Fold angle into one segment and mirror alternating segments
+    var foldedAngle = angle % segAngle;
+    if (foldedAngle < 0.0) { foldedAngle += segAngle; }
+    // Mirror: reflect odd segments for seamless joins
+    let segIndex = floor((angle + PI) / segAngle);
+    if (i32(segIndex) % 2 == 1) {
+      foldedAngle = segAngle - foldedAngle;
+    }
+    uv = vec2f(cos(foldedAngle), sin(foldedAngle)) * radius + 0.5;
+  }
+
+  // --- Wave Distortion (UV transform) ---
+  if (u.waveEnabled != 0) {
+    let wave_x = sin(uv.y * u.waveFrequency * PI * 2.0 + u.time * 2.0) * u.waveAmplitude;
+    let wave_y = cos(uv.x * u.waveFrequency * PI * 2.0 + u.time * 1.7) * u.waveAmplitude;
+    uv = uv + vec2f(wave_x, wave_y);
+  }
 
   // --- Adaptive Sharpening (Laplacian) ---
   // Applied first, before chromatic aberration, so it operates on clean samples
@@ -95,6 +132,27 @@ fn fragmentMain(input: VertexOutput) -> @location(0) vec4f {
   if (u.bloomEnabled != 0) {
     let bloom = textureSample(bloomTexture, texSampler, uv).rgb;
     color = color + bloom * u.bloomIntensity;
+  }
+
+  // --- Ghost Mirrors (translucent mirrored overlays) ---
+  if (u.ghostMirrorEnabled != 0) {
+    let mode = u.ghostMirrorMode;
+    let opacity = u.ghostMirrorOpacity;
+    if (mode == 0 || mode == 2) {
+      // Horizontal mirror
+      let mirrorH = textureSample(fractalTexture, texSampler, vec2f(1.0 - uv.x, uv.y)).rgb;
+      color = mix(color, max(color, mirrorH), opacity);
+    }
+    if (mode == 1 || mode == 2) {
+      // Vertical mirror
+      let mirrorV = textureSample(fractalTexture, texSampler, vec2f(uv.x, 1.0 - uv.y)).rgb;
+      color = mix(color, max(color, mirrorV), opacity);
+    }
+    if (mode == 3) {
+      // Diagonal: flip both axes + blend
+      let mirrorD = textureSample(fractalTexture, texSampler, vec2f(1.0 - uv.x, 1.0 - uv.y)).rgb;
+      color = mix(color, max(color, mirrorD), opacity);
+    }
   }
 
   // --- Filmic Tone Mapping & Color Grading ---

@@ -31,6 +31,20 @@ export interface PostProcessSettings {
   exposure: number; // 0.5–2.0
   saturation: number; // 0.5–2.0
   temperature: number; // -1.0–1.0 (negative=cool, positive=warm)
+
+  // Ghost Mirrors: translucent mirrored copies overlaid on the image
+  ghostMirrorEnabled: boolean;
+  ghostMirrorOpacity: number; // 0.0–1.0
+  ghostMirrorMode: number; // 0=horizontal, 1=vertical, 2=both, 3=diagonal
+
+  // Kaleidoscope: angular symmetry mandala effect
+  kaleidoscopeEnabled: boolean;
+  kaleidoscopeSegments: number; // number of mirror segments (e.g. 4, 6, 8)
+
+  // Wave Distortion: animated sine-wave ripples
+  waveEnabled: boolean;
+  waveAmplitude: number; // 0.0–0.1 (UV offset strength)
+  waveFrequency: number; // 1.0–20.0 (wave density)
 }
 
 export const DEFAULT_POST_PROCESS_SETTINGS: PostProcessSettings = {
@@ -49,18 +63,35 @@ export const DEFAULT_POST_PROCESS_SETTINGS: PostProcessSettings = {
   exposure: 1.0,
   saturation: 1.15,
   temperature: 0.0,
+  ghostMirrorEnabled: false,
+  ghostMirrorOpacity: 0.3,
+  ghostMirrorMode: 2,
+  kaleidoscopeEnabled: false,
+  kaleidoscopeSegments: 6,
+  waveEnabled: false,
+  waveAmplitude: 0.01,
+  waveFrequency: 8.0,
 };
 
-export type PostProcessPreset = 'clean' | 'cinematic' | 'vivid' | 'dreamy';
+export type PostProcessPreset = 'clean' | 'cinematic' | 'vivid' | 'dreamy' | 'psychedelic' | 'acid';
 
 export const POST_PROCESS_PRESET_NAMES: Record<PostProcessPreset, string> = {
   clean: 'Clean',
   cinematic: 'Cinematic',
   vivid: 'Vivid',
   dreamy: 'Dreamy',
+  psychedelic: 'Psychedelic',
+  acid: 'Acid Trip',
 };
 
-export const POST_PROCESS_PRESETS: PostProcessPreset[] = ['clean', 'cinematic', 'vivid', 'dreamy'];
+export const POST_PROCESS_PRESETS: PostProcessPreset[] = [
+  'clean',
+  'cinematic',
+  'vivid',
+  'dreamy',
+  'psychedelic',
+  'acid',
+];
 
 const PRESET_SETTINGS: Record<PostProcessPreset, Partial<PostProcessSettings>> = {
   clean: {
@@ -112,6 +143,38 @@ const PRESET_SETTINGS: Record<PostProcessPreset, Partial<PostProcessSettings>> =
     chromaticAberrationEnabled: true,
     chromaticAberrationIntensity: 0.3,
     toneMappingEnabled: false,
+  },
+  psychedelic: {
+    enabled: true,
+    bloomEnabled: true,
+    bloomThreshold: 0.6,
+    bloomIntensity: 0.4,
+    vignetteEnabled: true,
+    vignetteIntensity: 0.3,
+    vignetteSoftness: 0.5,
+    ghostMirrorEnabled: true,
+    ghostMirrorOpacity: 0.25,
+    ghostMirrorMode: 2,
+    kaleidoscopeEnabled: true,
+    kaleidoscopeSegments: 6,
+    toneMappingEnabled: true,
+    saturation: 1.4,
+  },
+  acid: {
+    enabled: true,
+    bloomEnabled: true,
+    bloomThreshold: 0.5,
+    bloomIntensity: 0.5,
+    kaleidoscopeEnabled: true,
+    kaleidoscopeSegments: 8,
+    waveEnabled: true,
+    waveAmplitude: 0.015,
+    waveFrequency: 10.0,
+    chromaticAberrationEnabled: true,
+    chromaticAberrationIntensity: 0.5,
+    toneMappingEnabled: true,
+    saturation: 1.5,
+    temperature: 0.3,
   },
 };
 
