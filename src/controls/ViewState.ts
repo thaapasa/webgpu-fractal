@@ -33,7 +33,9 @@ export class ViewState implements IViewState {
    */
   pan(deltaX: number, deltaY: number, screenWidth: number, screenHeight: number): void {
     // Convert screen pixel delta to fractal coordinate delta
-    const fractalDeltaX = -deltaX / (this.zoom * screenWidth);
+    // X needs aspect ratio correction to match shader: uv.x *= aspect
+    const aspect = screenWidth / screenHeight;
+    const fractalDeltaX = (-deltaX * aspect) / (this.zoom * screenWidth);
     const fractalDeltaY = deltaY / (this.zoom * screenHeight);
 
     this.centerX += fractalDeltaX;
@@ -56,7 +58,9 @@ export class ViewState implements IViewState {
     screenHeight: number
   ): void {
     // Convert screen point to fractal coordinates before zoom
-    const fractalX = this.centerX + (screenX / screenWidth - 0.5) / this.zoom;
+    // X needs aspect ratio correction to match shader: uv.x *= aspect
+    const aspect = screenWidth / screenHeight;
+    const fractalX = this.centerX + ((screenX / screenWidth - 0.5) * aspect) / this.zoom;
     const fractalY = this.centerY - (screenY / screenHeight - 0.5) / this.zoom;
 
     // Apply zoom
@@ -66,7 +70,7 @@ export class ViewState implements IViewState {
     this.zoom = Math.max(0.1, Math.min(this.zoom, 1e15));
 
     // Adjust center so the point under cursor stays fixed
-    const newFractalX = this.centerX + (screenX / screenWidth - 0.5) / this.zoom;
+    const newFractalX = this.centerX + ((screenX / screenWidth - 0.5) * aspect) / this.zoom;
     const newFractalY = this.centerY - (screenY / screenHeight - 0.5) / this.zoom;
 
     this.centerX += fractalX - newFractalX;
