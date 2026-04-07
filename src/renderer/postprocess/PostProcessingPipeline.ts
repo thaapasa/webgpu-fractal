@@ -20,9 +20,10 @@ import {
 import bloomExtractSource from '../shaders/bloom-extract.wgsl?raw';
 import blurSource from '../shaders/blur.wgsl?raw';
 import compositeSource from '../shaders/composite.wgsl?raw';
+import blitSource from '../shaders/blit.wgsl?raw';
 
-// 20 f32/i32 values × 4 bytes = 80 bytes (matches PostProcessUniforms in WGSL)
-const POST_PROCESS_UNIFORM_SIZE = 112;
+// Matches PostProcessUniforms in composite.wgsl (padded to 16-byte alignment)
+const POST_PROCESS_UNIFORM_SIZE = 128;
 // 4 f32 values × 4 bytes = 16 bytes (matches BlurUniforms in WGSL)
 const BLUR_UNIFORM_SIZE = 16;
 
@@ -38,22 +39,32 @@ export class PostProcessingPipeline {
   private bloomBlurTempTexture: GPUTexture | null = null;
   private bloomBlurTexture: GPUTexture | null = null;
 
+  // Feedback trail textures (ping-pong pair)
+  private feedbackTextureA: GPUTexture | null = null;
+  private feedbackTextureB: GPUTexture | null = null;
+  private feedbackIndex = 0; // 0: write to A (read B as history), 1: write to B (read A)
+
   private sampler: GPUSampler;
 
   // Pipelines
   private bloomExtractPipeline: GPURenderPipeline;
   private blurPipeline: GPURenderPipeline;
   private compositePipeline: GPURenderPipeline;
+  private blitPipeline: GPURenderPipeline;
 
   // Bind group layouts
   private singleTextureLayout: GPUBindGroupLayout;
   private compositeLayout: GPUBindGroupLayout;
+  private blitLayout: GPUBindGroupLayout;
 
   // Bind groups (recreated on resize)
   private bloomExtractBindGroup: GPUBindGroup | null = null;
   private blurHBindGroup: GPUBindGroup | null = null;
   private blurVBindGroup: GPUBindGroup | null = null;
   private compositeBindGroup: GPUBindGroup | null = null;
+  // Feedback: two composite bind groups (one per ping-pong state) + two blit bind groups
+  private compositeBindGroupFB: [GPUBindGroup | null, GPUBindGroup | null] = [null, null];
+  private blitBindGroupFB: [GPUBindGroup | null, GPUBindGroup | null] = [null, null];
 
   // Uniform buffers
   private uniformBuffer: GPUBuffer;
@@ -62,6 +73,9 @@ export class PostProcessingPipeline {
 
   private width = 0;
   private height = 0;
+
+  // Feedback snapshot timing
+  private lastSnapshotTime = 0;
 
   constructor(device: GPUDevice, format: GPUTextureFormat) {
     this.device = device;
@@ -110,7 +124,7 @@ export class PostProcessingPipeline {
       ],
     });
 
-    // Used by composite pass: sampler + fractal texture + bloom texture + uniforms
+    // Used by composite pass: sampler + fractal + bloom + uniforms + history (feedback)
     this.compositeLayout = device.createBindGroupLayout({
       label: 'Composite Layout',
       entries: [
@@ -122,6 +136,16 @@ export class PostProcessingPipeline {
           visibility: GPUShaderStage.FRAGMENT,
           buffer: { type: 'uniform' },
         },
+        { binding: 4, visibility: GPUShaderStage.FRAGMENT, texture: { sampleType: 'float' } },
+      ],
+    });
+
+    // Used by blit pass: sampler + texture only
+    this.blitLayout = device.createBindGroupLayout({
+      label: 'Blit Layout',
+      entries: [
+        { binding: 0, visibility: GPUShaderStage.FRAGMENT, sampler: { type: 'filtering' } },
+        { binding: 1, visibility: GPUShaderStage.FRAGMENT, texture: { sampleType: 'float' } },
       ],
     });
 
@@ -140,6 +164,11 @@ export class PostProcessingPipeline {
     const compositeModule = device.createShaderModule({
       label: 'Composite Shader',
       code: compositeSource,
+    });
+
+    const blitModule = device.createShaderModule({
+      label: 'Blit Shader',
+      code: blitSource,
     });
 
     // --- Render pipelines ---
@@ -180,6 +209,18 @@ export class PostProcessingPipeline {
       primitive: { topology: 'triangle-list' },
     });
 
+    this.blitPipeline = device.createRenderPipeline({
+      label: 'Blit Pipeline',
+      layout: device.createPipelineLayout({ bindGroupLayouts: [this.blitLayout] }),
+      vertex: { module: blitModule, entryPoint: 'vertexMain' },
+      fragment: {
+        module: blitModule,
+        entryPoint: 'fragmentMain',
+        targets: [{ format }],
+      },
+      primitive: { topology: 'triangle-list' },
+    });
+
     console.log('Post-processing pipeline initialized');
   }
 
@@ -206,6 +247,8 @@ export class PostProcessingPipeline {
     this.bloomExtractTexture?.destroy();
     this.bloomBlurTempTexture?.destroy();
     this.bloomBlurTexture?.destroy();
+    this.feedbackTextureA?.destroy();
+    this.feedbackTextureB?.destroy();
 
     const halfWidth = Math.max(1, Math.floor(width / 2));
     const halfHeight = Math.max(1, Math.floor(height / 2));
@@ -239,6 +282,21 @@ export class PostProcessingPipeline {
       format: this.format,
       usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING,
     });
+
+    // Feedback trail textures: full-res ping-pong pair
+    this.feedbackTextureA = this.device.createTexture({
+      label: 'Feedback A',
+      size: { width, height },
+      format: this.format,
+      usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING,
+    });
+    this.feedbackTextureB = this.device.createTexture({
+      label: 'Feedback B',
+      size: { width, height },
+      format: this.format,
+      usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING,
+    });
+    this.feedbackIndex = 0;
 
     this.createBindGroups(halfWidth, halfHeight);
   }
@@ -314,22 +372,91 @@ export class PostProcessingPipeline {
       blurVPass.end();
     }
 
-    // 4. Final composite to canvas
-    const compositePass = commandEncoder.beginRenderPass({
-      label: 'Composite',
-      colorAttachments: [
-        {
-          view: canvasTextureView,
-          clearValue: { r: 0, g: 0, b: 0, a: 1 },
-          loadOp: 'clear',
-          storeOp: 'store',
-        },
-      ],
-    });
-    compositePass.setPipeline(this.compositePipeline);
-    compositePass.setBindGroup(0, this.compositeBindGroup!);
-    compositePass.draw(3);
-    compositePass.end();
+    if (this.settings.feedbackEnabled) {
+      const now = performance.now();
+      const interval = this.settings.feedbackInterval;
+      const isSnapshotFrame = interval <= 0 || now - this.lastSnapshotTime >= interval;
+      const currentFB = this.feedbackIndex;
+
+      if (isSnapshotFrame) {
+        // SNAPSHOT FRAME: composite → feedback texture (updates history), then blit → canvas
+        this.lastSnapshotTime = now;
+        const feedbackTarget =
+          currentFB === 0
+            ? this.feedbackTextureA!.createView()
+            : this.feedbackTextureB!.createView();
+
+        const compositePass = commandEncoder.beginRenderPass({
+          label: 'Composite (→ Feedback)',
+          colorAttachments: [
+            {
+              view: feedbackTarget,
+              clearValue: { r: 0, g: 0, b: 0, a: 1 },
+              loadOp: 'clear',
+              storeOp: 'store',
+            },
+          ],
+        });
+        compositePass.setPipeline(this.compositePipeline);
+        compositePass.setBindGroup(0, this.compositeBindGroupFB[currentFB]!);
+        compositePass.draw(3);
+        compositePass.end();
+
+        // Blit updated feedback texture to canvas
+        const blitPass = commandEncoder.beginRenderPass({
+          label: 'Blit (Feedback → Canvas)',
+          colorAttachments: [
+            {
+              view: canvasTextureView,
+              clearValue: { r: 0, g: 0, b: 0, a: 1 },
+              loadOp: 'clear',
+              storeOp: 'store',
+            },
+          ],
+        });
+        blitPass.setPipeline(this.blitPipeline);
+        blitPass.setBindGroup(0, this.blitBindGroupFB[currentFB]!);
+        blitPass.draw(3);
+        blitPass.end();
+
+        // Swap ping-pong index for next frame
+        this.feedbackIndex = 1 - currentFB;
+      } else {
+        // BETWEEN SNAPSHOTS: composite → canvas directly, blending with frozen history
+        const compositePass = commandEncoder.beginRenderPass({
+          label: 'Composite (with frozen history)',
+          colorAttachments: [
+            {
+              view: canvasTextureView,
+              clearValue: { r: 0, g: 0, b: 0, a: 1 },
+              loadOp: 'clear',
+              storeOp: 'store',
+            },
+          ],
+        });
+        compositePass.setPipeline(this.compositePipeline);
+        compositePass.setBindGroup(0, this.compositeBindGroupFB[currentFB]!);
+        compositePass.draw(3);
+        compositePass.end();
+      }
+    } else {
+      // NORMAL MODE: composite directly to canvas
+      const compositePass = commandEncoder.beginRenderPass({
+        label: 'Composite',
+        colorAttachments: [
+          {
+            view: canvasTextureView,
+            clearValue: { r: 0, g: 0, b: 0, a: 1 },
+            loadOp: 'clear',
+            storeOp: 'store',
+          },
+        ],
+      });
+      compositePass.setPipeline(this.compositePipeline);
+      compositePass.setBindGroup(0, this.compositeBindGroup!);
+      compositePass.draw(3);
+      compositePass.end();
+    }
   }
 
   private createBindGroups(halfWidth: number, halfHeight: number): void {
@@ -371,7 +498,11 @@ export class PostProcessingPipeline {
       ],
     });
 
-    // Composite: reads fractal + bloom → writes to canvas
+    const feedbackViewA = this.feedbackTextureA!.createView();
+    const feedbackViewB = this.feedbackTextureB!.createView();
+
+    // Composite: reads fractal + bloom + history → writes to canvas or feedback texture
+    // Default bind group (uses feedbackA as history — doesn't matter when feedback disabled)
     this.compositeBindGroup = this.device.createBindGroup({
       label: 'Composite Bind Group',
       layout: this.compositeLayout,
@@ -380,6 +511,51 @@ export class PostProcessingPipeline {
         { binding: 1, resource: intermediateView },
         { binding: 2, resource: bloomBlurView },
         { binding: 3, resource: { buffer: this.uniformBuffer } },
+        { binding: 4, resource: feedbackViewA },
+      ],
+    });
+
+    // Feedback ping-pong bind groups:
+    // [0] writes to A, reads history from B
+    this.compositeBindGroupFB[0] = this.device.createBindGroup({
+      label: 'Composite Bind Group (FB→A)',
+      layout: this.compositeLayout,
+      entries: [
+        { binding: 0, resource: this.sampler },
+        { binding: 1, resource: intermediateView },
+        { binding: 2, resource: bloomBlurView },
+        { binding: 3, resource: { buffer: this.uniformBuffer } },
+        { binding: 4, resource: feedbackViewB },
+      ],
+    });
+    // [1] writes to B, reads history from A
+    this.compositeBindGroupFB[1] = this.device.createBindGroup({
+      label: 'Composite Bind Group (FB→B)',
+      layout: this.compositeLayout,
+      entries: [
+        { binding: 0, resource: this.sampler },
+        { binding: 1, resource: intermediateView },
+        { binding: 2, resource: bloomBlurView },
+        { binding: 3, resource: { buffer: this.uniformBuffer } },
+        { binding: 4, resource: feedbackViewA },
+      ],
+    });
+
+    // Blit bind groups: sample from feedback texture → canvas
+    this.blitBindGroupFB[0] = this.device.createBindGroup({
+      label: 'Blit Bind Group (A)',
+      layout: this.blitLayout,
+      entries: [
+        { binding: 0, resource: this.sampler },
+        { binding: 1, resource: feedbackViewA },
+      ],
+    });
+    this.blitBindGroupFB[1] = this.device.createBindGroup({
+      label: 'Blit Bind Group (B)',
+      layout: this.blitLayout,
+      entries: [
+        { binding: 0, resource: this.sampler },
+        { binding: 1, resource: feedbackViewB },
       ],
     });
 
@@ -426,6 +602,9 @@ export class PostProcessingPipeline {
     floats[24] = this.settings.waveAmplitude;
     floats[25] = this.settings.waveFrequency;
     floats[26] = performance.now() * 0.001; // time in seconds
+    // Feedback Trails
+    ints[27] = this.settings.feedbackEnabled ? 1 : 0;
+    floats[28] = this.settings.feedbackDecay;
 
     this.device.queue.writeBuffer(this.uniformBuffer, 0, data);
   }
@@ -435,6 +614,8 @@ export class PostProcessingPipeline {
     this.bloomExtractTexture?.destroy();
     this.bloomBlurTempTexture?.destroy();
     this.bloomBlurTexture?.destroy();
+    this.feedbackTextureA?.destroy();
+    this.feedbackTextureB?.destroy();
     this.uniformBuffer.destroy();
     this.blurHUniformBuffer.destroy();
     this.blurVUniformBuffer.destroy();

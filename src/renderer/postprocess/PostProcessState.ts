@@ -45,6 +45,11 @@ export interface PostProcessSettings {
   waveEnabled: boolean;
   waveAmplitude: number; // 0.0–0.1 (UV offset strength)
   waveFrequency: number; // 1.0–20.0 (wave density)
+
+  // Feedback Trails: ghostly afterimages from previous frames
+  feedbackEnabled: boolean;
+  feedbackDecay: number; // 0.5–0.98 (how much of the previous frame persists)
+  feedbackInterval: number; // milliseconds between trail snapshots (0 = every frame)
 }
 
 export const DEFAULT_POST_PROCESS_SETTINGS: PostProcessSettings = {
@@ -71,9 +76,19 @@ export const DEFAULT_POST_PROCESS_SETTINGS: PostProcessSettings = {
   waveEnabled: false,
   waveAmplitude: 0.01,
   waveFrequency: 8.0,
+  feedbackEnabled: false,
+  feedbackDecay: 0.85,
+  feedbackInterval: 250,
 };
 
-export type PostProcessPreset = 'clean' | 'cinematic' | 'vivid' | 'dreamy' | 'psychedelic' | 'acid';
+export type PostProcessPreset =
+  | 'clean'
+  | 'cinematic'
+  | 'vivid'
+  | 'dreamy'
+  | 'psychedelic'
+  | 'acid'
+  | 'ethereal';
 
 export const POST_PROCESS_PRESET_NAMES: Record<PostProcessPreset, string> = {
   clean: 'Clean',
@@ -82,6 +97,7 @@ export const POST_PROCESS_PRESET_NAMES: Record<PostProcessPreset, string> = {
   dreamy: 'Dreamy',
   psychedelic: 'Psychedelic',
   acid: 'Acid Trip',
+  ethereal: 'Ethereal',
 };
 
 export const POST_PROCESS_PRESETS: PostProcessPreset[] = [
@@ -91,6 +107,7 @@ export const POST_PROCESS_PRESETS: PostProcessPreset[] = [
   'dreamy',
   'psychedelic',
   'acid',
+  'ethereal',
 ];
 
 const PRESET_SETTINGS: Record<PostProcessPreset, Partial<PostProcessSettings>> = {
@@ -175,6 +192,21 @@ const PRESET_SETTINGS: Record<PostProcessPreset, Partial<PostProcessSettings>> =
     toneMappingEnabled: true,
     saturation: 1.5,
     temperature: 0.3,
+  },
+  ethereal: {
+    enabled: true,
+    bloomEnabled: true,
+    bloomThreshold: 0.5,
+    bloomIntensity: 0.4,
+    ghostMirrorEnabled: true,
+    ghostMirrorOpacity: 0.2,
+    ghostMirrorMode: 2,
+    vignetteEnabled: true,
+    vignetteIntensity: 0.3,
+    vignetteSoftness: 0.5,
+    feedbackEnabled: true,
+    feedbackDecay: 0.7,
+    feedbackInterval: 250,
   },
 };
 

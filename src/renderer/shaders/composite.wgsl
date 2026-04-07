@@ -31,7 +31,10 @@ struct PostProcessUniforms {
   waveAmplitude: f32,                    // offset 96
   waveFrequency: f32,                    // offset 100
   time: f32,                             // offset 104
-  _pad1: f32,                            // offset 108 (pad to 16-byte alignment)
+  // Feedback Trails
+  feedbackEnabled: i32,                  // offset 108
+  feedbackDecay: f32,                    // offset 112
+  _pad1: f32,                            // offset 116 (pad to 16-byte alignment)
 }
 
 struct VertexOutput {
@@ -43,6 +46,7 @@ struct VertexOutput {
 @group(0) @binding(1) var fractalTexture: texture_2d<f32>;
 @group(0) @binding(2) var bloomTexture: texture_2d<f32>;
 @group(0) @binding(3) var<uniform> u: PostProcessUniforms;
+@group(0) @binding(4) var historyTexture: texture_2d<f32>;
 
 @vertex
 fn vertexMain(@builtin(vertex_index) vertexIndex: u32) -> VertexOutput {
@@ -174,6 +178,12 @@ fn fragmentMain(input: VertexOutput) -> @location(0) vec4f {
     let dist = length(uv - 0.5) * 1.414; // Normalized: 0 at center, ~1 at corners
     let vig = 1.0 - smoothstep(1.0 - u.vignetteSoftness, 1.0, dist) * u.vignetteIntensity;
     color = color * vig;
+  }
+
+  // --- Feedback Trails (blend with previous frame) ---
+  if (u.feedbackEnabled != 0) {
+    let history = textureSample(historyTexture, texSampler, input.uv).rgb;
+    color = mix(color, history, u.feedbackDecay);
   }
 
   return vec4f(max(color, vec3f(0.0)), 1.0);
