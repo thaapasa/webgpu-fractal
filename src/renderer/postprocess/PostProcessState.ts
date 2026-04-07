@@ -205,7 +205,7 @@ const PRESET_SETTINGS: Record<PostProcessPreset, Partial<PostProcessSettings>> =
     vignetteIntensity: 0.3,
     vignetteSoftness: 0.5,
     feedbackEnabled: true,
-    feedbackDecay: 0.7,
+    feedbackDecay: 0.5,
     feedbackInterval: 250,
   },
 };

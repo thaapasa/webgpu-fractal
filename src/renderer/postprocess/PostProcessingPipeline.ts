@@ -602,9 +602,15 @@ export class PostProcessingPipeline {
     floats[24] = this.settings.waveAmplitude;
     floats[25] = this.settings.waveFrequency;
     floats[26] = performance.now() * 0.001; // time in seconds
-    // Feedback Trails
+    // Feedback Trails — decay strength fades between snapshots so trails don't sit static
     ints[27] = this.settings.feedbackEnabled ? 1 : 0;
-    floats[28] = this.settings.feedbackDecay;
+    if (this.settings.feedbackEnabled && this.settings.feedbackInterval > 0) {
+      const timeSinceSnapshot = performance.now() - this.lastSnapshotTime;
+      const fadeRate = 1.5 / this.settings.feedbackInterval;
+      floats[28] = this.settings.feedbackDecay * Math.exp(-fadeRate * timeSinceSnapshot);
+    } else {
+      floats[28] = this.settings.feedbackDecay;
+    }
 
     this.device.queue.writeBuffer(this.uniformBuffer, 0, data);
   }
