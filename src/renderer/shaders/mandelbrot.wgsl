@@ -159,6 +159,21 @@ fn hdrBrightnessCurveCycling(normalized: f32, bias: f32) -> f32 {
 // Enables smooth morphing between z² fractal variants during transitions
 // ============================================================================
 
+const BLEND_SUPPRESS_STRENGTH: f32 = 0.6;
+const BLEND_SUPPRESS_LIMIT: f32 = 1.5;
+
+// Cumulative measure of how far the blend parameters are from pure fractal states.
+// Range: 0 (pure state) to 6 (all params at midpoint).
+fn blendHybridness() -> f32 {
+  let h1 = 1.0 - abs(2.0 * u.blendPreAbsRe - 1.0);
+  let h2 = 1.0 - abs(2.0 * u.blendPreAbsIm - 1.0);
+  let h3 = 1.0 - abs(2.0 * u.blendPreNegIm - 1.0);
+  let h4 = 1.0 - abs(2.0 * u.blendPostAbsRe - 1.0);
+  let h5 = 1.0 - abs(2.0 * u.blendPostAbsIm - 1.0);
+  let h6 = 1.0 - abs(2.0 * u.blendPostNegIm - 1.0);
+  return h1 + h2 + h3 + h4 + h5 + h6;
+}
+
 // Blended z² iteration - parameterizes all z² variants into a unified formula
 fn iterateBlended(z: vec2f, c: vec2f) -> vec2f {
   // Pre-square transforms: optionally apply abs() to components
@@ -244,6 +259,17 @@ fn fragmentMain(input: VertexOutput) -> @location(0) vec4f {
     // BLENDED MODE: Use parameterized iteration for smooth morphing
     if (useBlendedMode) {
       z = iterateBlended(z, c);
+
+      // Suppress z magnitude during blend to prevent premature escape.
+      // Only activates when |z| exceeds softLimit AND blend is in the
+      // degenerate middle zone. Exponential compression on the excess.
+      let hybridness = blendHybridness();
+      let mag = length(z);
+      if (mag > BLEND_SUPPRESS_LIMIT && hybridness > 0.0) {
+        let excess = mag - BLEND_SUPPRESS_LIMIT;
+        let compressed = excess * exp(-BLEND_SUPPRESS_STRENGTH * hybridness);
+        z = z * ((BLEND_SUPPRESS_LIMIT + compressed) / mag);
+      }
     }
     // LEGACY MODE: Fractal type dispatch using base type
     // 0: Mandelbrot/Julia, 1: Burning Ship, 2: Tricorn, 3: Celtic,
