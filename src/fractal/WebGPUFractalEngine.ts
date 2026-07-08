@@ -70,9 +70,17 @@ export class WebGPUFractalEngine {
 
   private touristMode: TouristMode | null = null;
 
-  // Auto-start tourist mode after inactivity
+  // Auto-start tourist mode after inactivity.
+  //
+  // Model: a single boolean `userHasInteracted` gates the auto-start. Every
+  // input entry point (key, mouse, wheel, touch) funnels through
+  // registerUserAction(), which flips the flag, cancels the pending timer, and
+  // stops the tour if it was auto-started. The manual tour (the `t` key) is
+  // tracked separately via `autoTourActive` so toggling it never races with
+  // the generic input gate.
   private autoTouristTimeout: ReturnType<typeof setTimeout> | null = null;
   private userHasInteracted = false;
+  private autoTourActive = false;
   private static readonly AUTO_TOURIST_DELAY = 20000; // 20 seconds
 
   private constructor(renderer: WebGPURenderer, canvas: HTMLCanvasElement) {
@@ -206,7 +214,7 @@ export class WebGPUFractalEngine {
       onToggleScreenshotMode: () => this.toggleScreenshotMode(),
       onToggleTouristMode: () => this.toggleTouristMode(),
       onPostProcessPresetCycle: (direction) => this.cyclePostProcessPreset(direction),
-      onUserInput: () => this.handleUserInput(),
+      onUserInput: () => this.registerUserAction(),
     };
   }
 
@@ -500,9 +508,7 @@ export class WebGPUFractalEngine {
   // --- Fractal type controls ---
 
   private cycleFractalType(direction: 1 | -1 = 1): void {
-    // User changed fractal - cancel auto-tourist
-    this.userHasInteracted = true;
-    this.cancelAutoTouristTimer();
+    this.registerUserAction();
 
     this.cancelOngoingAnimation();
 
@@ -539,9 +545,7 @@ export class WebGPUFractalEngine {
    * Animate smoothly to the next/previous fractal type (long-press on f/F)
    */
   private animateFractalCycle(direction: 1 | -1 = 1): void {
-    // User changed fractal - cancel auto-tourist
-    this.userHasInteracted = true;
-    this.cancelAutoTouristTimer();
+    this.registerUserAction();
 
     // Get the base fractal type (non-Julia) using bitwise: base = type & ~1
     const baseType = getBaseFractalType(this.state.fractalType);
@@ -684,9 +688,7 @@ export class WebGPUFractalEngine {
     const location = getLocationByKey(key, this.state.fractalType);
     if (!location) return;
 
-    // User navigated - cancel auto-tourist
-    this.userHasInteracted = true;
-    this.cancelAutoTouristTimer();
+    this.registerUserAction();
 
     this.cancelOngoingAnimation();
     this.applyLocationState(location.state);
@@ -703,9 +705,7 @@ export class WebGPUFractalEngine {
     const location = getLocationByKey(key, this.state.fractalType);
     if (!location) return;
 
-    // User navigated - cancel auto-tourist
-    this.userHasInteracted = true;
-    this.cancelAutoTouristTimer();
+    this.registerUserAction();
 
     // Create tourist mode instance if it doesn't exist
     if (!this.touristMode) {
@@ -861,6 +861,8 @@ export class WebGPUFractalEngine {
   }
 
   private startTouristMode(): void {
+    // Manual tour (via the `t` key) — not subject to the auto-tour input gate.
+    this.autoTourActive = false;
     // Create tourist mode instance if it doesn't exist
     if (!this.touristMode) {
       this.touristMode = new TouristMode(
@@ -881,6 +883,7 @@ export class WebGPUFractalEngine {
   }
 
   private stopTouristMode(): void {
+    this.autoTourActive = false;
     if (this.touristMode?.isActive()) {
       this.touristMode.stop();
       this.state.clearInterpolationState();
@@ -896,21 +899,42 @@ export class WebGPUFractalEngine {
    * Use this when the user explicitly navigates somewhere else.
    */
   private cancelOngoingAnimation(): void {
+    this.autoTourActive = false;
     if (this.touristMode?.isActive()) {
       this.touristMode.stop();
       this.state.clearInterpolationState();
     }
   }
 
-  private handleUserInput(): void {
-    // Mark that user has interacted - disable auto-start forever
+  /**
+   * Single entry point for "the user did something". Called by every input
+   * event (keyboard, mouse, wheel, touch) and by programmatic navigation.
+   *
+   * - Disables the auto-start gate forever (auto-tour will never start now).
+   * - Cancels the pending inactivity timer.
+   * - Ends the tour if it was auto-started (the manual `t` tour is left alone;
+   *   it is toggled only via toggleTouristMode).
+   */
+  private registerUserAction(): void {
     this.userHasInteracted = true;
     this.cancelAutoTouristTimer();
 
-    // Stop tourist mode on any user interaction
-    if (this.touristMode?.isActive()) {
-      this.stopTouristMode();
+    if (this.autoTourActive) {
+      this.stopAutoTour();
     }
+  }
+
+  /**
+   * Silently stop an auto-started tour (no "tour ended" toast) and restore the
+   * UI state it changed.
+   */
+  private stopAutoTour(): void {
+    this.autoTourActive = false;
+    if (this.touristMode?.isActive()) {
+      this.touristMode.stop();
+      this.state.clearInterpolationState();
+    }
+    this.overlays.disableAutoScreenshotMode();
   }
 
   /**
@@ -942,6 +966,7 @@ export class WebGPUFractalEngine {
    * Start tourist mode automatically (shows different notification with help text).
    */
   private startTouristModeAuto(): void {
+    this.autoTourActive = true;
     // Enable screenshot mode (hide debug overlay) for cleaner auto-tour experience
     this.overlays.setScreenshotMode(true, true);
 

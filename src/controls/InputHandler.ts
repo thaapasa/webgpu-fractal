@@ -148,6 +148,9 @@ export class InputHandler {
   private handleMouseDown(e: MouseEvent): void {
     if (e.button !== 0) return; // Only left button
 
+    // Mouse interaction gates the auto-tour.
+    this.callbacks.onUserInput?.();
+
     const [x, y] = this.getScreenCoords(e.clientX, e.clientY);
 
     // Julia picker mode: start continuous picking while mouse is held
@@ -242,6 +245,9 @@ export class InputHandler {
   }
 
   private handleDoubleClick(e: MouseEvent): void {
+    // Double-click zoom gates the auto-tour.
+    this.callbacks.onUserInput?.();
+
     const [x, y] = this.getScreenCoords(e.clientX, e.clientY);
     const [width, height] = this.getCanvasSize();
     this.viewState.zoomToPoint(x, y, scaleZoomFactor(2.0), width, height);
@@ -326,6 +332,9 @@ export class InputHandler {
     if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
       return;
     }
+
+    // Any key press counts as user interaction (gates the auto-tour).
+    this.callbacks.onUserInput?.();
 
     switch (e.key) {
       case '+':
@@ -518,19 +527,22 @@ export class InputHandler {
       }
     }
 
-    // Handle f/F key release for short-press fractal cycle
-    if (e.key === 'f' || e.key === 'F') {
-      if (this.fractalKeyHeld === e.key) {
-        // Clear the long-press timeout
-        if (this.fractalLongPressTimeout !== null) {
-          clearTimeout(this.fractalLongPressTimeout);
-          this.fractalLongPressTimeout = null;
-        }
-        // Short press - instant fractal cycle
-        const direction = e.key === 'f' ? 1 : -1;
-        this.callbacks.onFractalCycle?.(direction as 1 | -1);
-        this.fractalKeyHeld = null;
+    // Handle f/F key release for short-press fractal cycle.
+    // Match on fractalKeyHeld (not e.key): if Shift is released a moment before
+    // F, the keyup reports 'f' while we stored 'F', so an exact-case compare
+    // would miss — leaving the long-press timer armed and spuriously firing the
+    // animated cycle. Derive direction from the held key (captured at keydown,
+    // when Shift state is reliable).
+    if ((e.key === 'f' || e.key === 'F') && this.fractalKeyHeld !== null) {
+      // Clear the long-press timeout
+      if (this.fractalLongPressTimeout !== null) {
+        clearTimeout(this.fractalLongPressTimeout);
+        this.fractalLongPressTimeout = null;
       }
+      // Short press - instant fractal cycle
+      const direction = this.fractalKeyHeld === 'f' ? 1 : -1;
+      this.callbacks.onFractalCycle?.(direction as 1 | -1);
+      this.fractalKeyHeld = null;
     }
   }
 
