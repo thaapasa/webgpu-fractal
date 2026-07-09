@@ -222,6 +222,11 @@ fn fragmentMain(input: VertexOutput) -> @location(0) vec4f {
   // Phoenix is naturally Julia-style - always start z at pixel position
   let isPhoenix = baseType == 5;
 
+  // Triple Dragon is a rational map whose iconic form is a Julia render:
+  // z₀ = pixel, c = constant. Its base view uses c = 0 (juliaC set by the
+  // location), the Julia variant lets you pick other c values.
+  let isTripleDragon = baseType == 10;
+
   // Check if we're using blended mode (for smooth fractal type transitions)
   let useBlendedMode = u.blendEnabled != 0;
 
@@ -230,8 +235,8 @@ fn fragmentMain(input: VertexOutput) -> @location(0) vec4f {
     // This enables smooth Mandelbrot ↔ Julia transitions
     z = mix(vec2f(0.0), pos, u.blendJulia);
     c = mix(pos, u.juliaC, u.blendJulia);
-  } else if (isJulia) {
-    // LEGACY MODE: Julia variant
+  } else if (isJulia || isTripleDragon) {
+    // LEGACY MODE: Julia variant (Triple Dragon always uses this z₀ = pixel init)
     // For Phoenix Julia, swap and negate to match conventional orientation
     // (feathers extending horizontally, correct vertical orientation)
     if (isPhoenix) {
@@ -239,7 +244,14 @@ fn fragmentMain(input: VertexOutput) -> @location(0) vec4f {
     } else {
       z = pos;
     }
-    c = u.juliaC;
+    // Base Triple Dragon (non-Julia) is the canonical c = 0 view: 3-fold
+    // symmetric Fatou dust, independent of juliaC so it is fully reproducible
+    // from a shared link. Its Julia variant sweeps c to reveal the dragons.
+    if (isTripleDragon && !isJulia) {
+      c = vec2f(0.0, 0.0);
+    } else {
+      c = u.juliaC;
+    }
   } else {
     // LEGACY MODE: Mandelbrot-style
     z = vec2f(0.0);
@@ -249,10 +261,18 @@ fn fragmentMain(input: VertexOutput) -> @location(0) vec4f {
   var iterations = 0;
   let maxIter = u.maxIterations;
 
+  // Triple Dragon convergence tracking (smooth colouring)
+  var tripleSmooth = 0.0;   // fractional iteration at which the orbit settled
+  var prevDelta = 1e30;     // |z_{n-1} - z_{n-2}| from the previous step
+
   for (var i = 0; i < 65536; i++) {
     if (i >= maxIter) { break; }
     let zMagSq = dot(z, z);
-    if (zMagSq > 256.0) { break; } // Larger escape for higher powers
+    // Triple Dragon (baseType 10) is a bounded rational map: z³/(z³+1) → 1 as
+    // |z| → ∞, so it never truly escapes. It is classified by convergence to a
+    // fixed point instead (handled after the dispatch below), so skip the
+    // magnitude-escape test for it.
+    if (zMagSq > 256.0 && baseType != 10) { break; } // Larger escape for higher powers
 
     let zTemp = z;
 
@@ -335,12 +355,52 @@ fn fragmentMain(input: VertexOutput) -> @location(0) vec4f {
       let ax = abs(z.x);
       z = vec2f(ax * ax - z.y * z.y + c.x, -2.0 * ax * z.y + c.y);
     }
+    else if (baseType == 10) {
+      // Triple Dragon (Paul Bourke): z_{n+1} = z³ / (z³ + 1) + c
+      // Rational map — orbits converge to a fixed point (interior basins) or
+      // wander on the fractal boundary. Coloured by convergence speed below.
+      let z2 = vec2f(z.x * z.x - z.y * z.y, 2.0 * z.x * z.y);          // z²
+      let z3 = vec2f(z.x * z2.x - z.y * z2.y, z.x * z2.y + z.y * z2.x); // z³
+      let denom = vec2f(z3.x + 1.0, z3.y);                             // z³ + 1
+      let denomMagSq = dot(denom, denom);
+      if (denomMagSq < 1e-12) {
+        // Pole (z³ ≈ -1): division blows up. Treat as non-converging interior.
+        iterations = maxIter;
+        break;
+      }
+      // Complex division z³ / denom = z³ · conj(denom) / |denom|²
+      let divRe = (z3.x * denom.x + z3.y * denom.y) / denomMagSq;
+      let divIm = (z3.y * denom.x - z3.x * denom.y) / denomMagSq;
+      z = vec2f(divRe + c.x, divIm + c.y);
+    }
     else {
       // Fallback to standard Mandelbrot
       z = vec2f(z.x * z.x - z.y * z.y + c.x, 2.0 * z.x * z.y + c.y);
     }
 
     iterations++;
+
+    // Triple Dragon convergence test: stop once the orbit settles onto a fixed
+    // point. Convergence speed varies wildly near the Julia set (the dragon),
+    // giving it its fine detail; smooth colouring resolves that. Points that
+    // never settle (the Julia set itself) run to maxIter and are drawn black.
+    if (baseType == 10) {
+      let d = z - zTemp;
+      let dmag = sqrt(dot(d, d));
+      const CONV_EPS = 1e-5;
+      if (dmag < CONV_EPS) {
+        // Geometric convergence → log(step) ~linear in n. Interpolate the
+        // fractional iteration where the step size crossed CONV_EPS.
+        let denomL = log(dmag) - log(prevDelta);
+        var frac = 0.0;
+        if (denomL != 0.0) {
+          frac = clamp((log(CONV_EPS) - log(prevDelta)) / denomL, 0.0, 1.0);
+        }
+        tripleSmooth = f32(iterations - 1) + frac;
+        break;
+      }
+      prevDelta = dmag;
+    }
   }
 
   if (iterations >= maxIter) {
@@ -352,8 +412,14 @@ fn fragmentMain(input: VertexOutput) -> @location(0) vec4f {
   if (baseType == 6) { logBase = 3.0; }      // Multibrot3
   else if (baseType == 7) { logBase = 4.0; } // Multibrot4
 
-  let smoothIter = f32(iterations) + 1.0 - log2(log2(max(dot(z, z), 4.0))) / log2(logBase);
-  let normalized = smoothIter / f32(maxIter);
+  var normalized: f32;
+  if (baseType == 10) {
+    // Triple Dragon: colour by smooth convergence count, not escape magnitude.
+    normalized = tripleSmooth / f32(maxIter);
+  } else {
+    let smoothIter = f32(iterations) + 1.0 - log2(log2(max(dot(z, z), 4.0))) / log2(logBase);
+    normalized = smoothIter / f32(maxIter);
+  }
 
   let isMonotonic = u.isMonotonic != 0;
   let isCycling = !isMonotonic;

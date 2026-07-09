@@ -31,6 +31,8 @@ export enum FractalType {
   FunkyJulia = 17,
   Perpendicular = 18,
   PerpendicularJulia = 19,
+  TripleDragon = 20,
+  TripleDragonJulia = 21,
 }
 
 export const FRACTAL_TYPE_NAMES: Record<FractalType, string> = {
@@ -54,10 +56,12 @@ export const FRACTAL_TYPE_NAMES: Record<FractalType, string> = {
   [FractalType.FunkyJulia]: 'Funky Julia',
   [FractalType.Perpendicular]: 'Perpendicular',
   [FractalType.PerpendicularJulia]: 'Perpendicular Julia',
+  [FractalType.TripleDragon]: 'Triple Dragon',
+  [FractalType.TripleDragonJulia]: 'Triple Dragon Julia',
 };
 
 /** Number of base (non-Julia) fractal types */
-export const BASE_FRACTAL_COUNT = 10;
+export const BASE_FRACTAL_COUNT = 11;
 
 /**
  * Check if a fractal type is a Julia variant.

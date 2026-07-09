@@ -5,7 +5,7 @@
  * - Skippy the Magnificent
  */
 
-import { FractalType, isJuliaType } from '../types';
+import { BASE_FRACTAL_COUNT, FractalType, isJuliaType } from '../types';
 
 /**
  * Complete fractal state that can be bookmarked
@@ -116,7 +116,8 @@ export function decodeBookmark(hash: string): Partial<BookmarkState> {
   const state: Partial<BookmarkState> = {};
 
   const type = decodeNumber(params.get(PARAM.TYPE));
-  if (type !== null && type >= 0 && type <= 19) {
+  // Valid types are 0 .. (2 * base count - 1): each base type plus its Julia variant.
+  if (type !== null && type >= 0 && type < BASE_FRACTAL_COUNT * 2) {
     state.fractalType = type as FractalType;
   }
 

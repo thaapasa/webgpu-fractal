@@ -19,6 +19,7 @@ import { MULTIBROT3_LOCATIONS } from './multibrot3';
 import { MULTIBROT4_LOCATIONS } from './multibrot4';
 import { FUNKY_LOCATIONS } from './funky';
 import { PERPENDICULAR_LOCATIONS } from './perpendicular';
+import { TRIPLE_DRAGON_LOCATIONS } from './tripleDragon';
 
 // Re-export types and helpers
 export type { FamousLocation } from './types';
@@ -39,6 +40,7 @@ const LOCATIONS_BY_FRACTAL: Map<FractalType, FamousLocation[]> = new Map([
   [FractalType.Multibrot4, MULTIBROT4_LOCATIONS],
   [FractalType.Funky, FUNKY_LOCATIONS],
   [FractalType.Perpendicular, PERPENDICULAR_LOCATIONS],
+  [FractalType.TripleDragon, TRIPLE_DRAGON_LOCATIONS],
 ]);
 
 /**
@@ -90,4 +92,5 @@ export {
   MULTIBROT4_LOCATIONS,
   FUNKY_LOCATIONS,
   PERPENDICULAR_LOCATIONS,
+  TRIPLE_DRAGON_LOCATIONS,
 };
