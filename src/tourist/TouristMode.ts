@@ -39,8 +39,11 @@ const FRACTAL_SWITCH_ZOOM_OUT_DURATION = 2000;
 /** Zoom level to reach before switching fractal types */
 const FRACTAL_SWITCH_ZOOM_LEVEL = 0.5;
 
-/** Probability of switching to a different fractal type (0-1) */
+/** Base probability of switching fractals after the first location (0-1) */
 const FRACTAL_SWITCH_PROBABILITY = 0.25;
+
+/** How many recently-visited base fractals to avoid re-selecting */
+const RECENT_FRACTAL_MEMORY = 3;
 
 /** Zoom threshold for "zoomed in" - triggers zoom-out-travel-zoom-in behavior */
 const ZOOMED_IN_THRESHOLD = 2.0;
@@ -324,6 +327,9 @@ export class TouristMode {
   // Track visited locations to avoid immediate repeats
   private visitedLocations: Set<string> = new Set();
 
+  // Base-fractal indices (baseType >> 1) of the most recently entered fractals
+  private recentBaseFractals: number[] = [];
+
   constructor(callbacks: TouristModeCallbacks, initialState: BookmarkState) {
     this.callbacks = callbacks;
     this.currentTarget = this.bookmarkToTarget(initialState);
@@ -357,6 +363,9 @@ export class TouristMode {
     this.active = true;
     this.currentTarget = this.bookmarkToTarget(currentState);
     this.visitedLocations.clear();
+
+    // Seed fractal history so the first switch won't return to where we started
+    this.recentBaseFractals = [getBaseFractalType(this.currentTarget.fractalType) >> 1];
 
     // Start with a pause, then pick the first destination
     this.state = { type: 'paused', startTime: performance.now(), duration: 1000 };
@@ -586,8 +595,8 @@ export class TouristMode {
           // Clear visited locations for the new fractal type
           this.visitedLocations.clear();
 
-          // Pick a destination in the new fractal type
-          this.pickDestinationForCurrentFractal();
+          // Pick a destination in the new fractal type (skip the overview)
+          this.pickDestinationForCurrentFractal(true);
         }
         break;
       }
@@ -598,8 +607,17 @@ export class TouristMode {
    * Pick the next destination
    */
   private pickNextDestination(): void {
-    // Decide whether to switch fractal types
-    if (Math.random() < FRACTAL_SWITCH_PROBABILITY) {
+    const total = getLocationsForFractal(this.currentTarget.fractalType).length;
+    const visited = this.visitedLocations.size;
+
+    // Multiplicative ramp: each location seen multiplies the "keep exploring"
+    // chance by (1 - base). p(1)=0.25, p(2)=0.4375, p(3)=0.578, ... never reaching
+    // 1 on its own, so visiting every location of a big fractal stays possible
+    // (just improbable). Force a switch only once we've genuinely seen them all.
+    let switchProb = 1 - Math.pow(1 - FRACTAL_SWITCH_PROBABILITY, Math.max(1, visited));
+    if (total > 0 && visited >= total) switchProb = 1;
+
+    if (Math.random() < switchProb) {
       this.initiateFractalSwitch();
     } else {
       this.pickDestinationForCurrentFractal();
@@ -610,15 +628,9 @@ export class TouristMode {
    * Initiate a fractal type switch (zoom out first)
    */
   private initiateFractalSwitch(): void {
-    // Pick a random different fractal type
-    const currentBase = getBaseFractalType(this.currentTarget.fractalType);
-    const currentIndex = currentBase >> 1;
-
-    // Pick a random index that's different from the current one
-    let newIndex = Math.floor(Math.random() * BASE_FRACTAL_COUNT);
-    if (newIndex === currentIndex) {
-      newIndex = (newIndex + 1) % BASE_FRACTAL_COUNT;
-    }
+    // Pick a fractal we haven't visited recently, and remember it
+    const newIndex = this.pickNewFractalBaseIndex();
+    this.recordBaseFractal(newIndex);
 
     const newFractalType = (newIndex << 1) as FractalType;
 
@@ -627,7 +639,7 @@ export class TouristMode {
       this.currentTarget.fractalType = newFractalType;
       this.callbacks.onUpdate({ fractalType: newFractalType });
       this.visitedLocations.clear();
-      this.pickDestinationForCurrentFractal();
+      this.pickDestinationForCurrentFractal(true);
       return;
     }
 
@@ -643,28 +655,69 @@ export class TouristMode {
   }
 
   /**
-   * Pick a destination within the current fractal type
+   * Pick a base-fractal index to switch to, avoiding the most recently visited
+   * ones (and, when possible, fractals that have no defined locations).
    */
-  private pickDestinationForCurrentFractal(): void {
+  private pickNewFractalBaseIndex(): number {
+    const excluded = new Set(this.recentBaseFractals);
+
+    // Prefer bases we haven't seen recently AND that actually have locations
+    let candidates: number[] = [];
+    for (let i = 0; i < BASE_FRACTAL_COUNT; i++) {
+      if (excluded.has(i)) continue;
+      if (getLocationsForFractal((i << 1) as FractalType).length > 0) candidates.push(i);
+    }
+
+    // Fallbacks: ignore the "has locations" filter, then ignore history entirely
+    if (candidates.length === 0) {
+      candidates = [...Array(BASE_FRACTAL_COUNT).keys()].filter((i) => !excluded.has(i));
+    }
+    if (candidates.length === 0) {
+      const current = getBaseFractalType(this.currentTarget.fractalType) >> 1;
+      candidates = [...Array(BASE_FRACTAL_COUNT).keys()].filter((i) => i !== current);
+    }
+
+    return candidates[Math.floor(Math.random() * candidates.length)];
+  }
+
+  /**
+   * Record a base-fractal index as recently visited, keeping the last N.
+   */
+  private recordBaseFractal(baseIndex: number): void {
+    this.recentBaseFractals.push(baseIndex);
+    if (this.recentBaseFractals.length > RECENT_FRACTAL_MEMORY) {
+      this.recentBaseFractals.shift();
+    }
+  }
+
+  /**
+   * Pick a destination within the current fractal type.
+   * @param isEntry If true, this is the first location of a freshly switched
+   *   fractal - skip the zoomed-out overview (index 0) as a dull entry point.
+   */
+  private pickDestinationForCurrentFractal(isEntry: boolean = false): void {
     const locations = getLocationsForFractal(this.currentTarget.fractalType);
 
     if (locations.length === 0) {
       // No locations defined for this fractal type, switch to Mandelbrot
       this.currentTarget.fractalType = FractalType.Mandelbrot;
       this.callbacks.onUpdate({ fractalType: FractalType.Mandelbrot });
-      this.pickDestinationForCurrentFractal();
+      this.pickDestinationForCurrentFractal(isEntry);
       return;
     }
 
+    // On a fresh fractal, skip the overview (index 0) as the entry point
+    const pool = isEntry && locations.length > 1 ? locations.slice(1) : locations;
+
     // Filter out recently visited locations (unless we've visited them all)
-    let availableLocations = locations.filter(
+    let availableLocations = pool.filter(
       (loc) => !this.visitedLocations.has(this.getLocationKey(loc))
     );
 
     if (availableLocations.length === 0) {
       // All locations visited, reset and pick any
       this.visitedLocations.clear();
-      availableLocations = locations;
+      availableLocations = pool;
     }
 
     // Pick a random location from the available ones
