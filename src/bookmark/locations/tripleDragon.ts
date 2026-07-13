@@ -42,8 +42,8 @@ export const TRIPLE_DRAGON_LOCATIONS: FamousLocation[] = [
     }
   ),
   createLocation(
-    'Spiraly Dragon',
-    'Thin spiral patterns',
+    'Light Blue',
+    'Thin dragon with intricate details',
     '3',
     FractalType.TripleDragonJulia,
     0,
@@ -57,9 +57,23 @@ export const TRIPLE_DRAGON_LOCATIONS: FamousLocation[] = [
     }
   ),
   createLocation(
+    'Tank Tread',
+    'A connected dragon with endlessly branching arms',
+    '4',
+    FractalType.TripleDragonJulia,
+    0,
+    0,
+    0.5,
+    {
+      cosinePaletteIndex: 5,
+      colorOffset: 0.25,
+      juliaC: [0.476691793393776, -0.118823023835833],
+    }
+  ),
+  createLocation(
     'Bacteria Blot',
     'Connected area with bright edges',
-    '4',
+    '5',
     FractalType.TripleDragonJulia,
     0,
     0,
