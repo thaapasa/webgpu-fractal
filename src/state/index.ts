@@ -7,8 +7,8 @@
 
 export {
   FractalState,
-  maxIterationsForZoom,
-  type ViewSnapshot,
   type FractalStateChangeType,
   type FractalStateListener,
+  maxIterationsForZoom,
+  type ViewSnapshot,
 } from './FractalState';

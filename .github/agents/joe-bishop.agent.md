@@ -63,7 +63,7 @@ When brainstorming, Joe:
 
 - **Project Specification**: [docs/fractal-webapp-spec.md](../../docs/fractal-webapp-spec.md) —
   Joe's vision for the project
-- **Architecture**: [docs/architecture.md](../../docs/architecture.md) — How it all fits together
+- **Architecture**: [ARCHITECTURE.md](../../ARCHITECTURE.md) — How it all fits together
   (Skippy-speak, but useful)
 - **Tourist Mode Plan**: [docs/tourist-mode-plan.md](../../docs/tourist-mode-plan.md) — That "crazy
   idea" is now real!

@@ -6,24 +6,23 @@
  */
 
 import { FractalType, getBaseFractalType } from '../../types';
-import { FamousLocation } from './types';
-
+import { BUFFALO_LOCATIONS } from './buffalo';
+import { BURNING_SHIP_LOCATIONS } from './burningShip';
+import { CELTIC_LOCATIONS } from './celtic';
+import { FUNKY_LOCATIONS } from './funky';
 // Import all location arrays
 import { MANDELBROT_LOCATIONS } from './mandelbrot';
-import { BURNING_SHIP_LOCATIONS } from './burningShip';
-import { TRICORN_LOCATIONS } from './tricorn';
-import { CELTIC_LOCATIONS } from './celtic';
-import { BUFFALO_LOCATIONS } from './buffalo';
-import { PHOENIX_LOCATIONS } from './phoenix';
 import { MULTIBROT3_LOCATIONS } from './multibrot3';
 import { MULTIBROT4_LOCATIONS } from './multibrot4';
-import { FUNKY_LOCATIONS } from './funky';
 import { PERPENDICULAR_LOCATIONS } from './perpendicular';
+import { PHOENIX_LOCATIONS } from './phoenix';
+import { TRICORN_LOCATIONS } from './tricorn';
 import { TRIPLE_DRAGON_LOCATIONS } from './tripleDragon';
+import { FamousLocation } from './types';
 
 // Re-export types and helpers
-export type { FamousLocation } from './types';
 export { createLocation } from './helpers';
+export type { FamousLocation } from './types';
 
 /**
  * Map from base fractal type (even numbers) to their famous locations.
@@ -82,15 +81,15 @@ export function getLocationCount(fractalType: FractalType): number {
 
 // Re-export individual location arrays for direct access if needed
 export {
-  MANDELBROT_LOCATIONS,
-  BURNING_SHIP_LOCATIONS,
-  TRICORN_LOCATIONS,
-  CELTIC_LOCATIONS,
   BUFFALO_LOCATIONS,
-  PHOENIX_LOCATIONS,
+  BURNING_SHIP_LOCATIONS,
+  CELTIC_LOCATIONS,
+  FUNKY_LOCATIONS,
+  MANDELBROT_LOCATIONS,
   MULTIBROT3_LOCATIONS,
   MULTIBROT4_LOCATIONS,
-  FUNKY_LOCATIONS,
   PERPENDICULAR_LOCATIONS,
+  PHOENIX_LOCATIONS,
+  TRICORN_LOCATIONS,
   TRIPLE_DRAGON_LOCATIONS,
 };

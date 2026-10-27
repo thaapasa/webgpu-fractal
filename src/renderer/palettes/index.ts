@@ -7,26 +7,26 @@
 
 // Types
 export type {
-  Vec3,
-  CosinePaletteParams,
-  GradientPaletteParams,
-  PaletteParams,
-  Palette,
   CosinePalette,
+  CosinePaletteParams,
   GradientPalette,
+  GradientPaletteParams,
+  Palette,
+  PaletteParams,
   PaletteType,
+  Vec3,
 } from './types';
 
 // Palette data
-export { COSINE_PALETTES, COSINE_PALETTE_COUNT } from './cosinePalettes';
-export { GRADIENT_PALETTES, GRADIENT_PALETTE_COUNT } from './gradientPalettes';
+export { COSINE_PALETTE_COUNT, COSINE_PALETTES } from './cosinePalettes';
+export { GRADIENT_PALETTE_COUNT, GRADIENT_PALETTES } from './gradientPalettes';
 
 // Helper functions
 export {
-  getCosinePaletteParams,
-  getGradientPaletteParams,
   getCosinePalette,
-  getGradientPalette,
   getCosinePaletteName,
+  getCosinePaletteParams,
+  getGradientPalette,
   getGradientPaletteName,
+  getGradientPaletteParams,
 } from './helpers';

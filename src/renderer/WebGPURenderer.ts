@@ -72,8 +72,8 @@ export class WebGPURenderer {
     }
 
     // Log adapter info (if available)
-    if ('info' in adapter) {
-      const info = (adapter as any).info;
+    if (adapter.info) {
+      const info = adapter.info;
       console.log('  - Adapter:', info?.vendor, info?.architecture);
     }
 

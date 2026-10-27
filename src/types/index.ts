@@ -9,37 +9,37 @@
 export {
   type Complex,
   complex,
-  complexFromTuple,
-  complexToTuple,
-  complexToString,
+  COMPLEX_ZERO,
   complexAdd,
-  complexSub,
-  complexMul,
+  complexFromTuple,
   complexMag,
   complexMagSq,
-  COMPLEX_ZERO,
+  complexMul,
+  complexSub,
+  complexToString,
+  complexToTuple,
 } from './Complex';
 
 // Points and coordinates
 export {
-  type ScreenPoint,
   type FractalPoint,
-  type ScreenSize,
-  screenPoint,
   fractalPoint,
+  type ScreenPoint,
+  screenPoint,
+  type ScreenSize,
   screenSize,
 } from './Point';
 
 // Colors
 export {
-  type Vec3,
-  type Vec4,
-  type RGBColor,
-  type RGBAColor,
-  rgb,
-  rgba,
-  rgbFromVec3,
-  rgbToVec3,
   lerpColor,
   lerpVec3,
+  rgb,
+  rgba,
+  type RGBAColor,
+  type RGBColor,
+  rgbFromVec3,
+  rgbToVec3,
+  type Vec3,
+  type Vec4,
 } from './Color';

@@ -6,8 +6,8 @@
  */
 
 import { FractalType } from '../../types';
-import { FamousLocation } from './types';
 import { createLocation } from './helpers';
+import { FamousLocation } from './types';
 
 export const BURNING_SHIP_LOCATIONS: FamousLocation[] = [
   createLocation(

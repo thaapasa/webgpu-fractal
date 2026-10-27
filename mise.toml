@@ -1,0 +1,6 @@
+[tools]
+node = "24"
+
+[hooks]
+# `mise install` also installs the npm dependencies
+postinstall = "npm ci"

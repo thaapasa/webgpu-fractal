@@ -28,12 +28,12 @@ loading screens. No configuration menus. Just _bam_.
 
 ## For Monkeys Who Want to Run It
 
-**Prerequisites:** [Node.js](https://nodejs.org/) (v20+ required) and a WebGPU-capable browser
-(Chrome 113+, Edge 113+, Firefox Nightly).
+**Prerequisites:** [mise](https://mise.jdx.dev/) and a WebGPU-capable browser (Chrome 113+, Edge
+113+, Firefox Nightly). mise installs Node.js and the npm dependencies.
 
 ```bash
-# Install dependencies
-npm install
+# Install Node.js and dependencies
+mise install
 
 # Start the dev server
 npm run dev
@@ -165,16 +165,16 @@ control to you.
 
 Press **p** / **P** to cycle through GPU post-processing presets:
 
-| Preset       | Effects                                                  |
-| ------------ | -------------------------------------------------------- |
-| **Clean**    | No effects (default) — zero overhead                     |
-| **Cinematic** | Bloom + vignette + ACES filmic tone mapping             |
-| **Vivid**    | Bloom + adaptive sharpening + high saturation            |
-| **Dreamy**   | Heavy bloom + chromatic aberration + vignette             |
+| Preset        | Effects                                       |
+| ------------- | --------------------------------------------- |
+| **Clean**     | No effects (default) — zero overhead          |
+| **Cinematic** | Bloom + vignette + ACES filmic tone mapping   |
+| **Vivid**     | Bloom + adaptive sharpening + high saturation |
+| **Dreamy**    | Heavy bloom + chromatic aberration + vignette |
 
 Effects include bloom (bright glow around fractal boundaries), vignette (edge darkening), adaptive
-sharpening, chromatic aberration (color fringing), and ACES filmic tone mapping. When disabled (Clean
-preset), the fractal renders directly to the canvas with zero overhead.
+sharpening, chromatic aberration (color fringing), and ACES filmic tone mapping. When disabled
+(Clean preset), the fractal renders directly to the canvas with zero overhead.
 
 ---
 
@@ -237,8 +237,8 @@ src/
     └── NotificationOverlay.ts # Toast notifications
 ```
 
-`docs/` has the spec, architecture overview, and implementation plans. Read them if you want to know
-_why_ things are the way they are.
+[ARCHITECTURE.md](./ARCHITECTURE.md) has the architecture overview, and `docs/` has the spec and
+implementation plans. Read them if you want to know _why_ things are the way they are.
 
 ---
 
@@ -255,17 +255,17 @@ available.
 
 ## Documentation
 
-Detailed documentation lives in `docs/`:
+- [Architecture Overview](./ARCHITECTURE.md) — System design and component reference
 
-- [Architecture Overview](./docs/architecture.md) — System design and component reference
+The rest of the detailed documentation lives in `docs/`:
+
 - [Project Specification](./docs/fractal-webapp-spec.md) — Vision and requirements
 - [Phase 1 Implementation Plan](./docs/phase-1-implementation-plan.md) — Technical implementation
   plan (✅ complete)
 - [Tourist Mode Plan](./docs/tourist-mode-plan.md) — Automated exploration feature (✅ complete)
 - [Fractal Interpolation Design](./docs/fractal-interpolation-design.md) — Smooth fractal morphing
   (✅ complete)
-- [Post-Processing Plan](./docs/post-processing-plan.md) — GPU post-processing effects (✅
-  complete)
+- [Post-Processing Plan](./docs/post-processing-plan.md) — GPU post-processing effects (✅ complete)
 - [Deep Zoom Precision Plan](./docs/deep-zoom-precision-plan.md) — Arbitrary precision roadmap
   (future)
 

@@ -5,45 +5,44 @@
  * - Skippy the Magnificent
  */
 
-import { WebGPURenderer } from '../renderer/WebGPURenderer';
-import { InputHandler } from '../controls/InputHandler';
-import {
-  FractalType,
-  FRACTAL_TYPE_NAMES,
-  BASE_FRACTAL_COUNT,
-  isJuliaType,
-  getBaseFractalType,
-  getJuliaVariant,
-} from '../types';
 import {
   BookmarkState,
+  copyShareableUrl,
   readUrlBookmark,
   updateUrlHash,
-  copyShareableUrl,
 } from '../bookmark/BookmarkManager';
 import { getLocationByKey } from '../bookmark/famousLocations';
-import { TouristMode } from '../tourist/TouristMode';
+import { InputHandler } from '../controls/InputHandler';
 import {
-  getCosinePalette,
-  getGradientPalette,
-  getCosinePaletteParams,
-  getGradientPaletteParams,
-  getCosinePaletteName,
-  getGradientPaletteName,
   COSINE_PALETTE_COUNT,
+  getCosinePalette,
+  getCosinePaletteName,
+  getCosinePaletteParams,
+  getGradientPalette,
+  getGradientPaletteName,
+  getGradientPaletteParams,
   GRADIENT_PALETTE_COUNT,
   PaletteParams,
 } from '../renderer/Palette';
-import { OverlayManager, type DebugOverlayState } from '../ui';
-import { FractalState, maxIterationsForZoom } from '../state';
-import { FractalBlendParams } from './FractalBlend';
 import {
-  PostProcessingPipeline,
-  POST_PROCESS_PRESETS,
   POST_PROCESS_PRESET_NAMES,
+  POST_PROCESS_PRESETS,
+  PostProcessingPipeline,
 } from '../renderer/postprocess';
-
 import shaderSource from '../renderer/shaders/mandelbrot.wgsl?raw';
+import { WebGPURenderer } from '../renderer/WebGPURenderer';
+import { FractalState, maxIterationsForZoom } from '../state';
+import { TouristMode } from '../tourist/TouristMode';
+import {
+  BASE_FRACTAL_COUNT,
+  FRACTAL_TYPE_NAMES,
+  FractalType,
+  getBaseFractalType,
+  getJuliaVariant,
+  isJuliaType,
+} from '../types';
+import { type DebugOverlayState, OverlayManager } from '../ui';
+import { FractalBlendParams } from './FractalBlend';
 
 const ITERATION_ADJUST_RATIO = 1.5;
 

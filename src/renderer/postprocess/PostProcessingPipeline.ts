@@ -10,17 +10,16 @@
  * - Skippy the Magnificent
  */
 
-import {
-  PostProcessSettings,
-  PostProcessPreset,
-  DEFAULT_POST_PROCESS_SETTINGS,
-  applyPreset,
-} from './PostProcessState';
-
+import blitSource from '../shaders/blit.wgsl?raw';
 import bloomExtractSource from '../shaders/bloom-extract.wgsl?raw';
 import blurSource from '../shaders/blur.wgsl?raw';
 import compositeSource from '../shaders/composite.wgsl?raw';
-import blitSource from '../shaders/blit.wgsl?raw';
+import {
+  applyPreset,
+  DEFAULT_POST_PROCESS_SETTINGS,
+  PostProcessPreset,
+  PostProcessSettings,
+} from './PostProcessState';
 
 // Matches PostProcessUniforms in composite.wgsl (padded to 16-byte alignment)
 const POST_PROCESS_UNIFORM_SIZE = 128;

@@ -6,8 +6,8 @@
  */
 
 import { FractalType } from '../../types';
-import { FamousLocation } from './types';
 import { createLocation } from './helpers';
+import { FamousLocation } from './types';
 
 export const TRICORN_LOCATIONS: FamousLocation[] = [
   createLocation(

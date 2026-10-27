@@ -464,6 +464,6 @@ review + implementation) **Status:** ✅ Implemented — Option A (Famous Locati
 February 2026 **Last Updated:** February 16, 2026 **Related:**
 
 - [fractal-webapp-spec.md](./fractal-webapp-spec.md) — Main project spec
-- [architecture.md](./architecture.md) — Current system architecture
+- [ARCHITECTURE.md](../ARCHITECTURE.md) — Current system architecture
 - [fractal-interpolation-design.md](./fractal-interpolation-design.md) — Fractal type interpolation
 - [famousLocations.ts](../src/bookmark/famousLocations.ts) — Existing curated locations

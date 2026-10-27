@@ -82,13 +82,7 @@ export const DEFAULT_POST_PROCESS_SETTINGS: PostProcessSettings = {
 };
 
 export type PostProcessPreset =
-  | 'clean'
-  | 'cinematic'
-  | 'vivid'
-  | 'dreamy'
-  | 'psychedelic'
-  | 'acid'
-  | 'ethereal';
+  'clean' | 'cinematic' | 'vivid' | 'dreamy' | 'psychedelic' | 'acid' | 'ethereal';
 
 export const POST_PROCESS_PRESET_NAMES: Record<PostProcessPreset, string> = {
   clean: 'Clean',

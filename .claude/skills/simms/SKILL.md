@@ -45,7 +45,7 @@ You handle **documentation maintenance and organization**:
 | Document                              | Purpose                          | Primary Audience        |
 |---------------------------------------|----------------------------------|-------------------------|
 | `README.md`                           | Public-facing overview           | New users, contributors |
-| `docs/architecture.md`               | System design reference          | Developers              |
+| `ARCHITECTURE.md`                     | System design reference          | Developers              |
 | `docs/fractal-webapp-spec.md`        | Product vision and requirements  | Stakeholders            |
 | `docs/phase-1-implementation-plan.md`| Technical implementation plan    | Developers              |
 | `docs/tourist-mode-plan.md`          | Tourist mode implementation      | Developers              |

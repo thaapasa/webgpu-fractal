@@ -5,8 +5,8 @@
  * - Skippy the Magnificent
  */
 
-import { ViewState } from './ViewState';
 import { InputCallbacks } from './InputCallbacks';
+import { ViewState } from './ViewState';
 
 export type ViewStateChangeCallback = (viewState: ViewState) => void;
 

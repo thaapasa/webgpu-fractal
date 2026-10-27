@@ -6,8 +6,8 @@
  */
 
 import { FractalType } from '../../types';
-import { FamousLocation } from './types';
 import { createLocation } from './helpers';
+import { FamousLocation } from './types';
 
 export const MULTIBROT3_LOCATIONS: FamousLocation[] = [
   createLocation(
@@ -56,7 +56,7 @@ export const MULTIBROT3_LOCATIONS: FamousLocation[] = [
     '5',
     FractalType.Multibrot3,
     0.42814685603247177,
-    0.01274807156960129577,
+    0.012748071569601296,
     77,
     { cosinePaletteIndex: 3, colorOffset: 0 }
   ),

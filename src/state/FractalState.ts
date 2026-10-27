@@ -5,16 +5,16 @@
  * - Skippy the Magnificent
  */
 
-import { FractalType, isJuliaType } from '../types';
-import { ViewState } from '../controls/ViewState';
 import { BookmarkState } from '../bookmark/BookmarkManager';
+import { ViewState } from '../controls/ViewState';
+import { FractalBlendParams } from '../fractal/FractalBlend';
 import {
-  PaletteType,
-  PaletteParams,
   COSINE_PALETTE_COUNT,
   GRADIENT_PALETTE_COUNT,
+  PaletteParams,
+  PaletteType,
 } from '../renderer/Palette';
-import { FractalBlendParams } from '../fractal/FractalBlend';
+import { FractalType, isJuliaType } from '../types';
 
 /** Base iterations at zoom 1 */
 const MAX_ITERATIONS_BASE = 256;
@@ -47,13 +47,7 @@ export interface ViewSnapshot {
  * State change event types
  */
 export type FractalStateChangeType =
-  | 'view'
-  | 'fractalType'
-  | 'julia'
-  | 'palette'
-  | 'iterations'
-  | 'brightness'
-  | 'all';
+  'view' | 'fractalType' | 'julia' | 'palette' | 'iterations' | 'brightness' | 'all';
 
 /**
  * Listener for state changes

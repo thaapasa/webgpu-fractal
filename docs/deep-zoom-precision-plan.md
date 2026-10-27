@@ -237,7 +237,7 @@ Skippy's assessment: which ideas map to real techniques and in what order to imp
 
 ## Related Documents
 
-- [architecture.md](./architecture.md) — Current system architecture
+- [ARCHITECTURE.md](../ARCHITECTURE.md) — Current system architecture
 - [fractal-webapp-spec.md](./fractal-webapp-spec.md) — Product and feature spec
 - [phase-1-implementation-plan.md](./phase-1-implementation-plan.md) — Phase 1 plan (✅ complete)
 

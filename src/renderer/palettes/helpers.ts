@@ -5,14 +5,14 @@
  * - Skippy the Magnificent
  */
 
+import { COSINE_PALETTE_COUNT, COSINE_PALETTES } from './cosinePalettes';
+import { GRADIENT_PALETTE_COUNT, GRADIENT_PALETTES } from './gradientPalettes';
 import {
-  CosinePaletteParams,
-  GradientPaletteParams,
   CosinePalette,
+  CosinePaletteParams,
   GradientPalette,
+  GradientPaletteParams,
 } from './types';
-import { COSINE_PALETTES, COSINE_PALETTE_COUNT } from './cosinePalettes';
-import { GRADIENT_PALETTES, GRADIENT_PALETTE_COUNT } from './gradientPalettes';
 
 /**
  * Get cosine palette parameters for rendering

@@ -9,8 +9,8 @@ everything out."_ _- Skippy the Magnificent_
 
 > **✅ Phase 1 Complete** — Last reviewed January 2026
 
-All Phase 1 features have been implemented and are working. See [architecture.md](./architecture.md)
-for current system documentation.
+All Phase 1 features have been implemented and are working. See
+[ARCHITECTURE.md](../ARCHITECTURE.md) for current system documentation.
 
 | Task                                  | Status                               |
 | ------------------------------------- | ------------------------------------ |
@@ -189,10 +189,7 @@ interface ShaderProgram {
 }
 
 type UniformValue =
-  | number
-  | [number, number]
-  | [number, number, number]
-  | [number, number, number, number];
+  number | [number, number] | [number, number, number] | [number, number, number, number];
 ```
 
 **Implementation Notes:**
@@ -578,6 +575,6 @@ _- Skippy the Magnificent_
 **Document Version:** 1.1 **Author:** Skippy the Magnificent (planning and implementation)
 **Status:** ✅ Phase 1 Complete **Last Updated:** January 2026 **Related:**
 
-- [architecture.md](./architecture.md) — Current system documentation
+- [ARCHITECTURE.md](../ARCHITECTURE.md) — Current system documentation
 - [fractal-webapp-spec.md](./fractal-webapp-spec.md) — Product specification
 - [deep-zoom-precision-plan.md](./deep-zoom-precision-plan.md) — Future precision work

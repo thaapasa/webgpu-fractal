@@ -9,20 +9,20 @@
  * at any time by interacting with the canvas.
  */
 
-import { FractalType, getBaseFractalType, BASE_FRACTAL_COUNT } from '../types';
 import { BookmarkState } from '../bookmark/BookmarkManager';
 import { FamousLocation, getLocationsForFractal } from '../bookmark/famousLocations';
-import {
-  Vec3,
-  PaletteParams,
-  getCosinePaletteParams,
-  getGradientPaletteParams,
-} from '../renderer/Palette';
 import {
   FractalBlendParams,
   getFractalBlendParams,
   interpolateBlendParams,
 } from '../fractal/FractalBlend';
+import {
+  getCosinePaletteParams,
+  getGradientPaletteParams,
+  PaletteParams,
+  Vec3,
+} from '../renderer/Palette';
+import { BASE_FRACTAL_COUNT, FractalType, getBaseFractalType } from '../types';
 
 /** Duration of the pause at each destination (ms) */
 const PAUSE_DURATION = 3000;
@@ -219,8 +219,8 @@ function lerpCircular(ax: number, ay: number, bx: number, by: number, t: number)
   // Convert to polar coordinates
   const aRadius = Math.sqrt(ax * ax + ay * ay);
   const bRadius = Math.sqrt(bx * bx + by * by);
-  let aAngle = Math.atan2(ay, ax);
-  let bAngle = Math.atan2(by, bx);
+  const aAngle = Math.atan2(ay, ax);
+  const bAngle = Math.atan2(by, bx);
 
   // Handle edge cases where points are very close to origin
   const minRadius = 0.01;

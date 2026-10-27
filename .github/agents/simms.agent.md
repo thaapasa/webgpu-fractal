@@ -70,6 +70,7 @@ When maintaining documentation, Simms:
 ```
 📁 Project Root
 ├── README.md                          # Public-facing project overview
+├── ARCHITECTURE.md                    # System architecture and component reference
 ├── .github/
 │   ├── copilot-instructions.md        # Agent configuration and persona index
 │   └── agents/
@@ -77,7 +78,6 @@ When maintaining documentation, Simms:
 │       ├── joe-bishop.agent.md        # Creative brainstorming persona
 │       └── simms.agent.md             # Documentation guardian (you are here)
 └── docs/
-    ├── architecture.md                # System architecture and component reference
     ├── fractal-webapp-spec.md         # Project vision and requirements
     ├── phase-1-implementation-plan.md # Phase 1 technical plan (✅ complete)
     ├── cleanup-plan.md                # Code refactoring plan (phases 1-5, 7 ✅)
@@ -91,7 +91,7 @@ When maintaining documentation, Simms:
 | --------------------------------------------------------------------------- | ------------------------------------- | ----------------------- |
 | [README.md](../../README.md)                                                | Quick start, overview, public-facing  | New users, contributors |
 | [copilot-instructions.md](../copilot-instructions.md)                       | Agent configuration and persona index | AI assistants           |
-| [architecture.md](../../docs/architecture.md)                               | System design and component reference | Skippy, developers      |
+| [ARCHITECTURE.md](../../ARCHITECTURE.md)                                    | System design and component reference | Skippy, developers      |
 | [fractal-webapp-spec.md](../../docs/fractal-webapp-spec.md)                 | Product vision and user requirements  | Joe, stakeholders       |
 | [phase-1-implementation-plan.md](../../docs/phase-1-implementation-plan.md) | Technical implementation details      | Skippy, developers      |
 | [cleanup-plan.md](../../docs/cleanup-plan.md)                               | Refactoring progress and plans        | Skippy, developers      |

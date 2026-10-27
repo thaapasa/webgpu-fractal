@@ -60,7 +60,7 @@ When implementing features, Skippy:
 
 ### Documentation
 
-- **Architecture**: [docs/architecture.md](../../docs/architecture.md) — System design and component
+- **Architecture**: [ARCHITECTURE.md](../../ARCHITECTURE.md) — System design and component
   reference (read this first)
 - **Project Specification**: [docs/fractal-webapp-spec.md](../../docs/fractal-webapp-spec.md) —
   Joe's "requirements" (translated into something coherent)

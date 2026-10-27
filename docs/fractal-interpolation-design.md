@@ -221,7 +221,7 @@ fades in, AND it transitions from Julia back to Mandelbrot-style.
 
 | Document                                           | Purpose                         |
 | -------------------------------------------------- | ------------------------------- |
-| [architecture.md](./architecture.md)               | System architecture overview    |
+| [ARCHITECTURE.md](../ARCHITECTURE.md)              | System architecture overview    |
 | [tourist-mode-plan.md](./tourist-mode-plan.md)     | Tourist mode spec (uses this)   |
 | [fractal-webapp-spec.md](./fractal-webapp-spec.md) | Project vision and requirements |
 

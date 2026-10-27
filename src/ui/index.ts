@@ -5,9 +5,9 @@
  * - Skippy the Magnificent
  */
 
-export { OverlayManager } from './OverlayManager';
-export type { DebugOverlayState } from './OverlayManager';
 export { DebugOverlay } from './DebugOverlay';
 export { FPSOverlay } from './FPSOverlay';
 export { HelpOverlay } from './HelpOverlay';
 export { NotificationOverlay } from './NotificationOverlay';
+export type { DebugOverlayState } from './OverlayManager';
+export { OverlayManager } from './OverlayManager';

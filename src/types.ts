@@ -88,10 +88,7 @@ export function getJuliaVariant(type: FractalType): FractalType {
 }
 
 export type UniformValue =
-  | number
-  | [number, number]
-  | [number, number, number]
-  | [number, number, number, number];
+  number | [number, number] | [number, number, number] | [number, number, number, number];
 
 export interface UniformMap {
   [name: string]: UniformValue;

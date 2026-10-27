@@ -8,14 +8,20 @@
     "build": "tsc && vite build",
     "build:examples": "tsc && vite build --outDir examples/webgpu --base ./",
     "preview": "vite preview",
-    "lint": "tsc --noEmit",
-    "format": "prettier --write \"src/**/*.ts\" \"docs/**/*.md\" \"*.md\" \"*.json\"",
-    "format:check": "prettier --check \"src/**/*.ts\" \"docs/**/*.md\" \"*.md\" \"*.json\""
+    "lint": "tsc --noEmit && eslint .",
+    "format": "prettier --write \"src/**/*.ts\" \"*.{js,ts}\" \"docs/**/*.md\" \"*.md\" \"*.json\"",
+    "format:check": "prettier --check \"src/**/*.ts\" \"*.{js,ts}\" \"docs/**/*.md\" \"*.md\" \"*.json\"",
+    "lint:fix": "eslint --fix ."
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@webgpu/types": "^0.1.71",
+    "eslint": "^10.13.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-simple-import-sort": "^14.0.0",
     "prettier": "^3.9.4",
-    "typescript": "^7.0.2",
+    "typescript": "~6.0.3",
+    "typescript-eslint": "^8.72.1",
     "vite": "^8.1.4",
     "vite-plugin-glsl": "^1.6.0"
   },

@@ -29,7 +29,7 @@ up-to-date. She ensures all personas can find the documentation they need.
 ## Documentation
 
 - `README.md` - Public-facing project overview and quick start
-- `docs/architecture.md` - System architecture and component reference (Simms's domain)
+- `ARCHITECTURE.md` - System architecture and component reference (Simms's domain)
 - `docs/fractal-webapp-spec.md` - Project vision and requirements (Joe's domain)
 - `docs/phase-1-implementation-plan.md` - Technical implementation plan, ✅ complete (Skippy's
   domain)

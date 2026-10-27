@@ -14,7 +14,8 @@ project. I've organized it by component responsibility."_ _— Jennifer Simms_
 | Maintainer   | Simms (documentation)  |
 
 > **📋 Refactoring Complete**: All planned cleanup phases (1-5, 7) complete. Only Phase 6 (render
-> pipeline isolation) remains as optional future work. See [cleanup-plan.md](./cleanup-plan.md).
+> pipeline isolation) remains as optional future work. See
+> [cleanup-plan.md](./docs/cleanup-plan.md).
 
 ---
 
@@ -57,8 +58,8 @@ entirely in the browser, and features HDR (High Dynamic Range) rendering on comp
 
 | Layer      | Technology                          | Version |
 | ---------- | ----------------------------------- | ------- |
-| Language   | TypeScript                          | ^5.3    |
-| Build Tool | Vite                                | ^5.0    |
+| Language   | TypeScript                          | ^6.0    |
+| Build Tool | Vite                                | ^8.1    |
 | Rendering  | WebGPU                              | —       |
 | Shaders    | WGSL                                | —       |
 | HDR        | rgba16float + extended tone mapping | —       |
@@ -424,8 +425,8 @@ Automated fractal exploration that navigates between famous locations.
 - Can switch between fractal types during the tour
 - User interaction immediately stops the tour
 
-**See also:** [fractal-interpolation-design.md](./fractal-interpolation-design.md) for interpolation
-implementation details.
+**See also:** [fractal-interpolation-design.md](./docs/fractal-interpolation-design.md) for
+interpolation implementation details.
 
 ### 10a. Fractal Blending (`src/fractal/FractalBlend.ts`)
 
@@ -483,28 +484,28 @@ Fractal Shader → HDR Texture → Bloom Extract (half-res)
 
 **Files:**
 
-| File                        | Responsibility                                |
-| --------------------------- | --------------------------------------------- |
-| `PostProcessState.ts`       | Settings, presets, and defaults                |
-| `PostProcessingPipeline.ts` | Multi-pass GPU pipeline manager               |
-| `index.ts`                  | Re-exports                                    |
+| File                        | Responsibility                  |
+| --------------------------- | ------------------------------- |
+| `PostProcessState.ts`       | Settings, presets, and defaults |
+| `PostProcessingPipeline.ts` | Multi-pass GPU pipeline manager |
+| `index.ts`                  | Re-exports                      |
 
 **Shaders** (`src/renderer/shaders/`):
 
-| Shader             | Purpose                                                                  |
-| ------------------ | ------------------------------------------------------------------------ |
-| `bloom-extract.wgsl` | Brightness extraction — isolates pixels above a threshold for bloom    |
-| `blur.wgsl`        | Separable Gaussian blur — horizontal and vertical passes at half-res     |
-| `composite.wgsl`   | Final composite — bloom blend, vignette, sharpen, chromatic aberration, ACES tone mapping |
+| Shader               | Purpose                                                                                   |
+| -------------------- | ----------------------------------------------------------------------------------------- |
+| `bloom-extract.wgsl` | Brightness extraction — isolates pixels above a threshold for bloom                       |
+| `blur.wgsl`          | Separable Gaussian blur — horizontal and vertical passes at half-res                      |
+| `composite.wgsl`     | Final composite — bloom blend, vignette, sharpen, chromatic aberration, ACES tone mapping |
 
 **Presets:**
 
-| Preset       | Effects                                               |
-| ------------ | ----------------------------------------------------- |
-| **Clean**    | No effects (default) — direct-to-canvas rendering     |
-| **Cinematic** | Bloom + vignette + ACES tone mapping                 |
-| **Vivid**    | Bloom + adaptive sharpening + high saturation          |
-| **Dreamy**   | Heavy bloom + chromatic aberration + vignette           |
+| Preset        | Effects                                           |
+| ------------- | ------------------------------------------------- |
+| **Clean**     | No effects (default) — direct-to-canvas rendering |
+| **Cinematic** | Bloom + vignette + ACES tone mapping              |
+| **Vivid**     | Bloom + adaptive sharpening + high saturation     |
+| **Dreamy**    | Heavy bloom + chromatic aberration + vignette     |
 
 Cycle presets with `p` / `P` (forward / backward). The active preset name is shown in the debug
 overlay.
@@ -683,10 +684,10 @@ The `hdrBrightnessBias` uniform shifts where bright regions appear:
 
 Three additional WGSL shader files support the post-processing pipeline:
 
-| Shader               | Stage    | Purpose                                                            |
-| -------------------- | -------- | ------------------------------------------------------------------ |
-| `bloom-extract.wgsl` | Pass 1   | Extracts bright pixels above a threshold for bloom (half-res)      |
-| `blur.wgsl`          | Pass 2-3 | Separable Gaussian blur — run twice (horizontal, then vertical)    |
+| Shader               | Stage    | Purpose                                                                                           |
+| -------------------- | -------- | ------------------------------------------------------------------------------------------------- |
+| `bloom-extract.wgsl` | Pass 1   | Extracts bright pixels above a threshold for bloom (half-res)                                     |
+| `blur.wgsl`          | Pass 2-3 | Separable Gaussian blur — run twice (horizontal, then vertical)                                   |
 | `composite.wgsl`     | Pass 4   | Final composite: blends bloom, applies vignette, sharpen, chromatic aberration, ACES tone mapping |
 
 All post-processing shaders use a fullscreen triangle vertex stage (same approach as the fractal
@@ -846,16 +847,16 @@ src/
 
 ## Related Documents
 
-| Document                                                             | Purpose                                     |
-| -------------------------------------------------------------------- | ------------------------------------------- |
-| [README.md](../README.md)                                            | Quick start and user guide                  |
-| [fractal-webapp-spec.md](./fractal-webapp-spec.md)                   | Product vision and requirements             |
-| [phase-1-implementation-plan.md](./phase-1-implementation-plan.md)   | Phase 1 technical plan                      |
-| [deep-zoom-precision-plan.md](./deep-zoom-precision-plan.md)         | Future precision improvements               |
-| [cleanup-plan.md](./cleanup-plan.md)                                 | Code structure refactoring plan             |
-| [tourist-mode-plan.md](./tourist-mode-plan.md)                       | Tourist mode spec (✅ implemented)          |
-| [fractal-interpolation-design.md](./fractal-interpolation-design.md) | Fractal type interpolation (✅ implemented) |
-| [post-processing-plan.md](./post-processing-plan.md)                 | Post-processing effects (✅ implemented)    |
+| Document                                                                  | Purpose                                     |
+| ------------------------------------------------------------------------- | ------------------------------------------- |
+| [README.md](./README.md)                                                  | Quick start and user guide                  |
+| [fractal-webapp-spec.md](./docs/fractal-webapp-spec.md)                   | Product vision and requirements             |
+| [phase-1-implementation-plan.md](./docs/phase-1-implementation-plan.md)   | Phase 1 technical plan                      |
+| [deep-zoom-precision-plan.md](./docs/deep-zoom-precision-plan.md)         | Future precision improvements               |
+| [cleanup-plan.md](./docs/cleanup-plan.md)                                 | Code structure refactoring plan             |
+| [tourist-mode-plan.md](./docs/tourist-mode-plan.md)                       | Tourist mode spec (✅ implemented)          |
+| [fractal-interpolation-design.md](./docs/fractal-interpolation-design.md) | Fractal type interpolation (✅ implemented) |
+| [post-processing-plan.md](./docs/post-processing-plan.md)                 | Post-processing effects (✅ implemented)    |
 
 ---
 

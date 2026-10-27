@@ -241,7 +241,7 @@ _"I don't know how to make it work. I just know that it SHOULD work. Figure it o
 **Document Version:** 1.3 **Author:** Colonel Joe Bishop (ideas) + Skippy (implementation)
 **Status:** Phase 1 & 2 complete, Phase 3 in progress **Last Updated:** February 2026 **Related:**
 
-- [architecture.md](./architecture.md) — System architecture
+- [ARCHITECTURE.md](../ARCHITECTURE.md) — System architecture
 - [phase-1-implementation-plan.md](./phase-1-implementation-plan.md) — Phase 1 plan (complete)
 - [deep-zoom-precision-plan.md](./deep-zoom-precision-plan.md) — Precision roadmap
 - [tourist-mode-plan.md](./tourist-mode-plan.md) — Tourist Mode feature spec (NEW)
